@@ -4,13 +4,12 @@ import { reliableFetch } from "../../src/lib/utils/reliable-fetch";
 
 export const BIGBUY_URL = "https://api.bigbuy.eu";
 
-export interface BbCategory { id: number; name: string; url?: string | null; parentCategory?: number | null; urlImages?: string | null; }
 export interface BbTaxonomy { id: number; name: string; url?: string | null; parentTaxonomy?: number | null; }
 export interface BbManufacturer { id: number; name: string; urlImage?: string | null; reference?: string | null; }
 export interface BbProduct {
   id: number; sku: string; ean13: string | null; weight: number | null;
-  manufacturer: number | null; category: number | null; taxonomy: number | null;
-  wholesalePrice: number; retailPrice: number; inShopsPrice: number | null; active: boolean; condition: string | null;
+  manufacturer: number | null; taxonomy: number | null;
+  wholesalePrice: number; retailPrice: number; active: boolean; condition: string | null;
 }
 export interface BbInfo { id: number; sku: string | null; name: string | null; description: string | null; shortDescription: string | null; }
 export interface BbImage {
@@ -22,7 +21,6 @@ export interface BbStock { id: number; quantity: number; }
 
 export interface SourceData {
   origin: "api" | "fixtures";
-  categories: BbCategory[];
   taxonomies: BbTaxonomy[];
   manufacturers: BbManufacturer[];
   products: BbProduct[];
@@ -89,13 +87,6 @@ function parseList<T>(data: unknown, label: string, map: (r: Raw) => T | null, d
   return out;
 }
 
-function parseCategory(r: Raw): BbCategory | null {
-  const id = idOf(r.id);
-  const name = str(r.name);
-  if (!id || !name) return null;
-  return { id, name, url: str(r.url), parentCategory: idOf(r.parentCategory), urlImages: str(r.urlImages) };
-}
-
 function parseTaxonomy(r: Raw): BbTaxonomy | null {
   const id = idOf(r.id);
   const name = str(r.name);
@@ -110,28 +101,19 @@ function parseManufacturer(r: Raw): BbManufacturer | null {
   return { id, name, urlImage: str(r.urlImage), reference: str(r.reference) };
 }
 
-function firstCategoryId(value: unknown): number | null {
-  if (!Array.isArray(value) || !value.length) return null;
-  const first: unknown = value[0];
-  return idOf(first && typeof first === "object" ? (first as Raw).id : first);
-}
-
 function parseProduct(r: Raw): BbProduct | null {
   const id = idOf(r.id);
   const sku = str(r.sku);
   if (!id || !sku) return null;
-  const categoryRef = idOf(r.category) ?? firstCategoryId(r.categories);
   return {
     id,
     sku: sku.trim(),
     ean13: str(r.ean13),
     weight: num(r.weight),
     manufacturer: idOf(r.manufacturer),
-    category: categoryRef,
     taxonomy: idOf(r.taxonomy),
     wholesalePrice: num(r.wholesalePrice) ?? 0,
     retailPrice: num(r.retailPrice) ?? 0,
-    inShopsPrice: num(r.inShopsPrice),
     active: r.active === undefined ? true : bool(r.active),
     condition: str(r.condition),
   };
@@ -223,7 +205,6 @@ export async function loadSource(opts: LoadOptions): Promise<SourceData> {
     origin = "fixtures";
     opts.log(`  reading fixtures from ${opts.fixturesDir}`);
     raw = {
-      categories: readFixture(opts.fixturesDir, "categories.json", true),
       taxonomies: readFixture(opts.fixturesDir, "taxonomies.json", true),
       manufacturers: readFixture(opts.fixturesDir, "manufacturers.json", true),
       products: readFixture(opts.fixturesDir, "products.json", true),
@@ -235,7 +216,6 @@ export async function loadSource(opts: LoadOptions): Promise<SourceData> {
     origin = "api";
     if (!opts.token) throw new Error("BIGBUY_API_PRODUCTION missing in .env (or pass --fixtures <dir>)");
     fs.mkdirSync(opts.cacheDir, { recursive: true });
-    const categories = await fetchCached(`${BIGBUY_URL}/rest/catalog/categories.json?isoCode=${iso}`, `categories-${iso}.json`, opts);
     const taxonomies = await fetchCached(`${BIGBUY_URL}/rest/catalog/taxonomies.json?isoCode=${iso}`, `taxonomies-${iso}.json`, opts);
     const manufacturers = await fetchCached(`${BIGBUY_URL}/rest/catalog/manufacturers.json?isoCode=${iso}`, `manufacturers-${iso}.json`, opts);
     const products = await fetchCached(`${BIGBUY_URL}/rest/catalog/products.json`, "products.json", opts);
@@ -247,7 +227,7 @@ export async function loadSource(opts: LoadOptions): Promise<SourceData> {
     } catch (err) {
       opts.log(`  ! stock endpoint unavailable, stock filter disabled: ${(err as Error).message.slice(0, 160)}`);
     }
-    raw = { categories, taxonomies, manufacturers, products, info, images, stock };
+    raw = { taxonomies, manufacturers, products, info, images, stock };
   }
 
   let stock: BbStock[] | null = null;
@@ -261,7 +241,6 @@ export async function loadSource(opts: LoadOptions): Promise<SourceData> {
 
   return {
     origin,
-    categories: parseList(raw.categories, "categories", parseCategory, dropped),
     taxonomies: parseList(raw.taxonomies, "taxonomies", parseTaxonomy, dropped),
     manufacturers: parseList(raw.manufacturers, "manufacturers", parseManufacturer, dropped),
     products: parseList(raw.products, "products", parseProduct, dropped),

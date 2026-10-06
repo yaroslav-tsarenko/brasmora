@@ -29,6 +29,7 @@ export const GOOGLE_TAXONOMY: Record<string, GoogleTaxonomyEntry> = {
     id: 661,
     name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Saucepans",
     refine: [
+      { keywords: ["pressure cooker"], id: 660, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Pressure Cookers & Canners" },
       { keywords: ["stockpot", "stock pot", "pasta pot"], id: 663, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Stock Pots" },
       { keywords: ["saute", "sauté"], id: 4423, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Sauté Pans" },
       { keywords: ["cookware set", "pan set", "saucepan set"], id: 4721, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Cookware Sets" },
@@ -42,9 +43,9 @@ export const GOOGLE_TAXONOMY: Record<string, GoogleTaxonomyEntry> = {
       { keywords: ["tagine"], id: 5340, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Tagines & Clay Cooking Pots" },
     ],
   },
+  "cookware-sets": { id: 4721, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Cookware Sets" },
   woks: { id: 664, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Woks" },
   "griddles-grill-pans": { id: 658, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Griddles & Grill Pans" },
-  "pressure-cookers": { id: 660, name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware > Pressure Cookers & Canners" },
   "lids-pan-accessories": {
     id: 4424,
     name: "Home & Garden > Kitchen & Dining > Cookware & Bakeware > Cookware Accessories",
@@ -154,6 +155,14 @@ export const GOOGLE_TAXONOMY: Record<string, GoogleTaxonomyEntry> = {
       { keywords: ["trivet"], id: 677, name: "Home & Garden > Kitchen & Dining > Tableware > Trivets" },
     ],
   },
+  "tapas-snack-dishes": {
+    id: 4026,
+    name: "Home & Garden > Kitchen & Dining > Tableware > Serveware",
+    refine: [
+      { keywords: ["bowl"], id: 3498, name: "Home & Garden > Kitchen & Dining > Tableware > Dinnerware > Bowls" },
+      { keywords: ["tray", "platter"], id: 3802, name: "Home & Garden > Kitchen & Dining > Tableware > Serveware > Serving Platters" },
+    ],
+  },
   cutlery: { id: 675, name: "Home & Garden > Kitchen & Dining > Tableware > Flatware" },
   "cutlery-sets": { id: 5647, name: "Home & Garden > Kitchen & Dining > Tableware > Flatware > Flatware Sets" },
   "forks-spoons": {
@@ -182,6 +191,14 @@ export const GOOGLE_TAXONOMY: Record<string, GoogleTaxonomyEntry> = {
       { keywords: ["beer", "pint"], id: 7568, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Beer Glasses" },
       { keywords: ["shot glass"], id: 2694, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Shot Glasses" },
       { keywords: ["set of", "glass set"], id: 6958, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Drinkware Sets" },
+    ],
+  },
+  "beer-spirit-glasses": {
+    id: 674,
+    name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware",
+    refine: [
+      { keywords: ["beer", "pint", "cider"], id: 7568, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Beer Glasses" },
+      { keywords: ["shot glass", "shot glasses"], id: 2694, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Shot Glasses" },
     ],
   },
   "wine-champagne-glasses": { id: 2712, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Stemware" },
@@ -221,6 +238,13 @@ export const GOOGLE_TAXONOMY: Record<string, GoogleTaxonomyEntry> = {
       { keywords: ["cup"], id: 6049, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Coffee & Tea Cups" },
     ],
   },
+  "cups-saucers": {
+    id: 6049,
+    name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Coffee & Tea Cups",
+    refine: [
+      { keywords: ["saucer", "plate"], id: 6051, name: "Home & Garden > Kitchen & Dining > Tableware > Drinkware > Coffee & Tea Saucers" },
+    ],
+  },
   "coffee-accessories": {
     id: 3988,
     name: "Home & Garden > Kitchen & Dining > Kitchen Appliance Accessories > Coffee Maker & Espresso Machine Accessories",
@@ -241,6 +265,7 @@ export const GOOGLE_TAXONOMY: Record<string, GoogleTaxonomyEntry> = {
       { keywords: ["canister", "storage jar", "kilner", "jar"], id: 667, name: "Home & Garden > Kitchen & Dining > Food Storage > Food Storage Containers" },
     ],
   },
+  "oil-vinegar": { id: 2626, name: "Home & Garden > Kitchen & Dining > Food Storage" },
   "kitchen-organisers": {
     id: 2948,
     name: "Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Kitchen Organizers",

@@ -273,7 +273,7 @@ async function main() {
     refresh: cli.refresh,
     log: (line) => console.log(line),
   });
-  console.log(`  products ${source.products.length}, info ${source.info.length}, image sets ${source.images.length}, taxonomies ${source.taxonomies.length}, categories ${source.categories.length}, manufacturers ${source.manufacturers.length}, stock ${source.stock ? source.stock.length : "n/a"}`);
+  console.log(`  products ${source.products.length}, info ${source.info.length}, image sets ${source.images.length}, taxonomies ${source.taxonomies.length}, manufacturers ${source.manufacturers.length}, stock ${source.stock ? source.stock.length : "n/a"}`);
   if (Object.keys(source.dropped).length) console.log(`  malformed records skipped: ${JSON.stringify(source.dropped)}`);
 
   console.log("[2/5] Selecting and filtering...");

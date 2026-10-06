@@ -8,15 +8,12 @@ import {
   compileMatchers,
   createSlugAllocator,
   descriptionProblem,
-  firstMatch,
-  longestMatch,
   looksEnglishName,
   matcherLabel,
   median,
   normalizeText,
   shortDescriptionFrom,
   stripPhrases,
-  type CompiledMatcher,
 } from "./catalog-text";
 
 export interface SelectedImage {
@@ -71,8 +68,7 @@ export interface SelectionResult {
   demotedSubs: Array<{ slug: string; name: string; primary: string; count: number }>;
   droppedPrimaries: Array<{ slug: string; name: string; count: number }>;
   emptySubs: Array<{ slug: string; primary: string }>;
-  nearMisses: PathCount[];
-  unrouted: PathCount[];
+  unmapped: PathCount[];
   routedTaxonomies: Array<PathCount & { to: string }>;
   primaryMedians: Record<string, number>;
   brands: Array<{ name: string; count: number }>;
@@ -86,30 +82,11 @@ export interface SelectionResult {
   };
 }
 
-interface Level {
-  id: number;
-  name: string;
-  norm: string;
-}
-
-interface CompiledSub {
-  primary: string;
-  slug: string;
-  name: string;
-  keywords: CompiledMatcher[];
-}
-
-interface CompiledPrimary {
-  slug: string;
-  name: string;
-  keywords: CompiledMatcher[];
-  subs: CompiledSub[];
-}
-
-interface Route {
-  primary: string;
-  sub: string | null;
-}
+export type TaxonomyDecision =
+  | { kind: "route"; primary: string; sub: string | null; matched: string }
+  | { kind: "blocked"; rule: string; matched: string }
+  | { kind: "unmapped" }
+  | { kind: "out-of-scope" };
 
 interface Candidate extends Omit<SelectedProduct, "slug" | "sku"> {
   familyKey: string;
@@ -125,6 +102,28 @@ const COLOUR_WORDS = [
 ];
 const COLOUR_RE = new RegExp(`\\b(?:${COLOUR_WORDS.join("|")})\\b`, "g");
 
+const PACK_PATTERNS = [
+  /\(\s*(\d+)\s*(?:units?|uds?\.?|unidades)\s*\)/gi,
+  /\(\s*pack\s*(?:of\s*)?(\d+)\s*x?\s*\)/gi,
+  /\b(\d+)\s*(?:units|unidades)\b/gi,
+];
+
+function pathKey(path: string): string {
+  return path
+    .split(">")
+    .map((part) => normalizeText(part))
+    .filter(Boolean)
+    .join(" > ");
+}
+
+export function packUnits(name: string): number {
+  let units = 1;
+  for (const re of PACK_PATTERNS) {
+    for (const m of name.matchAll(re)) units = Math.max(units, Number(m[1]) || 1);
+  }
+  return units;
+}
+
 export function validateConfig(config: CatalogConfig): string[] {
   const problems: string[] = [];
   if (config.storefront.length > config.limits.maxTopLevel) {
@@ -138,15 +137,35 @@ export function validateConfig(config: CatalogConfig): string[] {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) problems.push(`invalid slug "${slug}"`);
     }
   }
-  for (const m of config.taxonomyMap) {
-    const [primary, sub] = m.to.split("/");
+  const checkTarget = (to: string, label: string) => {
+    const [primary, sub] = to.split("/");
     const p = config.storefront.find((x) => x.slug === primary);
-    if (!p) problems.push(`taxonomyMap "${m.match}" points to unknown category "${m.to}"`);
-    else if (sub && !p.subs.some((s) => s.slug === sub)) problems.push(`taxonomyMap "${m.match}" points to unknown subcategory "${m.to}"`);
+    if (!p) problems.push(`${label} points to unknown category "${to}"`);
+    else if (sub && !p.subs.some((s) => s.slug === sub)) problems.push(`${label} points to unknown subcategory "${to}"`);
+  };
+  const seen = new Map<string, string>();
+  for (const r of config.taxonomy.routes) {
+    checkTarget(r.to, `taxonomy route "${r.path}"`);
+    const key = pathKey(r.path);
+    if (seen.has(key)) problems.push(`taxonomy path "${r.path}" is listed twice`);
+    seen.set(key, r.to);
+  }
+  const ruleIds = new Set(config.exclude.rules.map((r) => r.id));
+  for (const e of config.taxonomy.exclude) {
+    if (!ruleIds.has(e.rule)) problems.push(`taxonomy exclusion "${e.path}" uses unknown rule "${e.rule}"`);
+    const key = pathKey(e.path);
+    if (seen.has(key)) problems.push(`taxonomy path "${e.path}" is both routed and excluded`);
+    seen.set(key, e.rule);
+  }
+  for (const r of config.taxonomy.reroute) checkTarget(r.to, `reroute "${r.startsWith.join(", ")}"`);
+  for (const r of config.exclude.rules) for (const t of r.onlyIn || []) checkTarget(t, `exclude rule "${r.id}" onlyIn`);
+  for (const slug of Object.keys(config.quality.maxPackUnitsByPrimary)) {
+    if (!config.storefront.some((p) => p.slug === slug)) problems.push(`quality.maxPackUnitsByPrimary has unknown category "${slug}"`);
   }
   if (config.limits.maxPerPrimary < config.limits.minPerPrimary) problems.push("limits.maxPerPrimary < limits.minPerPrimary");
   if (config.limits.maxPerSub < config.limits.minPerSub) problems.push("limits.maxPerSub < limits.minPerSub");
   if (config.price.minRetail >= config.price.maxRetail) problems.push("price.minRetail >= price.maxRetail");
+  if (!(config.price.sourceToBaseRate > 0)) problems.push("price.sourceToBaseRate must be positive");
   return problems;
 }
 
@@ -159,19 +178,30 @@ function round2(n: number): number {
 }
 
 export function computePrice(retail: number, config: CatalogConfig["price"]): number {
-  let price = round2(retail * config.multiplier);
+  let price = round2(retail * config.sourceToBaseRate * (1 + config.vatPercent / 100) * config.multiplier);
   if (config.roundToNinetyNine && price > 1) price = round2(Math.ceil(price) - 0.01);
   return price;
 }
 
-function qualityScore(images: SelectedImage[], descriptionText: string, descriptionHtml: string, ean: string | null, brand: string | null): number {
+export function computeCost(wholesale: number, config: CatalogConfig["price"]): number {
+  return round2(wholesale * config.sourceToBaseRate);
+}
+
+function qualityScore(images: SelectedImage[], descriptionText: string, descriptionHtml: string, ean: string | null, brand: string | null, units: number): number {
   let q = Math.min(images.length, 5) * 2;
   if (images[0]?.whiteBackground) q += 3;
   q += Math.min(descriptionText.length / 300, 4);
   if (descriptionHtml.includes("<ul>")) q += 1;
   if (ean) q += 1;
-  if (brand) q += 1;
+  if (brand) q += 2;
+  if (units > 6) q -= 2;
+  else if (units > 1) q -= 1;
   return round2(q);
+}
+
+function priceFit(price: number, med: number): number {
+  if (!(med > 0) || !(price > 0)) return 0;
+  return -Math.min(3, Math.abs(Math.log(price / med)) * 1.5);
 }
 
 export function pickImages(images: BbImage[], quality: CatalogConfig["quality"]): SelectedImage[] {
@@ -200,96 +230,47 @@ export function familyKeyOf(name: string): { nameKey: string; familyKey: string 
   return { nameKey, familyKey };
 }
 
-export function createRouter(config: CatalogConfig) {
-  const primaries: CompiledPrimary[] = config.storefront.map((p) => ({
-    slug: p.slug,
-    name: p.name,
-    keywords: compileMatchers(p.keywords),
-    subs: p.subs.map((s) => ({ primary: p.slug, slug: s.slug, name: s.name, keywords: compileMatchers(s.keywords) })),
-  }));
-  const allSubs = primaries.flatMap((p) => p.subs);
-  const primaryKeywords = primaries.flatMap((p) => p.keywords);
-  const scope = compileMatchers(config.include.scopeKeywords);
-  const mapById = new Map<number, string>();
-  const mapByName: Array<{ norm: string; path: boolean; to: string }> = [];
-  for (const m of config.taxonomyMap) {
-    if (typeof m.match === "number") mapById.set(m.match, m.to);
-    else {
-      const isPath = m.match.includes(">");
-      mapByName.push({ norm: isPath ? m.match.split(">").map((x) => normalizeText(x)).join(" > ") : normalizeText(m.match), path: isPath, to: m.to });
+export function createTaxonomyRouter(config: CatalogConfig["taxonomy"]) {
+  const root = pathKey(config.root);
+  const entries = new Map<string, TaxonomyDecision>();
+  for (const r of config.routes) {
+    const [primary, sub] = r.to.split("/");
+    entries.set(pathKey(r.path), { kind: "route", primary, sub: sub || null, matched: r.path });
+  }
+  for (const e of config.exclude) entries.set(pathKey(e.path), { kind: "blocked", rule: e.rule, matched: e.path });
+  const watch = config.watch.map(pathKey);
+  const reroutes = config.reroute.map((r) => {
+    const [primary, sub] = r.to.split("/");
+    const alternatives = r.startsWith.map((s) => normalizeText(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    return { test: new RegExp(`^(?:${alternatives})(?![a-z0-9])`), primary, sub: sub || null, label: r.startsWith[0] };
+  });
+
+  function decide(segments: string[]): TaxonomyDecision {
+    const parts = segments.map((s) => normalizeText(s)).filter(Boolean);
+    if (!parts.length || parts[0] !== root) return { kind: "out-of-scope" };
+    const rel = parts.slice(1);
+    for (let i = rel.length; i > 0; i--) {
+      const hit = entries.get(rel.slice(0, i).join(" > "));
+      if (hit) return hit;
     }
+    const relKey = rel.join(" > ");
+    return watch.some((w) => relKey === w || relKey.startsWith(`${w} > `)) ? { kind: "unmapped" } : { kind: "out-of-scope" };
   }
 
-  function resolveTarget(to: string): Route {
-    const [primary, sub] = to.split("/");
-    return { primary, sub: sub || null };
+  function reroute(decision: TaxonomyDecision, name: string): TaxonomyDecision {
+    if (decision.kind !== "route") return decision;
+    const norm = normalizeText(name);
+    const hit = reroutes.find((r) => r.test.test(norm));
+    if (!hit || (hit.primary === decision.primary && hit.sub === decision.sub)) return decision;
+    return { kind: "route", primary: hit.primary, sub: hit.sub, matched: `${decision.matched} → name "${hit.label}"` };
   }
 
-  function bestSubIn(text: string, subs: CompiledSub[]): CompiledSub | null {
-    let best: CompiledSub | null = null;
-    let bestLen = 0;
-    for (const s of subs) {
-      const len = longestMatch(text, s.keywords);
-      if (len > bestLen) {
-        best = s;
-        bestLen = len;
-      }
-    }
-    return best;
-  }
-
-  function subByName(name: string, subs: CompiledSub[]): CompiledSub | null {
-    let best: { sub: CompiledSub; index: number; length: number } | null = null;
-    for (const s of subs) {
-      const hit = firstMatch(name, s.keywords);
-      if (!hit) continue;
-      if (!best || hit.index < best.index || (hit.index === best.index && hit.length > best.length)) best = { sub: s, index: hit.index, length: hit.length };
-    }
-    return best?.sub ?? null;
-  }
-
-  function refineByName(route: Route, nameNorm: string): Route {
-    const p = primaries.find((x) => x.slug === route.primary);
-    if (!p) return route;
-    const byName = subByName(nameNorm, p.subs);
-    return byName ? { primary: route.primary, sub: byName.slug } : route;
-  }
-
-  function route(tax: Level[], cat: Level[], nameNorm: string): { route: Route | null; reason: "out-of-scope" | "near-miss" | "unrouted" | null } {
-    for (const level of tax) {
-      const to = mapById.get(level.id);
-      if (to) return { route: refineByName(resolveTarget(to), nameNorm), reason: null };
-    }
-    const levels = [...tax, ...cat];
-    const scopeOk = levels.some((l) => anyMatch(l.norm, scope) || anyMatch(l.norm, primaryKeywords));
-    if (!scopeOk) {
-      const touches = levels.some((l) => bestSubIn(l.norm, allSubs));
-      return { route: null, reason: touches ? "near-miss" : "out-of-scope" };
-    }
-    const taxPath = tax.map((l) => l.norm).reverse().join(" > ");
-    for (const m of mapByName) {
-      const hit = m.path ? taxPath.endsWith(m.norm) : tax.some((l) => l.norm === m.norm);
-      if (hit) return { route: refineByName(resolveTarget(m.to), nameNorm), reason: null };
-    }
-    for (const level of levels) {
-      const sub = bestSubIn(level.norm, allSubs);
-      if (sub) return { route: refineByName({ primary: sub.primary, sub: sub.slug }, nameNorm), reason: null };
-      const primary = primaries.find((p) => anyMatch(level.norm, p.keywords));
-      if (primary) return { route: refineByName({ primary: primary.slug, sub: null }, nameNorm), reason: null };
-    }
-    if (config.include.nameFallback) {
-      const sub = subByName(nameNorm, allSubs);
-      if (sub) return { route: { primary: sub.primary, sub: sub.slug }, reason: null };
-    }
-    return { route: null, reason: "unrouted" };
-  }
-
-  return { route, primaries };
+  return { decide, reroute };
 }
 
 export interface ExcludeTexts {
-  taxonomy: string[];
-  category: string[];
+  target: string;
+  leaf: string;
   name: string;
   description: string;
   brand: string;
@@ -297,23 +278,26 @@ export interface ExcludeTexts {
 
 export function createExcluder(config: CatalogConfig) {
   const ignore = compileMatchers(config.exclude.ignorePhrases);
-  const rules = config.exclude.rules.map((r) => ({ id: r.id, scopes: new Set<MatchScope>(r.scopes), keywords: compileMatchers(r.keywords), skipRoot: Boolean(r.skipRootLevel) }));
-  const joinLevels = (levels: string[]) => stripPhrases(normalizeText(levels.join(" > ")), ignore);
+  const rules = config.exclude.rules.map((r) => ({
+    id: r.id,
+    scopes: r.scopes,
+    keywords: compileMatchers(r.keywords),
+    unless: compileMatchers(r.unless || []),
+    onlyIn: r.onlyIn || null,
+  }));
   return (texts: ExcludeTexts): { rule: string; keyword: string } | null => {
     const prepared: Record<MatchScope, string> = {
-      taxonomy: joinLevels(texts.taxonomy),
-      category: joinLevels(texts.category),
+      leaf: stripPhrases(normalizeText(texts.leaf), ignore),
       name: stripPhrases(normalizeText(texts.name), ignore),
       description: stripPhrases(normalizeText(texts.description), ignore),
       brand: normalizeText(texts.brand),
     };
-    const belowRoot: Partial<Record<MatchScope, string>> = {
-      taxonomy: joinLevels(texts.taxonomy.slice(1)),
-      category: joinLevels(texts.category.slice(1)),
-    };
+    const rawName = normalizeText(texts.name);
     for (const rule of rules) {
+      if (rule.onlyIn && !rule.onlyIn.some((t) => texts.target === t || texts.target.startsWith(`${t}/`))) continue;
+      if (rule.unless.length && anyMatch(rawName, rule.unless)) continue;
       for (const scope of rule.scopes) {
-        const text = rule.skipRoot && scope in belowRoot ? belowRoot[scope]! : prepared[scope];
+        const text = prepared[scope];
         if (!text) continue;
         const hit = anyMatch(text, rule.keywords);
         if (hit) return { rule: rule.id, keyword: `${scope}:${matcherLabel(hit)}` };
@@ -331,60 +315,71 @@ function topPaths(map: Map<string, number>, limit: number): PathCount[] {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([path, count]) => ({ path, count }));
 }
 
+function withoutBrand(name: string, brand: string | null): string {
+  if (!brand) return name;
+  const escaped = brand.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return name.replace(new RegExp(escaped, "gi"), " ").replace(/\s+/g, " ").trim() || name;
+}
+
+function seededRandom(seed: number) {
+  let state = seed >>> 0 || 1;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+const SAMPLE_SIZE = 12;
+
 export function selectCatalog(source: SourceData, config: CatalogConfig, options: { limit?: number; trace?: Map<number, string> } = {}): SelectionResult {
   const excluded: Record<string, number> = {};
   const excludedSamples: Record<string, string[]> = {};
+  const random = seededRandom(20261006);
   const exclude = (reason: string, label: string | null) => {
-    excluded[reason] = (excluded[reason] || 0) + 1;
+    const seen = (excluded[reason] = (excluded[reason] || 0) + 1);
     if (label == null) return;
     const id = options.trace ? /\[(\d+)\]/.exec(label) : null;
     if (id) options.trace!.set(Number(id[1]), reason);
     const list = (excludedSamples[reason] ||= []);
-    if (list.length < 8) list.push(label);
+    if (list.length < SAMPLE_SIZE) list.push(label);
+    else {
+      const j = Math.floor(random() * seen);
+      if (j < SAMPLE_SIZE) list[j] = label;
+    }
   };
 
   const taxById = new Map(source.taxonomies.map((t) => [t.id, t]));
-  const catById = new Map(source.categories.map((c) => [c.id, c]));
   const mfgById = new Map(source.manufacturers.map((m) => [m.id, m.name]));
   const infoById = new Map(source.info.map((i) => [i.id, i]));
   const imagesById = new Map(source.images.map((i) => [i.id, i.images]));
   const stockById = source.stock && source.stock.length ? new Map(source.stock.map((s) => [s.id, s.quantity])) : null;
 
-  const taxChainCache = new Map<number, Level[]>();
-  const catChainCache = new Map<number, Level[]>();
-  function chain(id: number | null, cache: Map<number, Level[]>, lookup: (id: number) => { name: string; parent: number | null } | undefined): Level[] {
+  const chainCache = new Map<number, string[]>();
+  function taxChain(id: number | null): string[] {
     if (!id) return [];
-    const cached = cache.get(id);
+    const cached = chainCache.get(id);
     if (cached) return cached;
-    const out: Level[] = [];
+    const out: string[] = [];
     const seen = new Set<number>();
     let cur: number | null = id;
     while (cur && !seen.has(cur)) {
-      const node = lookup(cur);
+      const node = taxById.get(cur);
       if (!node) break;
       seen.add(cur);
-      out.push({ id: cur, name: node.name, norm: normalizeText(node.name) });
-      cur = node.parent && node.parent > 0 ? node.parent : null;
+      out.unshift(node.name.replace(/\s+/g, " ").trim());
+      cur = node.parentTaxonomy && node.parentTaxonomy > 0 ? node.parentTaxonomy : null;
     }
-    cache.set(id, out);
+    chainCache.set(id, out);
     return out;
   }
-  const taxChain = (id: number | null) => chain(id, taxChainCache, (x) => {
-    const t = taxById.get(x);
-    return t ? { name: t.name, parent: t.parentTaxonomy ?? null } : undefined;
-  });
-  const catChain = (id: number | null) => chain(id, catChainCache, (x) => {
-    const c = catById.get(x);
-    return c ? { name: c.name, parent: c.parentCategory ?? null } : undefined;
-  });
 
-  const rootCats = new Set(config.source.rootCategoryIds);
-  const rootTax = new Set(config.source.rootTaxonomyIds);
-  const { route, primaries } = createRouter(config);
+  const router = createTaxonomyRouter(config.taxonomy);
+  const decisionCache = new Map<number, TaxonomyDecision>();
   const excludeCheck = createExcluder(config);
+  const primaries = config.storefront;
+  const allowedConditions = new Set(config.quality.allowedConditions.map((c) => c.toUpperCase()));
 
-  const nearMisses = new Map<string, number>();
-  const unrouted = new Map<string, number>();
+  const unmapped = new Map<string, number>();
   const routedTax = new Map<string, { count: number; to: string }>();
   let active = 0;
   let inScope = 0;
@@ -398,42 +393,47 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
     const rawName = info?.name?.trim() || "";
     const label = `${rawName || "(no name)"} [${p.id}]`;
     if (!p.active) {
-      exclude("inactive", label);
+      exclude("inactive", options.trace ? label : null);
       continue;
     }
     active++;
-    const tax = taxChain(p.taxonomy);
-    const cat = catChain(p.category);
-    if (rootCats.size && !cat.some((l) => rootCats.has(l.id))) {
-      exclude("outside-root", label);
+    const segments = taxChain(p.taxonomy);
+    const pathLabel = segments.join(" > ") || "(no taxonomy)";
+    let decision = p.taxonomy ? decisionCache.get(p.taxonomy) : undefined;
+    if (!decision) {
+      decision = router.decide(segments);
+      if (p.taxonomy) decisionCache.set(p.taxonomy, decision);
+    }
+    if (decision.kind === "out-of-scope") {
+      exclude("out-of-scope", options.trace ? `${label} <${pathLabel}>` : null);
       continue;
     }
-    if (rootTax.size && !tax.some((l) => rootTax.has(l.id))) {
-      exclude("outside-root", label);
+    if (decision.kind === "unmapped") {
+      bump(unmapped, pathLabel);
+      exclude("unmapped-taxonomy", `${label} <${pathLabel}>`);
       continue;
     }
-    const knownSkus = [p.sku];
-    const name = cleanProductName(rawName, knownSkus);
-    const nameNorm = normalizeText(name);
-    const taxPath = tax.map((l) => l.name).reverse().join(" > ");
-    const catPath = cat.map((l) => l.name).reverse().join(" > ");
-    const pathLabel = taxPath || catPath || "(no taxonomy)";
-
-    const routed = route(tax, cat, nameNorm);
-    if (!routed.route) {
-      const reason = routed.reason || "out-of-scope";
-      if (reason === "near-miss") bump(nearMisses, pathLabel);
-      if (reason === "unrouted") bump(unrouted, pathLabel);
-      exclude(reason, reason === "out-of-scope" && !options.trace ? null : `${label} <${pathLabel}>`);
+    if (decision.kind === "blocked") {
+      exclude(decision.rule, `${label} {taxonomy:${decision.matched}}`);
       continue;
     }
     inScope++;
 
+    const knownSkus = [p.sku];
+    const name = cleanProductName(rawName, knownSkus);
+    const routed = router.reroute(decision, name);
+    if (routed.kind !== "route") continue;
+
+    if (allowedConditions.size && p.condition && !allowedConditions.has(p.condition.toUpperCase())) {
+      exclude("condition", `${label} {condition:${p.condition}}`);
+      continue;
+    }
+
     const brandRaw = p.manufacturer ? mfgById.get(p.manufacturer) ?? null : null;
     const desc = cleanDescriptionHtml(info?.description, knownSkus);
     const hit = excludeCheck({
-      taxonomy: tax.map((l) => l.name).reverse(),
-      category: cat.map((l) => l.name).reverse(),
+      target: `${routed.primary}${routed.sub ? `/${routed.sub}` : ""}`,
+      leaf: segments[segments.length - 1] || "",
       name: rawName,
       description: desc.text,
       brand: brandRaw || "",
@@ -455,8 +455,14 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
       exclude("name-too-long", label);
       continue;
     }
-    if (!looksEnglishName(name)) {
+    if (!looksEnglishName(withoutBrand(name, brandRaw))) {
       exclude("name-not-english", label);
+      continue;
+    }
+    const units = packUnits(name);
+    const maxUnits = config.quality.maxPackUnitsByPrimary[routed.primary] ?? config.quality.maxPackUnits;
+    if (units > maxUnits) {
+      exclude("bulk-pack", `${label} {${units} units > ${maxUnits}}`);
       continue;
     }
     const descProblem = descriptionProblem(desc.text, config.quality.minDescriptionChars);
@@ -469,18 +475,19 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
       exclude("no-images", label);
       continue;
     }
-    const retail = config.price.source === "inShopsPrice" ? p.inShopsPrice ?? 0 : p.retailPrice;
-    const price = computePrice(retail, config.price);
+    const price = computePrice(p.retailPrice, config.price);
+    const cost = p.wholesalePrice > 0 ? computeCost(p.wholesalePrice, config.price) : null;
     if (!(price > 0) || price < config.price.minRetail) {
-      exclude("price-below-min", `${label} €${price}`);
+      exclude("price-below-min", `${label} £${price}`);
       continue;
     }
     if (price > config.price.maxRetail) {
-      exclude("price-above-max", `${label} €${price}`);
+      exclude("price-above-max", `${label} £${price}`);
       continue;
     }
-    if (p.wholesalePrice > 0 && price < p.wholesalePrice * config.price.minMarginOverWholesale) {
-      exclude("low-margin", `${label} €${price} vs cost €${p.wholesalePrice}`);
+    const netPrice = price / (1 + config.price.vatPercent / 100);
+    if (cost && netPrice < cost * config.price.minMarginOverWholesale) {
+      exclude("low-margin", `${label} £${price} (net £${round2(netPrice)}) vs cost £${cost}`);
       continue;
     }
 
@@ -493,9 +500,10 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
       continue;
     }
     const ean = p.ean13 && /^\d{13}$/.test(p.ean13) ? p.ean13 : null;
-    const routeKey = `${pathLabel}`;
+    const to = `${routed.primary}${routed.sub ? `/${routed.sub}` : ""}`;
+    const routeKey = `${pathLabel} → ${to}`;
     const prev = routedTax.get(routeKey);
-    routedTax.set(routeKey, { count: (prev?.count || 0) + 1, to: `${routed.route.primary}${routed.route.sub ? `/${routed.route.sub}` : ""}` });
+    routedTax.set(routeKey, { count: (prev?.count || 0) + 1, to });
 
     candidates.push({
       sourceId: p.id,
@@ -506,14 +514,14 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
       shortDescription,
       brand,
       price,
-      costPrice: p.wholesalePrice > 0 ? round2(p.wholesalePrice) : null,
+      costPrice: cost,
       weight: p.weight && p.weight > 0 ? p.weight : null,
       ean,
       quantity: stockById ? Math.max(0, Math.floor(stockById.get(p.id) ?? 0)) : 999,
-      primary: routed.route.primary,
-      sub: routed.route.sub,
+      primary: routed.primary,
+      sub: routed.sub,
       images,
-      quality: qualityScore(images, desc.text, desc.html, ean, brand),
+      quality: qualityScore(images, desc.text, desc.html, ean, brand, units),
       taxonomyPath: pathLabel,
       coverWhite: images[0]?.whiteBackground ?? false,
       ...familyKeyOf(name),
@@ -552,17 +560,22 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
   const subPrices = new Map<string, number[]>();
   for (const c of deduped) if (c.sub) (subPrices.get(c.sub) || subPrices.set(c.sub, []).get(c.sub)!).push(c.price);
   const subMedians = new Map([...subPrices.entries()].map(([k, v]) => [k, { n: v.length, med: median(v) }]));
-  const priced = deduped.filter((c) => {
+  const medianFor = (c: Candidate) => {
     const sub = c.sub ? subMedians.get(c.sub) : undefined;
     const useSub = config.price.anomalyBasis === "subcategory" && sub && sub.n >= config.price.anomalyMinSample;
-    const med = useSub ? round2(sub.med) : primaryMedians[c.primary];
-    const sample = useSub ? sub.n : primarySize.get(c.primary) || 0;
+    return { med: useSub ? round2(sub.med) : primaryMedians[c.primary], sample: useSub ? sub.n : primarySize.get(c.primary) || 0 };
+  };
+  const priced = deduped.filter((c) => {
+    const { med, sample } = medianFor(c);
     if (sample >= config.price.anomalyMinSample && med > 0 && c.price > med * config.price.anomalyFactor) {
-      exclude("price-anomaly", `${c.name} [${c.sourceId}] €${c.price} vs median €${med}`);
+      exclude("price-anomaly", `${c.name} [${c.sourceId}] £${c.price} vs median £${med}`);
       return false;
     }
     return true;
   });
+
+  const rank = new Map(priced.map((c) => [c.sourceId, c.quality + priceFit(c.price, medianFor(c).med)]));
+  const byRank = (a: Candidate, b: Candidate) => rank.get(b.sourceId)! - rank.get(a.sourceId)! || a.sourceId - b.sourceId;
 
   const limits = config.limits;
   const perPrimary = new Map<string, Candidate[]>();
@@ -579,6 +592,7 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
       buckets.get(key)!.push(c);
     }
     for (const [key, items] of buckets) {
+      items.sort(byRank);
       if (key && items.length > limits.maxPerSub) {
         for (const c of items.slice(limits.maxPerSub)) exclude("cap-per-sub", `${c.name} [${c.sourceId}]`);
         buckets.set(key, items.slice(0, limits.maxPerSub));
@@ -637,9 +651,8 @@ export function selectCatalog(source: SourceData, config: CatalogConfig, options
     demotedSubs: tree.demotedList,
     droppedPrimaries: tree.dropped,
     emptySubs: tree.empty,
-    nearMisses: topPaths(nearMisses, 40),
-    unrouted: topPaths(unrouted, 40),
-    routedTaxonomies: [...routedTax.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 80).map(([path, v]) => ({ path, count: v.count, to: v.to })),
+    unmapped: topPaths(unmapped, 80),
+    routedTaxonomies: [...routedTax.entries()].sort((a, b) => b[1].count - a[1].count).map(([path, v]) => ({ path, count: v.count, to: v.to })),
     primaryMedians,
     brands,
     stats: {
@@ -756,14 +769,20 @@ export function buildCategoryNodes(products: SelectedProduct[], config: CatalogC
 
 export function buildPreview(result: SelectionResult, meta: Record<string, unknown>) {
   const productsBySlug = new Map(result.products.map((p) => [p.slug, p]));
-  const sample = (list: SelectedProduct[]) =>
-    [...list]
-      .sort((a, b) => b.quality - a.quality || a.sourceId - b.sourceId)
-      .slice(0, 5)
+  const sample = (list: SelectedProduct[], seed: number) => {
+    const random = seededRandom(seed);
+    const shuffled = [...list].sort((a, b) => a.sourceId - b.sourceId);
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled
+      .slice(0, 10)
       .map((p) => ({ name: p.name, slug: p.slug, sku: p.sku, price: p.price, brand: p.brand, images: p.images.length, quality: p.quality, sourceTaxonomy: p.taxonomyPath }));
+  };
   const tree = result.categories
     .filter((c) => !c.parentSlug)
-    .map((c) => {
+    .map((c, i) => {
       const inPrimary = result.products.filter((p) => p.primary === c.slug);
       return {
         slug: c.slug,
@@ -772,19 +791,23 @@ export function buildPreview(result: SelectionResult, meta: Record<string, unkno
         medianPrice: result.primaryMedians[c.slug] ?? null,
         categoryArt: c.artProductSlug ? { productSlug: c.artProductSlug, pinned: c.artPinned, product: productsBySlug.get(c.artProductSlug)?.name ?? null } : null,
         directOnly: inPrimary.filter((p) => !p.sub).length,
-        samples: sample(inPrimary),
         subs: result.categories
           .filter((s) => s.parentSlug === c.slug)
-          .map((s) => ({
-            slug: s.slug,
-            name: s.name,
-            count: s.productCount,
-            categoryArt: s.artProductSlug ? { productSlug: s.artProductSlug, pinned: s.artPinned } : null,
-            samples: sample(inPrimary.filter((p) => p.sub === s.slug)),
-          })),
+          .map((s, j) => {
+            const inSub = inPrimary.filter((p) => p.sub === s.slug);
+            return {
+              slug: s.slug,
+              name: s.name,
+              count: s.productCount,
+              medianPrice: round2(median(inSub.map((p) => p.price))),
+              categoryArt: s.artProductSlug ? { productSlug: s.artProductSlug, pinned: s.artPinned } : null,
+              samples: sample(inSub, (i + 1) * 100 + j),
+            };
+          }),
+        directSamples: sample(inPrimary.filter((p) => !p.sub), i + 1),
       };
     });
-  const excludedTotal = Object.entries(result.excluded).filter(([k]) => !k.endsWith("-sample")).reduce((sum, [, n]) => sum + n, 0);
+  const excludedTotal = Object.values(result.excluded).reduce((sum, n) => sum + n, 0);
   return {
     ...meta,
     totals: {
@@ -794,7 +817,7 @@ export function buildPreview(result: SelectionResult, meta: Record<string, unkno
       subcategories: result.categories.filter((c) => c.parentSlug).length,
       brandsInShowcase: result.brands.length,
     },
-    excludedByRule: Object.fromEntries(Object.entries(result.excluded).filter(([k]) => !k.endsWith("-sample")).sort((a, b) => b[1] - a[1])),
+    excludedByRule: Object.fromEntries(Object.entries(result.excluded).sort((a, b) => b[1] - a[1])),
     tree,
     demotedSubcategories: result.demotedSubs,
     droppedTopLevel: result.droppedPrimaries,
@@ -802,8 +825,7 @@ export function buildPreview(result: SelectionResult, meta: Record<string, unkno
     brands: result.brands,
     review: {
       excludedSamples: result.excludedSamples,
-      nearMissTaxonomies: result.nearMisses,
-      unroutedTaxonomies: result.unrouted,
+      unmappedTaxonomies: result.unmapped,
       routedTaxonomies: result.routedTaxonomies,
     },
   };

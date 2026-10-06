@@ -52,27 +52,6 @@ export function compileMatchers(list: Matcher[]): CompiledMatcher[] {
   return list.map(compileMatcher);
 }
 
-export function firstMatch(text: string, matchers: CompiledMatcher[]): { index: number; length: number; matcher: CompiledMatcher } | null {
-  let best: { index: number; length: number; matcher: CompiledMatcher } | null = null;
-  for (const m of matchers) {
-    const hit = m.test.exec(text);
-    if (!hit) continue;
-    if (!best || hit.index < best.index || (hit.index === best.index && hit[0].length > best.length)) {
-      best = { index: hit.index, length: hit[0].length, matcher: m };
-    }
-  }
-  return best;
-}
-
-export function longestMatch(text: string, matchers: CompiledMatcher[]): number {
-  let best = 0;
-  for (const m of matchers) {
-    const hit = m.test.exec(text);
-    if (hit && hit[0].length > best) best = hit[0].length;
-  }
-  return best;
-}
-
 export function anyMatch(text: string, matchers: CompiledMatcher[]): CompiledMatcher | null {
   for (const m of matchers) if (m.test.test(text)) return m;
   return null;
@@ -238,8 +217,25 @@ function scrubInline(inline: Inline[], knownSkus: string[]): Inline[] {
   return out.filter((seg, i, arr) => !(seg.kind === "br" && arr[i - 1]?.kind === "br" && arr[i - 2]?.kind === "br"));
 }
 
+const INTRO_OPENER = /^\s*(?:<(?:p|div|span|b|strong)\b[^>]*>\s*)*(?:if you (?:like to take care|are looking for|are thinking of|want to add)|keep fit and discover|children deserve the best|return to the office|summer fun is assured|equip your vehicle|(?:<b>\s*)?[\w' -]{2,30}(?:\s*<\/b>)?\s+is here to help you)/i;
+
+const INTRO_END = /<br\s*\/?>(?:\s*<br\s*\/?>)?|<\/p>|<(?:ul|ol|p|div|table|h[1-6])\b/i;
+
+const ATTRIBUTE_NOISE = /^\s*(?:(?:product with plug|type of plug|power supply|voltage|power|batteries included|battery operated|battery type|number of batteries)\s*:|not included\s*:\s*batter)/i;
+
+export function stripMarketingIntro(raw: string): string {
+  const opener = INTRO_OPENER.exec(raw);
+  if (!opener) return raw;
+  const rest = raw.slice(opener[0].length);
+  const end = INTRO_END.exec(rest);
+  if (!end) return rest.length <= 400 ? "" : raw;
+  if (end.index > 700) return raw;
+  const closes = end[0].startsWith("</") || end[0].toLowerCase().startsWith("<br");
+  return rest.slice(closes ? end.index + end[0].length : end.index);
+}
+
 function lineIsSupplierJunk(text: string): boolean {
-  return isDistributorLine(text) || /^\s*(?:ref(?:erence)?|sku|ean)\s*[:#.]?\s*\S*\s*$/i.test(text);
+  return isDistributorLine(text) || ATTRIBUTE_NOISE.test(text) || /^\s*(?:ref(?:erence)?|sku|ean)\s*[:#.]?\s*\S*\s*$/i.test(text);
 }
 
 function renderInline(inline: Inline[]): string {
@@ -254,7 +250,8 @@ function renderInline(inline: Inline[]): string {
 
 export function cleanDescriptionHtml(raw: string | null | undefined, knownSkus: string[] = []): { html: string; text: string } {
   if (!raw || !raw.trim()) return { html: "", text: "" };
-  const source = /<[a-zA-Z/!][^>]*>/.test(raw) ? raw : plainToHtml(raw);
+  const trimmed = stripMarketingIntro(raw);
+  const source = /<[a-zA-Z/!][^>]*>/.test(trimmed) ? trimmed : plainToHtml(trimmed);
   const blocks = parseBlocks(source).map(lineToListItems);
   const htmlParts: string[] = [];
   const textParts: string[] = [];
@@ -283,13 +280,20 @@ export function cleanDescriptionHtml(raw: string | null | undefined, knownSkus: 
   return { html: htmlParts.join(""), text: textParts.join("\n").trim() };
 }
 
-const EN_STOP = new Set(["the", "and", "with", "for", "of", "to", "in", "is", "a", "an", "this", "your", "you", "it", "its", "are", "made", "from", "on", "set", "pack", "pieces", "piece", "that", "can", "be", "has", "which", "will", "or", "by", "as", "ideal", "perfect"]);
+const EN_STOP = new Set([
+  "the", "and", "with", "for", "of", "to", "in", "is", "a", "an", "this", "your", "you", "it", "its", "are", "made", "from", "on", "set", "pack",
+  "pieces", "piece", "that", "can", "be", "has", "which", "will", "or", "by", "as", "ideal", "perfect",
+  "type", "colour", "color", "material", "capacity", "dimensions", "approx", "characteristics", "suitable", "design", "includes", "included",
+  "compatible", "recommended", "use", "diameter", "weight", "height", "width", "length", "number", "stainless", "steel", "glass", "dishwasher",
+  "dishwashers", "not", "size", "units", "properties", "wash", "hand", "black", "white", "grey", "silver", "transparent", "wood",
+]);
 const FOREIGN_STOP = new Set([
   "de", "la", "el", "los", "las", "del", "con", "para", "y", "por", "una", "uno", "juego", "cocina", "taza", "olla", "sarten", "sartén", "vaso", "plato",
   "le", "les", "des", "avec", "pour", "et", "une", "du", "au", "aux", "est", "dans",
   "und", "mit", "fur", "für", "der", "die", "das", "ein", "eine", "ist", "zu", "auf",
   "il", "lo", "gli", "della", "di", "per", "e", "un", "nel",
   "com", "uma", "os", "nao", "não", "em", "ao", "dos", "das",
+  "acero", "inoxidable", "capacidad", "negro", "blanco", "tipo", "diametro", "diámetro", "medidas", "apto", "lavavajillas", "vidrio", "madera",
 ]);
 
 export function englishScore(text: string): { en: number; foreign: number; words: number } {
@@ -304,7 +308,7 @@ export function englishScore(text: string): { en: number; foreign: number; words
 }
 
 export function looksEnglishName(name: string): boolean {
-  const letters = name.match(/\p{L}/gu) || [];
+  const letters = name.replace(/[Øø⌀]/g, "").match(/\p{L}/gu) || [];
   if (!letters.length) return false;
   const ascii = letters.filter((c) => /[a-z]/i.test(c)).length;
   if (ascii / letters.length < 0.85) return false;

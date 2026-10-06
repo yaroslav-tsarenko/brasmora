@@ -39,7 +39,7 @@ function readDatabaseUrl() {
 }
 
 function isLocalPrismaPostgres(url) {
-  return /^prisma\+postgres:\/\/localhost/i.test(url) || /^postgres(ql)?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+  return /^prisma\+postgres:\/\/localhost/i.test(url);
 }
 
 console.log("\n[dev] Cleaning up old processes...");

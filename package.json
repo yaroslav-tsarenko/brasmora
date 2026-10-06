@@ -10,7 +10,8 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "catalog:preview": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/import-bigbuy.ts --dry-run",
-    "catalog:import": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/import-bigbuy.ts"
+    "catalog:import": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/import-bigbuy.ts",
+    "local:setup": "node scripts/setup-local.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1054.0",

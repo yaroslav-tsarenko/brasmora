@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { CaretRight } from "@phosphor-icons/react";
 import { motion, useInView } from "framer-motion";
 import { MarketplaceProductCard } from "../MarketplaceProductCard/MarketplaceProductCard";

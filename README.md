@@ -1,6 +1,6 @@
-# E-Commerce Store
+# Brasmora
 
-A full-featured e-commerce platform built with Next.js 16, featuring a customer storefront and a comprehensive admin dashboard. Includes product catalog, shopping cart, checkout, order management, analytics, and multi-language support.
+Storefront and admin for Brasmora (brasmora.com), a kitchen, cookware and tableware store, built with Next.js 16. Includes product catalog, shopping cart, checkout, order management and analytics.
 
 ## Tech Stack
 
@@ -97,7 +97,7 @@ Open [http://localhost:3000](http://localhost:3000) for the storefront and [http
 ```
 src/
 ├── app/
-│   ├── [locale]/          # Localized storefront routes
+│   ├── (store)/           # Storefront routes (route group, no URL prefix)
 │   │   ├── auth/          # Login, register
 │   │   ├── catalog/       # Product catalog
 │   │   ├── product/[slug] # Product detail
@@ -119,12 +119,18 @@ src/
 ├── providers/             # React context (Auth, Cart, Theme, Toast)
 ├── types/                 # TypeScript type definitions
 ├── validators/            # Zod validation schemas
-└── i18n/                  # Internationalization config
+└── i18n/                  # Locale config, request config, client locale helpers
 prisma/
 ├── schema.prisma          # Database schema (14 models)
 └── seed.ts                # Seed data
 scripts/                   # Dev server orchestration, data generation
 ```
+
+## Localization
+
+URLs carry no locale segment. The active locale is kept in `localStorage` (`brasmora.locale`) and mirrored into the `NEXT_LOCALE` cookie, which `src/i18n/request.ts` reads on the server. English is the only locale today. To add one, append its code to `locales` (and a label to `localeLabels`) in `src/i18n/config.ts` and add `messages/<code>.json`; the language switcher appears automatically once more than one locale exists.
+
+Brand values live in `src/lib/brand.ts` and legal entity details in `src/lib/company.ts`.
 
 ## Scripts
 

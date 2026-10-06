@@ -3,422 +3,354 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import pg from "pg";
-import { publicBrand, publicText, stripSupplierMentions } from "../src/lib/utils/supplier";
+import { catalogConfig } from "../src/config/catalog";
+import { hasR2PublicUrl, headR2Object, isR2Configured, putR2Object, r2PublicUrl } from "../src/lib/r2";
+import { loadSource } from "./lib/bigbuy-source";
+import { syncImages, type ImageStore } from "./lib/catalog-images";
+import { buildCategoryNodes, buildPreview, finalizeTree, selectCatalog, validateConfig, type CategoryNode, type SelectedProduct } from "./lib/catalog-select";
 
-const BIGBUY_URL = "https://api.bigbuy.eu";
+interface Cli {
+  dryRun: boolean;
+  skipImages: boolean;
+  refresh: boolean;
+  fixturesDir: string | null;
+  limit: number | undefined;
+  previewPath: string;
+  concurrency: number;
+}
+
+function parseArgs(argv: string[]): Cli {
+  const value = (flag: string): string | null => {
+    const i = argv.indexOf(flag);
+    if (i !== -1 && argv[i + 1] && !argv[i + 1].startsWith("--")) return argv[i + 1];
+    const eq = argv.find((a) => a.startsWith(`${flag}=`));
+    return eq ? eq.slice(flag.length + 1) : null;
+  };
+  const known = ["--dry-run", "--skip-images", "--refresh", "--fixtures", "--limit", "--preview", "--concurrency", "--help"];
+  for (const a of argv) {
+    if (a.startsWith("--") && !known.includes(a.split("=")[0])) throw new Error(`unknown flag ${a}`);
+  }
+  if (argv.includes("--help")) {
+    console.log(`usage: tsx scripts/import-bigbuy.ts [--dry-run] [--skip-images] [--refresh] [--fixtures <dir>] [--limit <n>] [--preview <file>] [--concurrency <n>]`);
+    process.exit(0);
+  }
+  const fixtures = value("--fixtures") || process.env.BIGBUY_FIXTURES_DIR || null;
+  const limitRaw = value("--limit") || process.env.LIMIT;
+  return {
+    dryRun: argv.includes("--dry-run"),
+    skipImages: argv.includes("--skip-images"),
+    refresh: argv.includes("--refresh"),
+    fixturesDir: fixtures ? path.resolve(fixtures) : null,
+    limit: limitRaw ? Number(limitRaw) : undefined,
+    previewPath: path.resolve(value("--preview") || path.join(__dirname, "../data/catalog-preview.json")),
+    concurrency: Number(value("--concurrency") || process.env.IMAGE_CONCURRENCY || catalogConfig.images.concurrency),
+  };
+}
+
+const cli = parseArgs(process.argv.slice(2));
 const BIGBUY_TOKEN = process.env.BIGBUY_API_PRODUCTION;
 const DIRECT_URL = process.env.DIRECT_URL;
-const ISO_CODE = process.env.BIGBUY_ISO_CODE || "en";
-const ROOT_CATEGORY_ID = Number(process.env.BIGBUY_ROOT_CATEGORY || 2468);
-const LIMIT = process.env.LIMIT ? Number(process.env.LIMIT) : Infinity;
-const PRIMARY_MIN = Number(process.env.PRIMARY_MIN || 40);   // top-level category threshold
-const SUB_MIN = Number(process.env.SUB_MIN || 25);           // subcategory threshold
-const CACHE_DIR = path.join(os.tmpdir(), "bigbuy-cache");
-
-if (!BIGBUY_TOKEN) throw new Error("BIGBUY_API_PRODUCTION missing in .env");
-if (!DIRECT_URL) throw new Error("DIRECT_URL missing in .env");
-
-fs.mkdirSync(CACHE_DIR, { recursive: true });
+const ISO_CODE = process.env.BIGBUY_ISO_CODE || catalogConfig.source.isoCode;
+const CACHE_DIR = process.env.BIGBUY_CACHE_DIR || path.join(os.tmpdir(), "bigbuy-cache");
+const MANIFEST_PATH = path.resolve(process.env.IMAGE_MANIFEST || path.join(__dirname, "../data/r2-image-manifest.json"));
 
 let client: pg.Client;
 
+function sslFor(url: string): false | { rejectUnauthorized: boolean } {
+  if (/sslmode=disable/.test(url) || /@(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\//.test(url)) return false;
+  return { rejectUnauthorized: false };
+}
+
 async function connect() {
-  client = new pg.Client({ connectionString: DIRECT_URL, ssl: { rejectUnauthorized: false } });
+  client = new pg.Client({ connectionString: DIRECT_URL, ssl: sslFor(DIRECT_URL!) });
   client.on("error", () => {});
   await client.connect();
 }
 
-async function reconnect() {
-  try { await client.end(); } catch {}
-  await connect();
-}
-
 async function query(sql: string, params?: unknown[]) {
-  for (let i = 0; i < 3; i++) {
-    try { return await client.query(sql, params); }
-    catch (err: any) {
-      if (err.message?.includes("terminated") || err.message?.includes("Connection") || err.code === "EPIPE") {
-        await reconnect(); continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error("query failed after retries");
-}
-
-async function bbFetch(url: string, cacheFile: string): Promise<unknown> {
-  const cachePath = path.join(CACHE_DIR, cacheFile);
-  if (fs.existsSync(cachePath)) {
-    const stat = fs.statSync(cachePath);
-    if (Date.now() - stat.mtimeMs < 6 * 3600 * 1000) {
-      console.log(`  cache hit: ${cacheFile} (${(stat.size / 1024 / 1024).toFixed(1)}MB)`);
-      return JSON.parse(fs.readFileSync(cachePath, "utf-8"));
-    }
-  }
-  console.log(`  fetching ${url}`);
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${BIGBUY_TOKEN}` } });
-  if (!res.ok) throw new Error(`BigBuy ${url}: ${res.status} ${await res.text()}`);
-  const text = await res.text();
-  fs.writeFileSync(cachePath, text);
-  console.log(`  cached ${cacheFile} (${(text.length / 1024 / 1024).toFixed(1)}MB)`);
-  return JSON.parse(text);
-}
-
-function slugify(text: string): string {
-  return text.toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .substring(0, 200);
+  return client.query(sql, params);
 }
 
 function cuid(): string {
   return `c${Date.now().toString(36)}${Math.random().toString(36).substring(2, 12)}`;
 }
 
-function stripHtml(html: string, maxLen = 300): string {
-  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-  return text.length > maxLen ? text.substring(0, maxLen - 1) + "…" : text;
-}
-
-interface BbCategory { id: number; name: string; url: string; parentCategory?: number; }
-interface BbTaxonomy { id: number; name: string; url: string; parentTaxonomy?: number; urlImages?: string; }
-interface BbManufacturer { id: number; name: string; }
-interface BbProduct {
-  id: number; sku: string; ean13: string | null; weight: number;
-  manufacturer: number | null; category: number; taxonomy: number | null;
-  wholesalePrice: number; retailPrice: number; active: number | boolean;
-}
-interface BbInfo { id: number; sku: string; name: string; description: string | null; url: string; shortDescription: string | null; }
-interface BbImages { id: number; images: Array<{ id: number; url: string; name: string; isCover: boolean; position: number; }>; }
-
-async function main() {
-  console.log(`\n=== BigBuy → Neon import (root category ${ROOT_CATEGORY_ID}, isoCode=${ISO_CODE}) ===\n`);
-
-  console.log("[1/6] Fetching categories tree...");
-  const allCats = await bbFetch(
-    `${BIGBUY_URL}/rest/catalog/categories.json?isoCode=${ISO_CODE}`,
-    `categories-${ISO_CODE}.json`,
-  ) as BbCategory[];
-  const catChildren = new Map<number, number[]>();
-  for (const c of allCats) {
-    if (c.parentCategory != null) {
-      if (!catChildren.has(c.parentCategory)) catChildren.set(c.parentCategory, []);
-      catChildren.get(c.parentCategory)!.push(c.id);
-    }
-  }
-  const targetCatIds = new Set<number>();
-  (function walk(id: number) {
-    if (targetCatIds.has(id)) return;
-    targetCatIds.add(id);
-    for (const c of catChildren.get(id) || []) walk(c);
-  })(ROOT_CATEGORY_ID);
-  console.log(`  target BigBuy categories: ${targetCatIds.size}`);
-
-  console.log("[2/6] Fetching all products...");
-  const allProducts = await bbFetch(
-    `${BIGBUY_URL}/rest/catalog/products.json`,
-    "products.json",
-  ) as BbProduct[];
-  console.log(`  total in BigBuy: ${allProducts.length}`);
-  let scoped = allProducts.filter((p) => targetCatIds.has(p.category) && (p.active === 1 || p.active === true));
-  console.log(`  in category tree: ${scoped.length}`);
-  if (scoped.length > LIMIT) {
-    scoped = scoped.slice(0, LIMIT);
-    console.log(`  limited to ${LIMIT}`);
-  }
-  const productIds = new Set(scoped.map((p) => p.id));
-
-  console.log("[3/6] Fetching taxonomies, manufacturers, info, images...");
-  const [allTax, allMfg, allInfo, allImages] = await Promise.all([
-    bbFetch(`${BIGBUY_URL}/rest/catalog/taxonomies.json?isoCode=${ISO_CODE}`, `taxonomies-${ISO_CODE}.json`),
-    bbFetch(`${BIGBUY_URL}/rest/catalog/manufacturers.json?isoCode=${ISO_CODE}`, `manufacturers-${ISO_CODE}.json`),
-    bbFetch(`${BIGBUY_URL}/rest/catalog/productsinformation.json?isoCode=${ISO_CODE}`, `productsinformation-${ISO_CODE}.json`),
-    bbFetch(`${BIGBUY_URL}/rest/catalog/productsimages.json`, "productsimages.json"),
-  ]) as [BbTaxonomy[], BbManufacturer[], BbInfo[], BbImages[]];
-
-  const taxById = new Map(allTax.map((t) => [t.id, t]));
-  const mfgById = new Map(allMfg.map((m) => [m.id, m.name]));
-
-  const infoById = new Map<number, BbInfo>();
-  for (const info of allInfo) if (productIds.has(info.id)) infoById.set(info.id, info);
-  console.log(`  info: ${infoById.size}/${productIds.size}`);
-
-  const imagesById = new Map<number, BbImages["images"]>();
-  for (const img of allImages) if (productIds.has(img.id)) imagesById.set(img.id, img.images);
-  console.log(`  images: ${imagesById.size}`);
-
-  // Build ancestor chain for a taxonomy (leaf → root)
-  function ancestors(tid: number): number[] {
-    const out: number[] = [];
-    const seen = new Set<number>();
-    let cur: number | undefined = tid;
-    while (cur && taxById.has(cur) && !seen.has(cur)) {
-      seen.add(cur);
-      out.push(cur);
-      const parent: number | undefined = taxById.get(cur)!.parentTaxonomy;
-      cur = parent && parent > 0 ? parent : undefined;
-    }
-    return out;
-  }
-  function isRootTax(tid: number): boolean {
-    const t = taxById.get(tid);
-    return !t || !t.parentTaxonomy || t.parentTaxonomy === 0;
-  }
-
-  console.log("[4/6] Building category tree from taxonomy...");
-  // Count products per taxonomy across the whole ancestor chain
-  const taxCount = new Map<number, number>();
-  for (const p of scoped) {
-    if (!p.taxonomy) continue;
-    for (const a of ancestors(p.taxonomy)) {
-      taxCount.set(a, (taxCount.get(a) || 0) + 1);
-    }
-  }
-
-  // Primary: taxonomies whose parent is a root and count >= PRIMARY_MIN
-  const primary = new Set<number>();
-  for (const [tid, cnt] of taxCount) {
-    if (cnt < PRIMARY_MIN) continue;
-    const t = taxById.get(tid);
-    if (!t) continue;
-    if (t.parentTaxonomy && isRootTax(t.parentTaxonomy)) primary.add(tid);
-  }
-
-  // Sub: taxonomies whose parent is a primary and count >= SUB_MIN
-  const sub = new Set<number>();
-  for (const [tid, cnt] of taxCount) {
-    if (cnt < SUB_MIN) continue;
-    const t = taxById.get(tid);
-    if (!t?.parentTaxonomy) continue;
-    if (primary.has(t.parentTaxonomy)) sub.add(tid);
-  }
-
-  console.log(`  primary categories: ${primary.size}, subcategories: ${sub.size}`);
-
-  // For each scoped product, resolve its (primaryId, subId) by walking ancestors
-  const productAssign = new Map<number, { primary?: number; sub?: number }>();
-  for (const p of scoped) {
-    const chain = p.taxonomy ? ancestors(p.taxonomy) : [];
-    const assign: { primary?: number; sub?: number } = {};
-    for (const tid of chain) {
-      if (!assign.sub && sub.has(tid)) assign.sub = tid;
-      if (!assign.primary && primary.has(tid)) { assign.primary = tid; break; }
-    }
-    productAssign.set(p.id, assign);
-  }
-
-  // Count how many products end up with at least a primary
-  const withPrimary = [...productAssign.values()].filter((a) => a.primary).length;
-  console.log(`  products mapped to a primary: ${withPrimary}/${scoped.length}`);
-
-  console.log("[5/6] Writing categories to Postgres...");
-  await connect();
-  console.log("  clearing existing data...");
-  await query('DELETE FROM "ProductCategory"');
-  await query('DELETE FROM "ProductImage"');
-  await query('DELETE FROM "Review"');
-  await query('DELETE FROM "WishlistItem"');
-  await query('DELETE FROM "Product"');
-  await query('DELETE FROM "Category"');
-
-  const now = new Date().toISOString();
-  const taxToDb = new Map<number, string>();
-  const slugSeen = new Set<string>();
-  function uniqueSlug(base: string): string {
-    let s = base || "cat";
-    let i = 1;
-    while (slugSeen.has(s)) s = `${base}-${i++}`;
-    slugSeen.add(s);
-    return s;
-  }
-
-  // Insert primary categories first (sorted by product count desc for pretty sortOrder)
-  const primarySorted = [...primary].sort((a, b) => (taxCount.get(b) || 0) - (taxCount.get(a) || 0));
-  let sortOrder = 0;
-  for (const tid of primarySorted) {
-    const t = taxById.get(tid)!;
-    const dbId = cuid();
-    const slug = uniqueSlug(slugify(t.name));
-    await query(
-      `INSERT INTO "Category" (id, name, slug, "parentId", "imageUrl", "sortOrder", "isActive", "createdAt", "updatedAt")
-       VALUES ($1,$2,$3,NULL,$4,$5,true,$6,$6)`,
-      [dbId, t.name.trim(), slug, t.urlImages || null, sortOrder++, now],
-    );
-    taxToDb.set(tid, dbId);
-  }
-  console.log(`  inserted ${primary.size} primary categories`);
-
-  // Insert subcategories under their primary parent
-  for (const tid of sub) {
-    const t = taxById.get(tid)!;
-    const parentDbId = taxToDb.get(t.parentTaxonomy!);
-    if (!parentDbId) continue;
-    const dbId = cuid();
-    const slug = uniqueSlug(slugify(t.name));
-    await query(
-      `INSERT INTO "Category" (id, name, slug, "parentId", "imageUrl", "sortOrder", "isActive", "createdAt", "updatedAt")
-       VALUES ($1,$2,$3,$4,$5,0,true,$6,$6)`,
-      [dbId, t.name.trim(), slug, parentDbId, t.urlImages || null, now],
-    );
-    taxToDb.set(tid, dbId);
-  }
-  console.log(`  inserted ${sub.size} subcategories`);
-
-  console.log("[6/6] Writing products + links + images...");
-  const prodSlugSeen = new Set<string>();
-  function uniqueProdSlug(name: string, sku: string): string {
-    const base = slugify(name) || slugify(sku) || "product";
-    let s = base, i = 1;
-    while (prodSlugSeen.has(s)) s = `${base}-${i++}`;
-    prodSlugSeen.add(s);
-    return s;
-  }
-
-  const rows: unknown[][] = [];
-  const skuToDbId = new Map<string, string>();
-  const skuToBbId = new Map<string, number>();
-  for (const p of scoped) {
-    const info = infoById.get(p.id);
-    const name = stripSupplierMentions(info?.name?.trim() || "") || p.sku;
-    const sku = p.sku;
-    if (!sku) continue;
-    const price = Number(p.retailPrice) || 0;
-    const cost = Number(p.wholesalePrice) || null;
-    if (price <= 0) continue;
-    const description = info?.description ? stripSupplierMentions(info.description) : null;
-    const shortDescription = info?.shortDescription
-      ? stripSupplierMentions(info.shortDescription)
-      : description ? stripHtml(description, 300) : null;
-    const weight = p.weight && p.weight > 0 ? p.weight : null;
-    const ean = p.ean13 && /^\d{13}$/.test(p.ean13) ? p.ean13 : null;
-    const quantity = p.active === 1 || p.active === true ? 999 : 0;
-    const brand = p.manufacturer ? publicBrand(mfgById.get(p.manufacturer)) : null;
-    const dbId = cuid();
-    skuToDbId.set(sku, dbId);
-    skuToBbId.set(sku, p.id);
-    rows.push([
-      dbId, name, uniqueProdSlug(name, sku), sku,
-      price, null, cost, quantity, description, shortDescription,
-      brand, weight, "ACTIVE", null, ean, null, "new", now, now,
-    ]);
-  }
-  console.log(`  prepared ${rows.length} products`);
-
-  const cols = `id, name, slug, sku, price, "comparePrice", "costPrice", quantity, description, "shortDescription", brand, weight, status, gtin, ean, mpn, condition, "createdAt", "updatedAt"`;
-  const BATCH = 200;
-  let inserted = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH);
+async function insertBatched(table: string, cols: string[], rows: unknown[][], suffix = "", batch = 200): Promise<pg.QueryResult[]> {
+  const results: pg.QueryResult[] = [];
+  for (let i = 0; i < rows.length; i += batch) {
+    const chunk = rows.slice(i, i + batch);
     const values: unknown[] = [];
-    const placeholders: string[] = [];
-    batch.forEach((r, j) => {
-      const off = j * 19;
-      placeholders.push(`(${Array.from({ length: 19 }, (_, k) => `$${off + k + 1}`).join(",")})`);
+    const placeholders = chunk.map((r, j) => {
       values.push(...r);
+      return `(${cols.map((_, k) => `$${j * cols.length + k + 1}`).join(",")})`;
     });
-    try {
-      await query(
-        `INSERT INTO "Product" (${cols}) VALUES ${placeholders.join(",")} ON CONFLICT (sku) DO NOTHING`,
-        values,
-      );
-      inserted += batch.length;
-    } catch {
-      for (const r of batch) {
-        try {
-          await query(
-            `INSERT INTO "Product" (${cols}) VALUES (${Array.from({ length: 19 }, (_, k) => `$${k + 1}`).join(",")}) ON CONFLICT (sku) DO NOTHING`,
-            r,
-          );
-          inserted++;
-        } catch (e: any) {
-          console.error(`  ! failed ${r[3]}: ${e.message}`);
-        }
+    results.push(await query(`INSERT INTO "${table}" (${cols.map((c) => `"${c}"`).join(", ")}) VALUES ${placeholders.join(",")} ${suffix}`, values));
+    process.stdout.write(`\r  ${table}: ${Math.min(i + batch, rows.length)}/${rows.length}   `);
+  }
+  if (rows.length) process.stdout.write("\n");
+  return results;
+}
+
+function r2Store(): ImageStore {
+  return {
+    head: (key) => headR2Object(key),
+    put: (key, body, contentType, metadata) => putR2Object(key, body, contentType, { metadata, cacheControl: "public, max-age=2592000" }),
+    publicUrl: (key) => r2PublicUrl(key),
+  };
+}
+
+function writeJson(file: string, data: unknown) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`);
+}
+
+async function writeCatalog(products: SelectedProduct[], categories: CategoryNode[], imageUrls: Map<string, string[]>, brands: Array<{ name: string; count: number }>) {
+  await connect();
+  const now = new Date().toISOString();
+  try {
+    await query("BEGIN");
+
+    console.log("  categories...");
+    const existingCats = await query('SELECT id, slug FROM "Category"');
+    const catIdBySlug = new Map<string, string>(existingCats.rows.map((r: { id: string; slug: string }) => [r.slug, r.id]));
+    const keepSlugs = categories.map((c) => c.slug);
+    await query('DELETE FROM "ProductCategory"');
+    await query('UPDATE "Category" SET "parentId" = NULL WHERE slug <> ALL($1::text[])', [keepSlugs]);
+    await query('DELETE FROM "Category" WHERE slug <> ALL($1::text[])', [keepSlugs]);
+    const productBySlug = new Map(products.map((p) => [p.slug, p]));
+    for (const c of [...categories].sort((a, b) => Number(Boolean(a.parentSlug)) - Number(Boolean(b.parentSlug)))) {
+      const art = c.artProductSlug ? productBySlug.get(c.artProductSlug) : null;
+      const imageUrl = art ? imageUrls.get(art.sku)?.[0] ?? null : null;
+      const parentId = c.parentSlug ? catIdBySlug.get(c.parentSlug) ?? null : null;
+      const id = catIdBySlug.get(c.slug);
+      if (id) {
+        await query(
+          `UPDATE "Category" SET name=$2, description=$3, "imageUrl"=$4, "parentId"=$5, "sortOrder"=$6, "isActive"=true, "updatedAt"=$7 WHERE id=$1`,
+          [id, c.name, c.description, imageUrl, parentId, c.sortOrder, now],
+        );
+      } else {
+        const newId = cuid();
+        await query(
+          `INSERT INTO "Category" (id, name, slug, description, "imageUrl", "parentId", "sortOrder", "isActive", "createdAt", "updatedAt")
+           VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,$8)`,
+          [newId, c.name, c.slug, c.description, imageUrl, parentId, c.sortOrder, now],
+        );
+        catIdBySlug.set(c.slug, newId);
       }
     }
-    process.stdout.write(`\r  products: ${Math.min(i + BATCH, rows.length)}/${rows.length}`);
-  }
-  console.log(`\n  inserted ${inserted} products`);
 
-  console.log("  linking products ↔ categories (primary + sub)...");
-  const catLinks: { productDbId: string; categoryDbId: string }[] = [];
-  const seenLink = new Set<string>();
-  for (const p of scoped) {
-    const productDbId = skuToDbId.get(p.sku);
-    if (!productDbId) continue;
-    const assign = productAssign.get(p.id) || {};
-    for (const tid of [assign.primary, assign.sub]) {
-      if (!tid) continue;
-      const categoryDbId = taxToDb.get(tid);
-      if (!categoryDbId) continue;
-      const key = `${productDbId}|${categoryDbId}`;
-      if (seenLink.has(key)) continue;
-      seenLink.add(key);
-      catLinks.push({ productDbId, categoryDbId });
+    console.log("  retiring products that left the catalog...");
+    const skus = products.map((p) => p.sku);
+    const stale = await query('SELECT id FROM "Product" WHERE sku <> ALL($1::text[])', [skus]);
+    const staleIds: string[] = stale.rows.map((r: { id: string }) => r.id);
+    const referenced = staleIds.length
+      ? (await query('SELECT DISTINCT "productId" AS id FROM "OrderItem" WHERE "productId" = ANY($1::text[])', [staleIds])).rows.map((r: { id: string }) => r.id)
+      : [];
+    const referencedSet = new Set(referenced);
+    const deletable = staleIds.filter((id) => !referencedSet.has(id));
+    if (deletable.length) {
+      for (const table of ["ProductImage", "ProductCategory", "Review", "WishlistItem", "ProductVariant"]) {
+        await query(`DELETE FROM "${table}" WHERE "productId" = ANY($1::text[])`, [deletable]);
+      }
+      await query('DELETE FROM "Product" WHERE id = ANY($1::text[])', [deletable]);
     }
-  }
-  for (let i = 0; i < catLinks.length; i += 500) {
-    const batch = catLinks.slice(i, i + 500);
-    const values: unknown[] = [];
-    const placeholders: string[] = [];
-    batch.forEach((l, j) => {
-      placeholders.push(`($${j * 2 + 1}, $${j * 2 + 2})`);
-      values.push(l.productDbId, l.categoryDbId);
-    });
-    await query(
-      `INSERT INTO "ProductCategory" ("productId", "categoryId") VALUES ${placeholders.join(",")} ON CONFLICT DO NOTHING`,
-      values,
-    );
-    process.stdout.write(`\r  links: ${Math.min(i + 500, catLinks.length)}/${catLinks.length}`);
-  }
-  console.log();
-
-  console.log("  inserting images...");
-  const imageRows: { id: string; url: string; alt: string; sort: number; productDbId: string }[] = [];
-  for (const [sku, dbId] of skuToDbId) {
-    const bbId = skuToBbId.get(sku);
-    if (!bbId) continue;
-    const imgs = imagesById.get(bbId);
-    if (!imgs?.length) continue;
-    const sorted = [...imgs].sort((a, b) => (b.isCover ? 1 : 0) - (a.isCover ? 1 : 0) || a.position - b.position);
-    for (let idx = 0; idx < Math.min(sorted.length, 8); idx++) {
-      const img = sorted[idx];
-      imageRows.push({ id: cuid(), url: img.url, alt: publicText(img.name) || sku, sort: idx, productDbId: dbId });
+    if (referenced.length) {
+      await query(`UPDATE "Product" SET status='ARCHIVED', quantity=0, "updatedAt"=$2 WHERE id = ANY($1::text[])`, [referenced, now]);
     }
-  }
-  for (let i = 0; i < imageRows.length; i += 500) {
-    const batch = imageRows.slice(i, i + 500);
-    const values: unknown[] = [];
-    const placeholders: string[] = [];
-    batch.forEach((img, j) => {
-      const o = j * 5;
-      placeholders.push(`($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5})`);
-      values.push(img.id, img.url, img.alt, img.sort, img.productDbId);
-    });
-    await query(
-      `INSERT INTO "ProductImage" (id, url, alt, "sortOrder", "productId") VALUES ${placeholders.join(",")}`,
-      values,
+    console.log(`  removed ${deletable.length}, archived ${referenced.length} (referenced by orders)`);
+
+    const taken = new Set<string>(
+      referenced.length ? (await query('SELECT slug FROM "Product" WHERE id = ANY($1::text[])', [referenced])).rows.map((r: { slug: string }) => r.slug) : [],
     );
-    process.stdout.write(`\r  images: ${Math.min(i + 500, imageRows.length)}/${imageRows.length}`);
+    for (const p of products) {
+      if (!taken.has(p.slug)) continue;
+      let i = 2;
+      while (taken.has(`${p.slug}-${i}`)) i++;
+      p.slug = `${p.slug}-${i}`;
+    }
+    await query(`UPDATE "Product" SET slug = '__reslug__' || id WHERE sku = ANY($1::text[])`, [skus]);
+
+    console.log("  products...");
+    const cols = ["id", "name", "slug", "sku", "description", "shortDescription", "price", "comparePrice", "costPrice", "quantity", "weight", "status", "brand", "gtin", "ean", "mpn", "condition", "metadata", "metaTitle", "metaDescription", "createdAt", "updatedAt"];
+    const rows = products.map((p) => [
+      cuid(), p.name, p.slug, p.sku, p.descriptionHtml, p.shortDescription, p.price, null, p.costPrice, p.quantity, p.weight,
+      "ACTIVE", p.brand, p.ean, p.ean, null, "new", JSON.stringify({ sourceRef: p.sourceId, sourceSku: p.sourceSku }), null, null, now, now,
+    ]);
+    const upsert = `ON CONFLICT (sku) DO UPDATE SET
+      name=EXCLUDED.name, slug=EXCLUDED.slug, description=EXCLUDED.description, "shortDescription"=EXCLUDED."shortDescription",
+      price=EXCLUDED.price, "costPrice"=EXCLUDED."costPrice", quantity=EXCLUDED.quantity, weight=EXCLUDED.weight, status='ACTIVE',
+      brand=EXCLUDED.brand, gtin=EXCLUDED.gtin, ean=EXCLUDED.ean, condition=EXCLUDED.condition,
+      metadata=COALESCE("Product".metadata, '{}'::jsonb) || EXCLUDED.metadata, "updatedAt"=EXCLUDED."updatedAt"
+      RETURNING id, sku`;
+    const results = await insertBatched("Product", cols, rows, upsert);
+    const idBySku = new Map<string, string>();
+    for (const r of results) for (const row of r.rows as Array<{ id: string; sku: string }>) idBySku.set(row.sku, row.id);
+    const productIds = [...idBySku.values()];
+
+    console.log("  images...");
+    await query('DELETE FROM "ProductImage" WHERE "productId" = ANY($1::text[])', [productIds]);
+    const imageRows: unknown[][] = [];
+    for (const p of products) {
+      const id = idBySku.get(p.sku);
+      if (!id) continue;
+      (imageUrls.get(p.sku) || []).forEach((url, i) => {
+        imageRows.push([cuid(), url, i === 0 ? p.name : `${p.name}, view ${i + 1}`, i, id]);
+      });
+    }
+    await insertBatched("ProductImage", ["id", "url", "alt", "sortOrder", "productId"], imageRows, "", 500);
+
+    console.log("  category links...");
+    const linkRows: unknown[][] = [];
+    for (const p of products) {
+      const id = idBySku.get(p.sku);
+      if (!id) continue;
+      for (const slug of [p.primary, p.sub]) {
+        const catId = slug ? catIdBySlug.get(slug) : null;
+        if (catId) linkRows.push([id, catId]);
+      }
+    }
+    await insertBatched("ProductCategory", ["productId", "categoryId"], linkRows, "ON CONFLICT DO NOTHING", 1000);
+
+    console.log("  brands...");
+    const existingBrands = await query('SELECT id, name FROM "Brand"');
+    const brandIdByName = new Map<string, string>(existingBrands.rows.map((r: { id: string; name: string }) => [r.name.toLowerCase(), r.id]));
+    for (const [i, b] of brands.entries()) {
+      const id = brandIdByName.get(b.name.toLowerCase());
+      if (id) await query(`UPDATE "Brand" SET "isActive"=true, "sortOrder"=$2, "updatedAt"=$3 WHERE id=$1`, [id, i, now]);
+      else await query(`INSERT INTO "Brand" (id, name, "isActive", "sortOrder", "createdAt", "updatedAt") VALUES ($1,$2,true,$3,$4,$4)`, [cuid(), b.name, i, now]);
+    }
+    await query(`UPDATE "Brand" SET "isActive"=false, "updatedAt"=$2 WHERE lower(name) <> ALL($1::text[])`, [brands.map((b) => b.name.toLowerCase()), now]);
+
+    await query("COMMIT");
+  } catch (err) {
+    await query("ROLLBACK").catch(() => {});
+    throw err;
   }
-  console.log();
 
-  const counts = await Promise.all([
-    query('SELECT count(*)::int as n FROM "Product"'),
-    query('SELECT count(*)::int as n FROM "Category"'),
-    query('SELECT count(*)::int as n FROM "Category" WHERE "parentId" IS NULL'),
-    query('SELECT count(*)::int as n FROM "ProductImage"'),
-    query('SELECT count(*)::int as n FROM "ProductCategory"'),
-  ]);
-  console.log(`\n=== done ===`);
-  console.log(`  Products:          ${counts[0].rows[0].n}`);
-  console.log(`  Categories total:  ${counts[1].rows[0].n} (top-level: ${counts[2].rows[0].n})`);
-  console.log(`  Images:            ${counts[3].rows[0].n}`);
-  console.log(`  Product↔Category:  ${counts[4].rows[0].n}`);
-
+  const counts: pg.QueryResult[] = [];
+  for (const sql of [
+    'SELECT count(*)::int as n FROM "Product" WHERE status = \'ACTIVE\'',
+    'SELECT count(*)::int as n FROM "Category"',
+    'SELECT count(*)::int as n FROM "Category" WHERE "parentId" IS NULL',
+    'SELECT count(*)::int as n FROM "ProductImage"',
+    'SELECT count(*)::int as n FROM "ProductCategory"',
+    'SELECT count(*)::int as n FROM "Brand" WHERE "isActive"',
+    'SELECT count(*)::int as n FROM "Category" c WHERE NOT EXISTS (SELECT 1 FROM "ProductCategory" pc WHERE pc."categoryId" = c.id)',
+  ]) counts.push(await query(sql));
   await client.end();
+  return {
+    products: counts[0].rows[0].n as number,
+    categories: counts[1].rows[0].n as number,
+    topLevel: counts[2].rows[0].n as number,
+    images: counts[3].rows[0].n as number,
+    links: counts[4].rows[0].n as number,
+    brands: counts[5].rows[0].n as number,
+    emptyCategories: counts[6].rows[0].n as number,
+  };
+}
+
+async function main() {
+  const mode = cli.dryRun ? "preview (dry run)" : "import";
+  console.log(`\n=== Brasmora catalog ${mode} — source: ${cli.fixturesDir ? `fixtures ${cli.fixturesDir}` : "supplier API"}, isoCode=${ISO_CODE} ===\n`);
+
+  const problems = validateConfig(catalogConfig);
+  if (problems.length) throw new Error(`catalog config invalid:\n  - ${problems.join("\n  - ")}`);
+  if (!cli.dryRun && !DIRECT_URL) throw new Error("DIRECT_URL missing in .env");
+  if (!cli.dryRun && !cli.skipImages) {
+    if (!isR2Configured()) throw new Error("R2 is not configured (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME). Use --skip-images only for local testing.");
+    if (!hasR2PublicUrl()) throw new Error("R2_PUBLIC_URL is missing or points to the private S3 endpoint; images would not be browser-accessible.");
+  }
+
+  console.log("[1/5] Loading supplier catalog...");
+  const source = await loadSource({
+    fixturesDir: cli.fixturesDir,
+    token: BIGBUY_TOKEN,
+    isoCode: ISO_CODE,
+    cacheDir: CACHE_DIR,
+    cacheTtlHours: catalogConfig.source.cacheTtlHours,
+    refresh: cli.refresh,
+    log: (line) => console.log(line),
+  });
+  console.log(`  products ${source.products.length}, info ${source.info.length}, image sets ${source.images.length}, taxonomies ${source.taxonomies.length}, categories ${source.categories.length}, manufacturers ${source.manufacturers.length}, stock ${source.stock ? source.stock.length : "n/a"}`);
+  if (Object.keys(source.dropped).length) console.log(`  malformed records skipped: ${JSON.stringify(source.dropped)}`);
+
+  console.log("[2/5] Selecting and filtering...");
+  const selection = selectCatalog(source, catalogConfig, { limit: cli.limit });
+  console.log(`  active ${selection.stats.active}, in scope ${selection.stats.inScope}, passed filters ${selection.stats.passedFilters}, selected ${selection.stats.selected}`);
+  if (!selection.stats.stockKnown) console.log("  ! stock unknown: quantity set to 999 for every product");
+
+  const meta = { generatedAt: new Date().toISOString(), source: source.origin, isoCode: ISO_CODE, mode: cli.dryRun ? "dry-run" : "import" };
+  writeJson(cli.previewPath, buildPreview(selection, meta));
+  console.log(`[3/5] Preview written to ${path.relative(process.cwd(), cli.previewPath)}`);
+
+  if (cli.dryRun) {
+    printSummary(selection.categories, selection.excluded, null, null);
+    return;
+  }
+  if (!selection.products.length) throw new Error("nothing selected; refusing to wipe the catalog");
+
+  let products = selection.products;
+  let categories = selection.categories;
+  const imageUrls = new Map<string, string[]>();
+  let imageStats: string;
+  if (cli.skipImages) {
+    console.log("[4/5] Images: --skip-images → keeping remote source URLs (local testing only, never deploy this)");
+    for (const p of products) imageUrls.set(p.sku, p.images.map((i) => i.sourceUrl));
+    imageStats = "skipped (remote URLs kept)";
+  } else {
+    console.log(`[4/5] Self-hosting images on R2 (concurrency ${cli.concurrency})...`);
+    const sync = await syncImages(products, r2Store(), {
+      prefix: catalogConfig.images.keyPrefix,
+      concurrency: cli.concurrency,
+      timeoutMs: catalogConfig.images.timeoutMs,
+      maxBytes: catalogConfig.images.maxBytes,
+      manifestPath: MANIFEST_PATH,
+      log: (line) => console.log(line),
+    });
+    const skuBySlug = new Map(products.map((p) => [p.slug, p.sku]));
+    for (const [slug, urls] of sync.urls) imageUrls.set(skuBySlug.get(slug)!, urls);
+    for (const f of sync.failures.slice(0, 10)) console.log(`  ! ${f.slug} #${f.index}: ${f.error}`);
+    const withoutImages = products.filter((p) => !(imageUrls.get(p.sku) || []).length);
+    if (withoutImages.length) {
+      console.log(`  dropping ${withoutImages.length} products whose images all failed`);
+      selection.excluded["image-download-failed"] = withoutImages.length;
+      products = products.filter((p) => (imageUrls.get(p.sku) || []).length);
+      const tree = finalizeTree(products, catalogConfig, (reason) => {
+        selection.excluded[reason] = (selection.excluded[reason] || 0) + 1;
+      });
+      products = tree.kept;
+      categories = buildCategoryNodes(products, catalogConfig, tree.demoted);
+    }
+    imageStats = `uploaded ${sync.uploaded}, manifest hits ${sync.fromManifest}, already in bucket ${sync.alreadyInBucket}, failed ${sync.failed}`;
+    console.log(`  ${imageStats}`);
+  }
+
+  console.log("[5/5] Writing to Postgres (single transaction)...");
+  const counts = await writeCatalog(products, categories, imageUrls, selection.brands);
+  printSummary(categories, selection.excluded, counts, imageStats);
+}
+
+function printSummary(
+  categories: CategoryNode[],
+  excluded: Record<string, number>,
+  counts: Awaited<ReturnType<typeof writeCatalog>> | null,
+  imageStats: string | null,
+) {
+  console.log("\n=== summary ===");
+  for (const c of categories.filter((x) => !x.parentSlug)) {
+    console.log(`  ${c.name.padEnd(28)} ${String(c.productCount).padStart(5)}`);
+    for (const s of categories.filter((x) => x.parentSlug === c.slug)) console.log(`    ${s.name.padEnd(26)} ${String(s.productCount).padStart(5)}`);
+  }
+  const ex = Object.entries(excluded).sort((a, b) => b[1] - a[1]);
+  console.log("  excluded:");
+  for (const [k, n] of ex) console.log(`    ${k.padEnd(26)} ${String(n).padStart(7)}`);
+  if (imageStats) console.log(`  images: ${imageStats}`);
+  if (counts) {
+    console.log(`  DB → products ${counts.products}, categories ${counts.categories} (top-level ${counts.topLevel}), images ${counts.images}, links ${counts.links}, active brands ${counts.brands}, empty categories ${counts.emptyCategories}`);
+  }
 }
 
 main().catch((err) => {
-  console.error("import failed:", err);
+  console.error("\nimport failed:", err instanceof Error ? err.message : err);
   process.exit(1);
 });

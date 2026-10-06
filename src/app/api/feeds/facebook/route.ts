@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/brand";
 
 export async function GET() {
   try {
@@ -8,7 +9,6 @@ export async function GET() {
       include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
     });
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const headers = [
       "id", "title", "description", "availability", "condition",
@@ -22,7 +22,7 @@ export async function GET() {
       product.quantity > 0 ? "in stock" : "out of stock",
       product.condition,
       `${Number(product.price).toFixed(2)} EUR`,
-      `${siteUrl}/en/product/${product.slug}`,
+      `${SITE_URL}/product/${product.slug}`,
       product.images[0]?.url || "",
       product.brand || "",
       product.gtin || "",

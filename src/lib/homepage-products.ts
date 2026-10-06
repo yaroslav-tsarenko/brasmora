@@ -1,3 +1,5 @@
+import { BRAND } from "@/lib/brand";
+
 export interface HomepageProduct {
   id: string;
   name: string;
@@ -26,7 +28,7 @@ export interface HomepageCategory {
 /**
  * Which slice of the catalogue this storefront puts on the front page.
  *
- * Solvetaworld shares its product database with a sibling store, so a plain
+ * This store shares its product database with a sibling store, so a plain
  * `slice(0, limit)` on the same ranked list would put the same ten items on
  * both homepages. The shelf seed fixes that without weakening the sections:
  * each one still ranks by what it claims to rank by — featured, deepest
@@ -38,7 +40,7 @@ export interface HomepageCategory {
  * page does not reshuffle under a shopper between requests, and it does not
  * differ between the server render and the client.
  */
-const SHELF_SEED = process.env.NEXT_PUBLIC_SHELF_SEED ?? "solvetaworld";
+const SHELF_SEED = process.env.NEXT_PUBLIC_SHELF_SEED ?? BRAND.name.toLowerCase();
 
 /** How much of the ranking the picker is allowed to reach into, as a multiple
  *  of the section size. Three keeps the choice near the top of the ranking. */

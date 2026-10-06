@@ -9,7 +9,7 @@ import { QuantitySelector } from "@/components/shared/QuantitySelector/QuantityS
 import { useCart } from "@/providers/CartProvider";
 import { useCurrency } from "@/providers/CurrencyProvider";
 import { formatPrice } from "@/lib/utils/format-price";
-import { useRouter } from "@/i18n/routing";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const WARRANTY_OPTIONS = [

@@ -1,26 +1,28 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { isLocale } from "@/i18n/config";
+import { readLocaleCookie, readStoredLocale, storeLocale, writeLocaleCookie } from "@/i18n/client";
 
-export const LOCALE_STORAGE_KEY = "locale";
-
-// Mirrors the locale that the server rendered into localStorage. The cookie is
-// the source of truth for SSR (the proxy reads it), but keeping localStorage in
-// sync lets client code read the preference without parsing cookies and makes
-// the choice inspectable/portable on the client.
 export function LocaleSync() {
-  const locale = useLocale();
+  const rendered = useLocale();
+  const router = useRouter();
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem(LOCALE_STORAGE_KEY) !== locale) {
-        localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-      }
-    } catch {
-      // storage unavailable (private mode, blocked) — non-fatal
+    if (!isLocale(rendered)) return;
+    const stored = readStoredLocale();
+
+    if (stored && stored !== rendered) {
+      writeLocaleCookie(stored);
+      if (readLocaleCookie() === stored) router.refresh();
+      return;
     }
-  }, [locale]);
+
+    if (!stored) storeLocale(rendered);
+    if (readLocaleCookie() !== rendered) writeLocaleCookie(rendered);
+  }, [rendered, router]);
 
   return null;
 }

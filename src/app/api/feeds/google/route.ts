@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/brand";
 
 export async function GET() {
   try {
@@ -8,7 +9,6 @@ export async function GET() {
       include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
     });
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const items = products
       .map((product) => {
@@ -20,7 +20,7 @@ export async function GET() {
       <g:id>${escapeXml(product.id)}</g:id>
       <title>${escapeXml(product.name)}</title>
       <description>${escapeXml(product.description || product.name)}</description>
-      <link>${siteUrl}/en/product/${escapeXml(product.slug)}</link>
+      <link>${SITE_URL}/product/${escapeXml(product.slug)}</link>
       <g:image_link>${escapeXml(imageUrl)}</g:image_link>
       <g:price>${price}</g:price>
       ${product.comparePrice ? `<g:sale_price>${Number(product.price).toFixed(2)} EUR</g:sale_price>` : ""}
@@ -39,7 +39,7 @@ export async function GET() {
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
     <title>My Store Product Feed</title>
-    <link>${siteUrl}</link>
+    <link>${SITE_URL}</link>
     <description>Product feed for Google Merchant Center</description>
 ${items}
   </channel>

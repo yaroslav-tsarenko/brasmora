@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { Package } from "@phosphor-icons/react";
 

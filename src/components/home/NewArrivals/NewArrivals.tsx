@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react";
 import { ProductGrid } from "@/components/product/ProductGrid/ProductGrid";
 import { AnimatedSection } from "@/components/shared/AnimatedSection/AnimatedSection";

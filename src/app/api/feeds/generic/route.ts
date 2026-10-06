@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/brand";
 
 export async function GET() {
   try {
@@ -11,7 +12,6 @@ export async function GET() {
       },
     });
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const feed = products.map((product) => ({
       id: product.id,
@@ -29,7 +29,7 @@ export async function GET() {
       gtin: product.gtin,
       categories: product.categories.map((c) => c.category.name),
       images: product.images.map((img) => img.url),
-      url: `${siteUrl}/en/product/${product.slug}`,
+      url: `${SITE_URL}/product/${product.slug}`,
       updatedAt: product.updatedAt,
     }));
 

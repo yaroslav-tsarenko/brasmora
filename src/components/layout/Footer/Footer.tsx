@@ -1,10 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import Image from "next/image";
 import { LinkedinLogo, InstagramLogo } from "@phosphor-icons/react";
-import { SolvetaMark } from "../SolvetaMark";
+import { BrandMark } from "../BrandMark";
+import { BRAND } from "@/lib/brand";
 import { COMPANY } from "@/lib/company";
 import visaLogo from "@/assets/visa-logo.svg";
 import mastercardLogo from "@/assets/mastercard-logo.svg";
@@ -32,9 +33,9 @@ export function Footer() {
               href="/"
               className="flex items-center gap-2 text-2xl font-extrabold tracking-[-0.04em] text-ink"
             >
-              <SolvetaMark size={28} gradientId="solvetaMarkFooter" />
+              <BrandMark size={28} gradientId="brandMarkFooter" />
               <span>
-                Solveta<span className="text-brand">world</span>
+                {BRAND.name}
               </span>
             </Link>
             <p className="text-sm text-ink-muted leading-[1.6] max-w-[280px]">
@@ -103,7 +104,7 @@ export function Footer() {
         {/* Slim bottom bar: copyright · social · payment */}
         <div className="border-t border-line py-5 flex flex-wrap items-center gap-4 justify-between max-md:flex-col max-md:items-start">
           <p className="text-xs text-ink-subtle m-0">
-            {t("copyright", { year: currentYear, storeName: "Solvetaworld" })}
+            {t("copyright", { year: currentYear, storeName: BRAND.name })}
           </p>
           <div className="flex items-center gap-2">
             {process.env.NEXT_PUBLIC_LINKEDIN_URL && (

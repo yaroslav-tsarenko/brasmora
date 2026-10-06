@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { COMPANY } from "@/lib/company";
+import { BRAND, SITE_URL } from "@/lib/brand";
 
 let transporter: Transporter | null = null;
 
@@ -30,18 +31,13 @@ function getFrom(): string {
   return (
     process.env.SMTP_FROM ||
     (process.env.SMTP_USER
-      ? `Solvetaworld <${process.env.SMTP_USER}>`
-      : "Solvetaworld <noreply@solvetaworld.com>")
+      ? `${BRAND.name} <${process.env.SMTP_USER}>`
+      : `${BRAND.name} <noreply@${BRAND.domain}>`)
   );
 }
 
 function getReplyTo(): string | undefined {
   return process.env.SMTP_REPLY_TO || undefined;
-}
-
-function getSiteUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  return raw.replace(/\/+$/, "");
 }
 
 // Forest & Stone brand palette (matches src/styles/variables.css).
@@ -89,26 +85,26 @@ function emailWrapper(content: string, options: { preheader?: string } = {}): st
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Solvetaworld</title>
+  <title>${BRAND.name}</title>
 </head>
 <body style="margin:0;padding:0;background:${BG_COLOR};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:${TEXT_COLOR};">
   ${preheader}
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
     <div style="text-align:center;margin-bottom:24px;">
-      <a href="${getSiteUrl()}" style="text-decoration:none;">
-        <span style="font-family:Georgia,serif;font-size:24px;font-weight:600;color:${BRAND_COLOR};letter-spacing:-0.01em;">Solvetaworld</span>
+      <a href="${SITE_URL}" style="text-decoration:none;">
+        <span style="font-family:Georgia,serif;font-size:24px;font-weight:600;color:${BRAND_COLOR};letter-spacing:-0.01em;">${BRAND.name}</span>
       </a>
     </div>
     <div style="background:#fff;border-radius:8px;padding:32px;border:1px solid #E0DCD2;">
       ${content}
     </div>
     <div style="text-align:center;margin-top:24px;font-size:12px;color:#6F756D;line-height:1.6;">
-      <p style="margin:0 0 4px;">&copy; ${new Date().getFullYear()} Solvetaworld. All rights reserved.</p>
-      <p style="margin:0;">${COMPANY.name} &middot; ${COMPANY.country} &middot; <a href="${getSiteUrl()}" style="color:${BRAND_COLOR};text-decoration:none;">solvetaworld.com</a></p>
+      <p style="margin:0 0 4px;">&copy; ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.</p>
+      <p style="margin:0;">${COMPANY.name} &middot; ${COMPANY.country} &middot; <a href="${SITE_URL}" style="color:${BRAND_COLOR};text-decoration:none;">${BRAND.domain}</a></p>
       <p style="margin:8px 0 0;">
-        <a href="${getSiteUrl()}/en/policies/privacy" style="color:#6F756D;text-decoration:underline;margin:0 6px;">Privacy</a>
-        <a href="${getSiteUrl()}/en/policies/terms" style="color:#6F756D;text-decoration:underline;margin:0 6px;">Terms</a>
-        <a href="${getSiteUrl()}/en/contact" style="color:#6F756D;text-decoration:underline;margin:0 6px;">Contact</a>
+        <a href="${SITE_URL}/policies/privacy" style="color:#6F756D;text-decoration:underline;margin:0 6px;">Privacy</a>
+        <a href="${SITE_URL}/policies/terms" style="color:#6F756D;text-decoration:underline;margin:0 6px;">Terms</a>
+        <a href="${SITE_URL}/contact" style="color:#6F756D;text-decoration:underline;margin:0 6px;">Contact</a>
       </p>
     </div>
   </div>
@@ -140,14 +136,13 @@ function escape(input: string): string {
 
 export async function sendWelcomeEmail(email: string, name?: string | null): Promise<boolean> {
   const greeting = name ? `Hi ${escape(name)}` : "Welcome";
-  const siteUrl = getSiteUrl();
 
   return send({
     to: email,
-    subject: "Welcome to Solvetaworld!",
+    subject: `Welcome to ${BRAND.name}!`,
     html: emailWrapper(
       `
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:800;color:${TEXT_COLOR};">${greeting}, welcome to Solvetaworld!</h1>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:800;color:${TEXT_COLOR};">${greeting}, welcome to ${BRAND.name}!</h1>
       <p style="color:${MUTED_COLOR};line-height:1.6;margin:0 0 16px;">
         Your account has been created successfully. You now have access to thousands of electrical materials and supplies at competitive prices.
       </p>
@@ -160,12 +155,12 @@ export async function sendWelcomeEmail(email: string, name?: string | null): Pro
           <li>Get free shipping on orders over &pound;100</li>
         </ul>
       </div>
-      ${button(`${siteUrl}/en/catalog`, "Start Shopping")}
+      ${button(`${SITE_URL}/catalog`, "Start Shopping")}
       <p style="color:#6F756D;font-size:13px;margin:24px 0 0;text-align:center;">
         Standard 2-year EU warranty on all products
       </p>
     `,
-      { preheader: `${greeting}! Your Solvetaworld account is ready.` },
+      { preheader: `${greeting}! Your ${BRAND.name} account is ready.` },
     ),
   });
 }
@@ -325,7 +320,6 @@ function itemsTable(items: OrderItem[], options: { showUnitPrice?: boolean } = {
 
 // Order confirmation — quick "we got your order" email
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
-  const siteUrl = getSiteUrl();
   const id = shortId(data);
 
   return send({
@@ -346,7 +340,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
       ${itemsTable(data.items)}
       ${totalsBlock(data)}
 
-      ${button(`${siteUrl}/en/account/orders/${data.orderId}`, "View Your Order")}
+      ${button(`${SITE_URL}/account/orders/${data.orderId}`, "View Your Order")}
 
       <p style="color:#6F756D;font-size:13px;margin:24px 0 0;text-align:center;">
         You&rsquo;ll receive a shipping confirmation when your order is on its way.
@@ -417,7 +411,7 @@ export async function sendOrderInvoiceEmail(data: OrderEmailData): Promise<boole
 
       <p style="color:#6F756D;font-size:12px;margin:24px 0 0;line-height:1.6;text-align:center;">
         VAT is included in the prices shown where applicable. This invoice serves as proof of purchase.<br />
-        For any questions, reply to this email or contact <a href="mailto:info@solvetaworld.com" style="color:${BRAND_COLOR};">info@solvetaworld.com</a>.
+        For any questions, reply to this email or contact <a href="mailto:${COMPANY.email}" style="color:${BRAND_COLOR};">${COMPANY.email}</a>.
       </p>
     `,
       { preheader: `Invoice for order #${id} — ${formatEur(toNum(data.total))}` },
@@ -427,7 +421,6 @@ export async function sendOrderInvoiceEmail(data: OrderEmailData): Promise<boole
 
 // Order shipped — sent when admin marks order SHIPPED
 export async function sendOrderShippedEmail(data: OrderEmailData): Promise<boolean> {
-  const siteUrl = getSiteUrl();
   const id = shortId(data);
   const tracking = data.trackingNumber;
 
@@ -467,7 +460,7 @@ export async function sendOrderShippedEmail(data: OrderEmailData): Promise<boole
         We&rsquo;ll send another email when your order is delivered.
       </p>
 
-      ${button(`${siteUrl}/en/account/orders/${data.orderId}`, "Track Your Order")}
+      ${button(`${SITE_URL}/account/orders/${data.orderId}`, "Track Your Order")}
     `,
       { preheader: `Order #${id} shipped${tracking ? ` — ${tracking}` : ""}` },
     ),
@@ -479,7 +472,6 @@ export async function sendOrderStatusEmail(
   data: OrderEmailData,
   status: "DELIVERED" | "CANCELLED" | "REFUNDED",
 ): Promise<boolean> {
-  const siteUrl = getSiteUrl();
   const id = shortId(data);
 
   const variants = {
@@ -491,7 +483,7 @@ export async function sendOrderStatusEmail(
       iconColor: "#3F7A54",
       message: "Your order has been delivered. We hope you love it! If anything's wrong, just reply to this email.",
       cta: "Leave a review",
-      ctaHref: `${siteUrl}/en/account/orders/${data.orderId}`,
+      ctaHref: `${SITE_URL}/account/orders/${data.orderId}`,
     },
     CANCELLED: {
       subject: `Order #${id} cancelled`,
@@ -501,7 +493,7 @@ export async function sendOrderStatusEmail(
       iconColor: "#A8402F",
       message: "This order has been cancelled. If you were charged, a refund will be processed back to your original payment method within 5–10 business days.",
       cta: "Continue shopping",
-      ctaHref: `${siteUrl}/en/catalog`,
+      ctaHref: `${SITE_URL}/catalog`,
     },
     REFUNDED: {
       subject: `Order #${id} refunded`,
@@ -511,7 +503,7 @@ export async function sendOrderStatusEmail(
       iconColor: "#4A6B7C",
       message: `Your refund of <strong>${formatEur(toNum(data.total))}</strong> has been issued to your original payment method. It may take 5–10 business days to appear on your statement.`,
       cta: "View order",
-      ctaHref: `${siteUrl}/en/account/orders/${data.orderId}`,
+      ctaHref: `${SITE_URL}/account/orders/${data.orderId}`,
     },
   } as const;
 
@@ -547,12 +539,12 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string, na
   const greeting = name ? `Hi ${escape(name)}` : "Hi there";
   return send({
     to: email,
-    subject: "Reset your Solvetaworld password",
+    subject: `Reset your ${BRAND.name} password`,
     html: emailWrapper(
       `
       <h1 style="margin:0 0 16px;font-size:22px;font-weight:800;color:${TEXT_COLOR};">Reset your password</h1>
       <p style="color:${MUTED_COLOR};line-height:1.6;margin:0 0 16px;">
-        ${greeting}, we received a request to reset the password on your Solvetaworld account.
+        ${greeting}, we received a request to reset the password on your ${BRAND.name} account.
         Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.
       </p>
       ${button(resetUrl, "Reset Password")}
@@ -565,7 +557,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string, na
         If you didn&rsquo;t request this, you can safely ignore this email — your password won&rsquo;t change.
       </p>
     `,
-      { preheader: "Reset your Solvetaworld password — link expires in 1 hour." },
+      { preheader: `Reset your ${BRAND.name} password — link expires in 1 hour.` },
     ),
   });
 }
@@ -617,7 +609,7 @@ export async function sendContactFormEmail(submission: ContactSubmission): Promi
 export async function sendContactAutoReplyEmail(submission: ContactSubmission): Promise<boolean> {
   return send({
     to: submission.email,
-    subject: "We received your message — Solvetaworld",
+    subject: `We received your message — ${BRAND.name}`,
     html: emailWrapper(
       `
       <h1 style="margin:0 0 16px;font-size:22px;font-weight:800;color:${TEXT_COLOR};">Thanks for reaching out!</h1>
@@ -630,7 +622,7 @@ export async function sendContactAutoReplyEmail(submission: ContactSubmission): 
         <p style="margin:0;font-size:14px;color:${MUTED_COLOR};line-height:1.6;white-space:pre-wrap;">${escape(submission.message)}</p>
       </div>
       <p style="color:#6F756D;font-size:13px;margin:16px 0 0;">
-        In the meantime, you can check our <a href="${getSiteUrl()}/en/faq" style="color:${BRAND_COLOR};">FAQ</a> or browse our <a href="${getSiteUrl()}/en/catalog" style="color:${BRAND_COLOR};">catalog</a>.
+        In the meantime, you can check our <a href="${SITE_URL}/faq" style="color:${BRAND_COLOR};">FAQ</a> or browse our <a href="${SITE_URL}/catalog" style="color:${BRAND_COLOR};">catalog</a>.
       </p>
     `,
       { preheader: "Thanks for your message — we'll reply within 24 hours." },

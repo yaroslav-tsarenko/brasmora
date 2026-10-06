@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmationEmail, sendOrderInvoiceEmail } from "@/lib/email";
 import { scheduleEmail } from "@/lib/email-jobs";
+import { BRAND, SITE_URL } from "@/lib/brand";
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,8 +80,8 @@ export async function GET(request: NextRequest) {
       if (hubToken) {
         const shipping = (updatedOrder.shippingAddress as any) || {};
         const hubPayload = {
-          site_name: "Solvetaworld",
-          site_url: "https://www.solvetaworld.com/",
+          site_name: BRAND.name,
+          site_url: `${SITE_URL}/`,
           order_id: updatedOrder.id,
           admin_url: "",
           billing: {

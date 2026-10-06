@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { CaretRight } from "@phosphor-icons/react";
 
 interface BreadcrumbItem {

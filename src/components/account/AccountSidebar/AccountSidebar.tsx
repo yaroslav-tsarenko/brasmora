@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/providers/AuthProvider";
 import { SquaresFour, Package, UserCircle, MapPin, Heart, SignOut } from "@phosphor-icons/react";

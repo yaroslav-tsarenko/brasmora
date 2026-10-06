@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Basket, Heart, ImageBroken } from "@phosphor-icons/react";
 import { PriceDisplay } from "@/components/shared/PriceDisplay/PriceDisplay";

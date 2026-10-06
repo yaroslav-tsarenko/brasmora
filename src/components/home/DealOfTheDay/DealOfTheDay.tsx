@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react";
 import { motion, useInView } from "framer-motion";
 import { formatPrice } from "@/lib/utils/format-price";

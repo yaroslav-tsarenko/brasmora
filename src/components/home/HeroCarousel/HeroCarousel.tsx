@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import banner1 from "@/assets/banner1.jpg";
 import banner2 from "@/assets/banner2.jpg";
 import banner3 from "@/assets/banner3.jpg";

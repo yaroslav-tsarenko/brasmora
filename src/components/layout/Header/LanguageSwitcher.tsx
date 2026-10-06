@@ -1,23 +1,21 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import { useRouter, usePathname, routing, LOCALE_LABELS, type Locale } from "@/i18n/routing";
-import { LOCALE_STORAGE_KEY } from "@/providers/LocaleSync";
+import { useRouter } from "next/navigation";
 import { Check, Globe } from "@phosphor-icons/react";
 import { useState, useRef, useEffect } from "react";
+import { hasMultipleLocales, isLocale, localeLabels, locales, defaultLocale, type Locale } from "@/i18n/config";
+import { setLocale } from "@/i18n/client";
 
-/**
- * Language menu.
- *
- * It swaps the locale segment of the *current* path rather than sending anyone
- * home, so switching language on a product page keeps you on that product. The
- * trigger shows the current code next to the globe, because a bare globe icon
- * makes people click to find out what language they are already reading.
- */
 export function LanguageSwitcher() {
-  const locale = useLocale() as Locale;
+  if (!hasMultipleLocales) return null;
+  return <LanguageMenu />;
+}
+
+function LanguageMenu() {
+  const rendered = useLocale();
+  const locale: Locale = isLocale(rendered) ? rendered : defaultLocale;
   const router = useRouter();
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -42,15 +40,7 @@ export function LanguageSwitcher() {
   function switchTo(next: Locale) {
     setOpen(false);
     if (next === locale) return;
-    try {
-      localStorage.setItem(LOCALE_STORAGE_KEY, next);
-    } catch {
-      // storage unavailable — the cookie set by the proxy still persists it
-    }
-    // next-intl swaps only the locale segment of the current path, so switching
-    // language on a product page keeps you on that product. The proxy writes the
-    // NEXT_LOCALE cookie on the resulting navigation.
-    router.replace(pathname, { locale: next });
+    setLocale(next, router);
   }
 
   return (
@@ -64,7 +54,7 @@ export function LanguageSwitcher() {
         className="flex h-9 items-center gap-1 rounded-md px-2 text-ink-muted transition-colors hover:bg-surface-1 hover:text-ink"
       >
         <Globe size={19} />
-        <span className="text-xs font-semibold tracking-wide max-sm:hidden">{LOCALE_LABELS[locale].short}</span>
+        <span className="text-xs font-semibold tracking-wide max-sm:hidden">{localeLabels[locale].short}</span>
       </button>
 
       {open && (
@@ -73,7 +63,7 @@ export function LanguageSwitcher() {
           aria-label="Language"
           className="absolute right-0 top-full z-50 mt-2 min-w-[11rem] overflow-hidden rounded-md border border-line bg-surface py-1 shadow-md"
         >
-          {routing.locales.map((code) => {
+          {locales.map((code) => {
             const active = code === locale;
             return (
               <li key={code}>
@@ -87,9 +77,9 @@ export function LanguageSwitcher() {
                   }`}
                 >
                   <span className="w-7 shrink-0 text-xs font-semibold tracking-wide text-ink-subtle">
-                    {LOCALE_LABELS[code].short}
+                    {localeLabels[code].short}
                   </span>
-                  <span className="flex-1">{LOCALE_LABELS[code].native}</span>
+                  <span className="flex-1">{localeLabels[code].native}</span>
                   {active ? <Check size={15} className="shrink-0 text-brand" /> : null}
                 </button>
               </li>

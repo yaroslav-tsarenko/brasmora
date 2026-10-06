@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || "";
@@ -101,4 +101,49 @@ export async function deleteFromR2(url: string): Promise<void> {
   );
 }
 
-export { isR2Configured };
+let sharedClient: S3Client | null = null;
+
+function getSharedR2Client(): S3Client {
+  if (!sharedClient) sharedClient = getR2Client();
+  return sharedClient;
+}
+
+export function r2PublicUrl(key: string): string {
+  return getPublicUrl(key);
+}
+
+export async function headR2Object(key: string): Promise<{ exists: boolean; metadata: Record<string, string>; size: number | null }> {
+  if (!isR2Configured()) throw new Error("R2 storage is not configured");
+  try {
+    const res = await getSharedR2Client().send(new HeadObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }));
+    return { exists: true, metadata: res.Metadata || {}, size: res.ContentLength ?? null };
+  } catch (err) {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+    if (e.name === "NotFound" || e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) {
+      return { exists: false, metadata: {}, size: null };
+    }
+    throw err;
+  }
+}
+
+export async function putR2Object(
+  key: string,
+  body: Buffer,
+  contentType: string,
+  options: { metadata?: Record<string, string>; cacheControl?: string } = {},
+): Promise<string> {
+  if (!isR2Configured()) throw new Error("R2 storage is not configured");
+  await getSharedR2Client().send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      CacheControl: options.cacheControl,
+      Metadata: options.metadata,
+    }),
+  );
+  return getPublicUrl(key);
+}
+
+export { isR2Configured, hasPublicUrl as hasR2PublicUrl };

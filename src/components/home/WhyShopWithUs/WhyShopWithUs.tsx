@@ -2,6 +2,7 @@
 
 import { Shield, Lightning, Heart, ArrowsClockwise, Medal, Headset } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
+import { BRAND } from "@/lib/brand";
 
 const reasons = [
   {
@@ -47,7 +48,7 @@ export function WhyShopWithUs() {
     <section className="section-padding bg-surface-1">
       <div className="section-container">
         <div className="text-center mb-12">
-          <h2 className="section-title">Why choose Solvetaworld</h2>
+          <h2 className="section-title">Why choose {BRAND.name}</h2>
           <p className="section-subtitle mx-auto mt-2">
             Professional-grade electrical materials with expert support and fast delivery
           </p>

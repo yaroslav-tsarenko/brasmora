@@ -1,30 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { getLocale } from "next-intl/server";
-import { Bricolage_Grotesque, Karla } from "next/font/google";
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource-variable/karla";
+import "./fonts.css";
 import "@/styles/globals.css";
-
-// Brand type: Bricolage Grotesque for display/headings, Karla for body —
-// deliberately distinct from the sibling store's Geist stack.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const karla = Karla({
-  variable: "--font-karla",
-  subsets: ["latin"],
-  display: "swap",
-});
+import { BRAND, SITE_URL } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: {
-    default: "Solvetaworld — Electrical Materials & Supplies",
-    template: "%s | Solvetaworld",
+    default: `${BRAND.name} — ${BRAND.tagline}`,
+    template: `%s | ${BRAND.name}`,
   },
   description: "Your trusted source for electrical materials, wiring, and installation supplies. Professional quality delivered to your door.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
-  applicationName: "Solvetaworld",
+  metadataBase: new URL(SITE_URL),
+  applicationName: BRAND.name,
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -39,7 +28,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Solvetaworld",
+    siteName: BRAND.name,
   },
 };
 
@@ -55,15 +44,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Read from the request rather than hardcoded, so a French page is served as
-  // French to screen readers and to the browser's translate prompt.
   const locale = await getLocale();
 
   return (
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${karla.variable} ${bricolage.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

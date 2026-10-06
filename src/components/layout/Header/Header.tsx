@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import {
   Basket, MagnifyingGlass, List, X, UserCircle, Shield,
   CaretRight, Heart, CaretDown,
@@ -15,7 +15,8 @@ import { useAuth } from "@/providers/AuthProvider";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { AnimatePresence, motion } from "framer-motion";
-import { SolvetaMark } from "../SolvetaMark";
+import { BrandMark } from "../BrandMark";
+import { BRAND } from "@/lib/brand";
 import { cachedFetchJSON, readCached } from "@/lib/utils/reliable-fetch";
 
 interface Category {
@@ -128,7 +129,7 @@ export function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/en/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -153,9 +154,9 @@ export function Header() {
             href="/"
             className="text-2xl max-sm:text-lg font-extrabold tracking-[-0.04em] text-ink whitespace-nowrap flex items-center gap-[0.4rem] max-sm:gap-1 shrink-0 no-underline"
           >
-            <SolvetaMark size={24} gradientId="solvetaMarkHeader" />
+            <BrandMark size={24} gradientId="brandMarkHeader" />
             <span className="font-black">
-              Solveta<span className="text-brand">world</span>
+              {BRAND.name}
             </span>
           </Link>
 

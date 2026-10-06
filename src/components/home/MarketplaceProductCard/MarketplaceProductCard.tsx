@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { Heart, Basket, Star, Eye } from "@phosphor-icons/react";
 import { useCart } from "@/providers/CartProvider";
 import { formatPrice } from "@/lib/utils/format-price";

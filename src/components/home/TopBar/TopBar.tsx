@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { MapPin, Phone, Globe, Info, Question, Truck, ArrowCounterClockwise, CreditCard, Package } from "@phosphor-icons/react";
 
 const ICON_MAP: Record<string, React.ElementType> = {

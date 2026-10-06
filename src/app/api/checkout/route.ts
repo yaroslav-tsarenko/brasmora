@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { sendOrderConfirmationEmail, sendOrderInvoiceEmail } from "@/lib/email";
 import { scheduleEmail } from "@/lib/email-jobs";
 import { resolveDiscount, markDiscountUsed } from "@/lib/discounts";
+import { SITE_URL } from "@/lib/brand";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = checkoutSchema.parse(body);
-    const { items, locale } = body;
+    const { items } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -138,9 +139,7 @@ export async function POST(request: NextRequest) {
     params.append("paymentType", "DB");
     params.append("merchantTransactionId", order.orderNumber);
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:4554";
-    const localizedPath = locale ? `/${locale}/order/confirmed` : "/order/confirmed";
-    params.append("shopperResultUrl", `${siteUrl}${localizedPath}`);
+    params.append("shopperResultUrl", `${SITE_URL}/order/confirmed`);
 
     params.append("customer.givenName", validated.shipping.firstName);
     params.append("customer.surname", validated.shipping.lastName);

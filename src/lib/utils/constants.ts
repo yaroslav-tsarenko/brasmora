@@ -1,9 +1,5 @@
 export const PRODUCTS_PER_PAGE = 12;
 
-export const LOCALES = ["en", "fr", "es", "sv", "pt"] as const;
-export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = "en";
-
 export const ORDER_STATUSES = [
   "PENDING",
   "CONFIRMED",

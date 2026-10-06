@@ -51,3 +51,6 @@ claude-code-ecommerce-free.md
 /data/catalog-preview.json
 /data/r2-image-manifest.json
 /data/r2-image-manifest.json.tmp
+
+/data/bigbuy-cache/
+/data/catalog-preview.json

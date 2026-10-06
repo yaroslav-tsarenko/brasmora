@@ -1,6 +1,5 @@
 import "dotenv/config";
 import fs from "fs";
-import os from "os";
 import path from "path";
 import pg from "pg";
 import { catalogConfig } from "../src/config/catalog";
@@ -53,7 +52,7 @@ const cli = parseArgs(process.argv.slice(2));
 const BIGBUY_TOKEN = process.env.BIGBUY_API_PRODUCTION;
 const DIRECT_URL = process.env.DIRECT_URL;
 const ISO_CODE = process.env.BIGBUY_ISO_CODE || catalogConfig.source.isoCode;
-const CACHE_DIR = process.env.BIGBUY_CACHE_DIR || path.join(os.tmpdir(), "bigbuy-cache");
+const CACHE_DIR = process.env.BIGBUY_CACHE_DIR || path.join(__dirname, "../data/bigbuy-cache");
 const MANIFEST_PATH = path.resolve(process.env.IMAGE_MANIFEST || path.join(__dirname, "../data/r2-image-manifest.json"));
 
 let client: pg.Client;

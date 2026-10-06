@@ -1,9 +1,13 @@
 "use client";
 
 import React from "react";
+import { cn } from "@/lib/utils/cn";
+
+type Variant = "primary" | "secondary" | "tertiary" | "outline" | "ghost" | "danger" | "danger-soft" | "light" | "flat" | "bordered";
+type Kind = "paint" | "outline" | "text" | "danger" | "danger-text";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "tertiary" | "outline" | "ghost" | "danger" | "danger-soft" | "light" | "flat" | "bordered";
+  variant?: Variant;
   color?: "primary" | "danger" | "success" | "warning" | "default";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
@@ -17,7 +21,131 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   target?: string;
   download?: boolean;
   onPress?: () => void;
+  className?: string;
   [key: string]: unknown;
+}
+
+const SIZE: Record<"sm" | "md" | "lg", string> = {
+  sm: "h-9 px-4 text-ui-sm",
+  md: "h-11 px-5 text-ui-md",
+  lg: "h-[52px] px-7 text-step-0",
+};
+
+const TEXT_SIZE: Record<"sm" | "md" | "lg", string> = {
+  sm: "min-h-9 text-ui-sm",
+  md: "min-h-11 text-ui-md",
+  lg: "min-h-[52px] text-step-0",
+};
+
+function resolveKind(variant: Variant, color?: ButtonProps["color"]): Kind {
+  if (color === "danger") {
+    return variant === "flat" || variant === "light" || variant === "ghost" || variant === "tertiary" || variant === "danger-soft"
+      ? "danger-text"
+      : "danger";
+  }
+  switch (variant) {
+    case "secondary":
+    case "outline":
+    case "bordered":
+      return "outline";
+    case "tertiary":
+    case "ghost":
+    case "light":
+    case "flat":
+      return color === "primary" || color === "success" ? "paint" : "text";
+    case "danger":
+      return "danger";
+    case "danger-soft":
+      return "danger-text";
+    default:
+      return "paint";
+  }
+}
+
+function kindClasses(kind: Kind, size: "sm" | "md" | "lg", disabled: boolean) {
+  const bevel = size === "sm" ? "bevel-sm" : "bevel";
+  if (kind === "paint" || kind === "danger") {
+    if (disabled) return cn(bevel, "before:bg-surface-1 text-ink-subtle");
+    if (kind === "danger") {
+      return cn(bevel, "before:bg-danger text-on-danger hover-device:hover:brightness-[0.92] active:translate-y-px");
+    }
+    return cn(
+      bevel,
+      "before:bg-brand text-on-brand",
+      "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-[6px] after:h-[2px] after:bg-shelf after:opacity-0 after:transition-opacity after:duration-[160ms]",
+      "hover-device:hover:before:bg-brand-hover hover-device:hover:-translate-y-px hover-device:hover:after:opacity-100",
+      "active:translate-y-0 active:after:opacity-0",
+    );
+  }
+  if (kind === "outline") {
+    if (disabled) return cn("bevel-outline", size === "sm" && "bevel-sm", "before:bg-line text-ink-subtle");
+    return cn(
+      "bevel-outline",
+      size === "sm" && "bevel-sm",
+      "before:bg-brand text-brand",
+      "hover-device:hover:after:bg-brand-soft active:after:bg-brand-soft active:translate-y-px",
+    );
+  }
+  if (kind === "danger-text") {
+    if (disabled) return "text-ink-subtle";
+    return "text-danger underline decoration-1 underline-offset-4 hover-device:hover:decoration-2";
+  }
+  if (disabled) return "text-ink-subtle";
+  return "text-ink underline decoration-1 underline-offset-4 hover-device:hover:decoration-2 active:decoration-brand";
+}
+
+export function ButtonLoader({ className }: { className?: string }) {
+  return (
+    <span aria-hidden="true" className={cn("pointer-events-none absolute inset-0 flex items-center justify-center gap-1", className)}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="size-1.5 border border-current [animation:shelf-loader_480ms_steps(1,end)_infinite] motion-reduce:animate-none"
+          style={{ animationDelay: `${i * 160}ms`, ["--color-accent" as string]: "currentColor" }}
+        />
+      ))}
+    </span>
+  );
+}
+
+export function buttonClasses({
+  variant = "primary",
+  color,
+  size = "md",
+  isIconOnly = false,
+  fullWidth = false,
+  disabled = false,
+  className,
+}: {
+  variant?: Variant;
+  color?: ButtonProps["color"];
+  size?: "sm" | "md" | "lg";
+  isIconOnly?: boolean;
+  fullWidth?: boolean;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const kind = resolveKind(variant, color);
+  if (isIconOnly) {
+    return cn(
+      "relative inline-flex shrink-0 items-center justify-center size-10 touch-device:size-11 transition-colors duration-[160ms]",
+      disabled
+        ? "text-ink-subtle cursor-not-allowed"
+        : cn(kind === "danger" || kind === "danger-text" ? "text-danger" : "text-ink", "cursor-pointer hover-device:hover:bg-brand-soft active:bg-brand-soft"),
+      className,
+    );
+  }
+  const isText = kind === "text" || kind === "danger-text";
+  return cn(
+    "relative inline-flex items-center justify-center gap-2 font-sans font-semibold leading-none tracking-[0.01em] whitespace-nowrap select-none",
+    "transition-[transform,color,filter,text-decoration-thickness] duration-[160ms] ease-[var(--ease-std)]",
+    "focus-visible:outline-offset-[3px]",
+    isText ? TEXT_SIZE[size] : SIZE[size],
+    kindClasses(kind, size, disabled),
+    disabled ? "cursor-not-allowed" : "cursor-pointer",
+    fullWidth && "w-full",
+    className,
+  );
 }
 
 export function Button({
@@ -36,83 +164,70 @@ export function Button({
   download,
   onPress,
   children,
-  style,
+  className,
   onClick,
+  disabled,
   ...rest
 }: ButtonProps) {
-  const sizeStyles: Record<string, React.CSSProperties> = {
-    sm: { padding: isIconOnly ? "0.375rem" : "0.375rem 0.75rem", fontSize: "0.8125rem" },
-    md: { padding: isIconOnly ? "0.5rem" : "0.5rem 1rem", fontSize: "0.875rem" },
-    lg: { padding: isIconOnly ? "0.625rem" : "0.625rem 1.5rem", fontSize: "1rem" },
-  };
+  const inert = isDisabled || Boolean(disabled);
+  const blocked = inert || isLoading;
+  const classes = buttonClasses({ variant, color, size, isIconOnly, fullWidth, disabled: inert, className });
 
-  const resolvedVariant = resolveVariant(variant, color);
-
-  const variantStyles: Record<string, React.CSSProperties> = {
-    primary: { background: "var(--color-accent)", color: "#fff", border: "1px solid var(--color-accent)" },
-    secondary: { background: "var(--color-bg-secondary)", color: "var(--color-text)", border: "1px solid var(--color-border)" },
-    tertiary: { background: "transparent", color: "var(--color-text-secondary)", border: "1px solid transparent" },
-    outline: { background: "transparent", color: "var(--color-text)", border: "1px solid var(--color-border)" },
-    ghost: { background: "transparent", color: "var(--color-text)", border: "1px solid transparent" },
-    danger: { background: "var(--color-danger)", color: "#fff", border: "1px solid var(--color-danger)" },
-    "danger-soft": { background: "var(--color-danger-bg, rgba(168,64,47,0.12))", color: "var(--color-danger)", border: "1px solid transparent" },
-  };
-
-  const baseStyle: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: 600,
-    letterSpacing: "0.01em",
-    cursor: isDisabled || isLoading ? "not-allowed" : "pointer",
-    opacity: isDisabled || isLoading ? 0.6 : 1,
-    transition: "all 0.2s ease",
-    textDecoration: "none",
-    width: fullWidth ? "100%" : undefined,
-    ...sizeStyles[size],
-    ...variantStyles[resolvedVariant],
-    ...style,
-  };
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (isDisabled || isLoading) return;
-    onClick?.(e);
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (blocked) {
+      e.preventDefault();
+      return;
+    }
+    (onClick as ((event: React.MouseEvent<HTMLElement>) => void) | undefined)?.(e);
     onPress?.();
   };
 
-  const content = (
+  const content = isIconOnly ? (
     <>
-      {isLoading && <span style={{ width: "1em", height: "1em", border: "2px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.6s linear infinite", display: "inline-block" }} />}
-      {!isLoading && startContent}
-      {!isIconOnly && children}
+      {startContent}
+      {children}
       {endContent}
+    </>
+  ) : (
+    <>
+      <span className={cn("inline-flex items-center gap-2 [&_svg]:size-[18px]", isLoading && "invisible")}>
+        {startContent}
+        {children}
+        {endContent}
+      </span>
+      {isLoading ? <ButtonLoader /> : null}
     </>
   );
 
   if (as || href) {
-    const Component = as || "a";
+    const Component = (as || "a") as React.ElementType;
     return (
-      <Component href={href} target={target} download={download} style={baseStyle} onClick={handleClick} {...rest}>
+      <Component
+        href={href}
+        target={target}
+        download={download}
+        className={classes}
+        onClick={handleClick}
+        aria-disabled={inert || undefined}
+        aria-busy={isLoading || undefined}
+        {...rest}
+      >
         {content}
       </Component>
     );
   }
 
   return (
-    <button type={rest.type || "button"} style={baseStyle} onClick={handleClick} disabled={isDisabled || isLoading} {...rest}>
+    <button
+      type={(rest.type as "button" | "submit" | "reset" | undefined) || "button"}
+      className={classes}
+      onClick={handleClick}
+      disabled={inert}
+      aria-busy={isLoading || undefined}
+      aria-disabled={isLoading || undefined}
+      {...rest}
+    >
       {content}
     </button>
   );
-}
-
-function resolveVariant(variant: string, color?: string): string {
-  if (color === "primary") return "primary";
-  if (color === "danger" && (variant === "flat" || variant === "light")) return "danger-soft";
-  if (color === "danger") return "danger";
-  if (color === "success") return "primary";
-  if (variant === "light" || variant === "flat") return "ghost";
-  if (variant === "bordered") return "outline";
-  return variant;
 }

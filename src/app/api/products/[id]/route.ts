@@ -12,6 +12,7 @@ export async function GET(
 
     const product = await prisma.product.findFirst({
       where: { OR: [{ id }, { slug: id }] },
+      omit: { metadata: true },
       include: {
         images: { orderBy: { sortOrder: "asc" } },
         categories: { include: { category: true } },

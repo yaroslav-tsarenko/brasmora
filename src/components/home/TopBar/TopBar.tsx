@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Phone, Globe, Info, Question, Truck, ArrowCounterClockwise, CreditCard, Package } from "@phosphor-icons/react";
+import { MapPin, Phone, Globe, Info, CircleHelp, Truck, RotateCcw, CreditCard, Package } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  MapPin, Phone, Globe, Info, HelpCircle: Question, Truck, RotateCcw: ArrowCounterClockwise, CreditCard, Package,
+  MapPin, Phone, Globe, Info, HelpCircle: CircleHelp, Truck, RotateCcw: RotateCcw, CreditCard, Package,
 };
 
 interface UtilityLink {
@@ -29,7 +29,7 @@ const defaultLinks: UtilityLink[] = [
 ];
 
 const linkCls =
-  "text-white/70 hover:text-white no-underline flex items-center gap-1 transition-colors whitespace-nowrap";
+  "text-on-paint/70 hover:text-on-brand no-underline flex items-center gap-1 transition-colors whitespace-nowrap";
 
 export function TopBar({ links }: Props) {
   const items = links.length > 0 ? links : defaultLinks;
@@ -37,7 +37,7 @@ export function TopBar({ links }: Props) {
   const rightLinks = items.filter((l) => l.position === "right");
 
   return (
-    <div className="hidden md:block bg-[#1E2420] text-white/80 text-xs border-b border-white/10">
+    <div className="hidden md:block bg-paint text-on-paint/80 text-xs border-b border-on-paint/10">
       <div className="max-w-[1400px] mx-auto px-4 flex justify-between items-center h-8">
         <nav className="flex items-center gap-4">
           {leftLinks.map((link) => {

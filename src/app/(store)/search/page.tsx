@@ -3,10 +3,10 @@
 import { useState, useEffect, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { Search } from "lucide-react";
 import { ProductGrid } from "@/components/product/ProductGrid/ProductGrid";
 import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 
 function SearchContent() {
@@ -48,7 +48,7 @@ function SearchContent() {
         </h1>
         <div style={{ maxWidth: "32rem", margin: "0 auto", position: "relative" }}>
           <div style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--color-text-tertiary)" }}>
-            <MagnifyingGlass size={20} />
+            <Search size={20} />
           </div>
           <input
             placeholder={nav("search")}
@@ -58,7 +58,6 @@ function SearchContent() {
             style={{
               width: "100%",
               padding: "0.875rem 1rem 0.875rem 2.75rem",
-              borderRadius: "var(--radius-pill)",
               border: "1px solid var(--color-border)",
               background: "var(--color-bg-secondary)",
               color: "var(--color-text)",
@@ -71,7 +70,7 @@ function SearchContent() {
       </div>
 
       {loading ? (
-        <LoadingSpinner />
+        <ShelfLoader block />
       ) : results.length > 0 ? (
         <ProductGrid products={results} />
       ) : query.length >= 2 ? (
@@ -83,7 +82,7 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<ShelfLoader block />}>
       <SearchContent />
     </Suspense>
   );

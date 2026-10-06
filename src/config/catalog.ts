@@ -679,7 +679,7 @@ export const catalogConfig: CatalogConfig = {
     minMarginOverWholesale: 1.15,
     anomalyFactor: 5,
     anomalyMinSample: 8,
-    anomalyBasis: "primary",
+    anomalyBasis: "subcategory",
   },
   quality: {
     minImages: 1,

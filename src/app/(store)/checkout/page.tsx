@@ -18,10 +18,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { MerchantInfo } from "@/components/checkout/MerchantInfo";
 import { toast } from "sonner";
-import {
-  EnvelopeSimple, Phone, MapPin, Truck, CreditCard,
-  CaretRight, ShieldCheck, Lock, Check, ImageBroken, UserPlus, Tag, X as XIcon,
-} from "@phosphor-icons/react";
+import { Mail, Phone, MapPin, Truck, CreditCard, ChevronRight, ShieldCheck, Lock, Check, ImageOff, UserPlus, Tag, X as XIcon } from "lucide-react";
 
 interface AppliedDiscount {
   type: "welcome" | "newsletter";
@@ -36,7 +33,7 @@ const SHIPPING_METHODS = [
   { key: "free", label: "Economy Shipping", time: "7-14 business days", price: 0, icon: Truck },
 ];
 
-const stepIcons = [EnvelopeSimple, MapPin, CreditCard];
+const stepIcons = [Mail, MapPin, CreditCard];
 const stepVariants = {
   enter: { opacity: 0, x: 30 },
   center: { opacity: 1, x: 0 },
@@ -47,7 +44,6 @@ const inputBaseStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.75rem 1rem",
   paddingLeft: "2.75rem",
-  borderRadius: "12px",
   border: "1.5px solid var(--color-border)",
   background: "var(--color-bg)",
   color: "var(--color-text)",
@@ -97,7 +93,7 @@ function InputWithIcon({ icon: Icon, error, ...props }: { icon: React.ElementTyp
           ...inputBaseStyle,
           borderColor: error ? "var(--color-danger)" : undefined,
         }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-accent)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(46,94,78,0.14)"; }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-accent)"; }}
         onBlur={(e) => { e.currentTarget.style.borderColor = error ? "var(--color-danger)" : "var(--color-border)"; e.currentTarget.style.boxShadow = "none"; }}
       />
       {error && <span style={errorStyle}>{error}</span>}
@@ -109,7 +105,7 @@ export default function CheckoutPage() {
   const t = useTranslations("checkout");
   const nav = useTranslations("nav");
   const router = useRouter();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, isHydrated } = useCart();
   const { user } = useAuth();
   const { currency, convert } = useCurrency();
   const [step, setStep] = useState(0);
@@ -255,10 +251,10 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    if (cart.items.length === 0) {
+    if (isHydrated && cart.items.length === 0) {
       router.push("/cart");
     }
-  }, [cart.items.length, router]);
+  }, [isHydrated, cart.items.length, router]);
 
   if (cart.items.length === 0) return null;
 
@@ -288,7 +284,6 @@ export default function CheckoutPage() {
             alignItems: "center",
             gap: "0.75rem",
             padding: "0.875rem 1.25rem",
-            borderRadius: "12px",
             background: "var(--color-accent-light)",
             border: "1px solid var(--color-accent)",
             marginBottom: "1.5rem",
@@ -315,7 +310,7 @@ export default function CheckoutPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex items-center gap-0 mb-8 max-[480px]:mb-6 p-1 rounded-2xl bg-surface-1"
+        className="flex items-center gap-0 mb-8 max-[480px]:mb-6 p-1 bg-surface-1"
       >
         {steps.map((s, i) => {
           const Icon = stepIcons[i];
@@ -332,11 +327,10 @@ export default function CheckoutPage() {
                 justifyContent: "center",
                 gap: "0.5rem",
                 padding: "0.75rem 1rem",
-                borderRadius: "12px",
                 border: "none",
                 cursor: i <= step ? "pointer" : "default",
                 background: isActive ? "var(--color-bg)" : "transparent",
-                boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                
                 fontWeight: isActive ? 700 : 500,
                 fontSize: "0.8125rem",
                 color: isActive ? "var(--color-text)" : isDone ? "var(--color-accent)" : "var(--color-text-tertiary)",
@@ -344,8 +338,8 @@ export default function CheckoutPage() {
               }}
             >
               {isDone ? (
-                <div style={{ width: "1.25rem", height: "1.25rem", borderRadius: "50%", background: "var(--color-accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Check size={12} weight="bold" />
+                <div style={{ width: "1.25rem", height: "1.25rem", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={12} />
                 </div>
               ) : (
                 <Icon size={16} />
@@ -368,18 +362,18 @@ export default function CheckoutPage() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-5 max-sm:gap-4 p-8 max-sm:p-5 border border-line rounded-xl max-sm:rounded-lg bg-surface"
+                className="flex flex-col gap-5 max-sm:gap-4 p-8 max-sm:p-5 border border-line bg-surface"
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <div style={{ width: "2rem", height: "2rem", borderRadius: "10px", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <EnvelopeSimple size={16} />
+                  <div style={{ width: "2rem", height: "2rem", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Mail size={16} />
                   </div>
                   <h2 style={{ fontSize: "1.125rem", fontWeight: 700 }}>{t("contact")}</h2>
                 </div>
                 <div>
                   <label style={labelStyle}>{t("email")} *</label>
                   <InputWithIcon
-                    icon={EnvelopeSimple}
+                    icon={Mail}
                     placeholder="your@email.com"
                     error={errors.contact?.email?.message}
                     {...register("contact.email")}
@@ -403,7 +397,7 @@ export default function CheckoutPage() {
                   </span>
                 </div>
                 <Button color="primary" size="lg" onPress={goNext} style={{ marginTop: "0.5rem" }}>
-                  Continue to Shipping <CaretRight size={16} />
+                  Continue to Shipping <ChevronRight size={16} />
                 </Button>
               </motion.div>
             )}
@@ -416,10 +410,10 @@ export default function CheckoutPage() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-5 max-sm:gap-4 p-8 max-sm:p-5 border border-line rounded-xl max-sm:rounded-lg bg-surface"
+                className="flex flex-col gap-5 max-sm:gap-4 p-8 max-sm:p-5 border border-line bg-surface"
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <div style={{ width: "2rem", height: "2rem", borderRadius: "10px", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: "2rem", height: "2rem", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <MapPin size={16} />
                   </div>
                   <h2 style={{ fontSize: "1.125rem", fontWeight: 700 }}>{t("shipping")}</h2>
@@ -497,7 +491,6 @@ export default function CheckoutPage() {
                             alignItems: "center",
                             gap: "1rem",
                             padding: "1rem 1.25rem",
-                            borderRadius: "12px",
                             border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-border)"}`,
                             background: isSelected ? "var(--color-accent-light)" : "var(--color-bg)",
                             cursor: "pointer",
@@ -523,7 +516,7 @@ export default function CheckoutPage() {
                             <div style={{ fontSize: "0.875rem", fontWeight: 600 }}>{m.label}</div>
                             <div style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)" }}>{m.time}</div>
                           </div>
-                          <span style={{ fontSize: "0.875rem", fontWeight: 700, color: m.price === 0 ? "#3F7A54" : "var(--color-text)" }}>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 700, color: m.price === 0 ? "var(--color-success)" : "var(--color-text)" }}>
                             {m.price === 0 ? "Free" : formatPrice(convert(m.price), currency)}
                           </span>
                         </label>
@@ -537,7 +530,7 @@ export default function CheckoutPage() {
                     Back
                   </Button>
                   <Button color="primary" size="lg" onPress={goNext} style={{ flex: 1 }}>
-                    Review Order <CaretRight size={16} />
+                    Review Order <ChevronRight size={16} />
                   </Button>
                 </div>
               </motion.div>
@@ -551,10 +544,10 @@ export default function CheckoutPage() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-5 max-sm:gap-4 p-8 max-sm:p-5 border border-line rounded-xl max-sm:rounded-lg bg-surface"
+                className="flex flex-col gap-5 max-sm:gap-4 p-8 max-sm:p-5 border border-line bg-surface"
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <div style={{ width: "2rem", height: "2rem", borderRadius: "10px", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: "2rem", height: "2rem", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <CreditCard size={16} />
                   </div>
                   <h2 style={{ fontSize: "1.125rem", fontWeight: 700 }}>{t("review")}</h2>
@@ -580,9 +573,8 @@ export default function CheckoutPage() {
                         position: "relative",
                         width: "56px",
                         height: "56px",
-                        borderRadius: "10px",
                         overflow: "hidden",
-                        background: "#fff",
+                        background: "var(--color-stage)",
                         border: "1px solid var(--color-border)",
                         flexShrink: 0,
                       }}>
@@ -590,7 +582,7 @@ export default function CheckoutPage() {
                           <Image src={item.imageUrl} alt={item.name} fill sizes="56px" style={{ objectFit: "contain", padding: "4px" }} />
                         ) : (
                           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-tertiary)" }}>
-                            <ImageBroken size={18} />
+                            <ImageOff size={18} />
                           </div>
                         )}
                       </div>
@@ -659,7 +651,7 @@ export default function CheckoutPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="p-7 max-sm:p-5 border border-line rounded-xl max-sm:rounded-lg bg-surface h-fit lg:sticky lg:top-[calc(var(--header-height)+var(--announcement-height)+1rem)] max-lg:static max-lg:order-first"
+          className="p-7 max-sm:p-5 border border-line bg-surface h-fit lg:sticky lg:top-[calc(var(--header-height)+var(--announcement-height)+1rem)] max-lg:static max-lg:order-first"
         >
           <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", marginBottom: "1.25rem" }}>{t("orderSummary")}</h3>
 
@@ -667,7 +659,6 @@ export default function CheckoutPage() {
           {amountToFreeShipping > 0 && (
             <div style={{
               padding: "0.75rem 1rem",
-              borderRadius: "10px",
               background: "var(--color-bg-secondary)",
               marginBottom: "1.25rem",
               fontSize: "0.8125rem",
@@ -696,17 +687,16 @@ export default function CheckoutPage() {
                   position: "relative",
                   width: "40px",
                   height: "40px",
-                  borderRadius: "8px",
                   overflow: "hidden",
-                  background: "#fff",
+                  background: "var(--color-stage)",
                   border: "1px solid var(--color-border)",
                   flexShrink: 0,
                 }}>
                   {item.imageUrl ? (
                     <Image src={item.imageUrl} alt={item.name} fill sizes="40px" style={{ objectFit: "contain", padding: "2px" }} />
                   ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#ccc" }}>
-                      <ImageBroken size={14} />
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-tertiary)" }}>
+                      <ImageOff size={14} />
                     </div>
                   )}
                   <div style={{
@@ -715,9 +705,8 @@ export default function CheckoutPage() {
                     right: "-4px",
                     width: "18px",
                     height: "18px",
-                    borderRadius: "50%",
                     background: "var(--color-text-secondary)",
-                    color: "#fff",
+                    color: "var(--color-on-accent)",
                     fontSize: "0.625rem",
                     fontWeight: 700,
                     display: "flex",
@@ -745,17 +734,16 @@ export default function CheckoutPage() {
                 alignItems: "center",
                 gap: "0.5rem",
                 padding: "0.625rem 0.75rem",
-                borderRadius: "10px",
-                background: "#E4EEE9",
-                border: "1px solid #BFD6CC",
+                background: "var(--color-success-tint)",
+                border: "1px solid var(--color-border)",
                 fontSize: "0.8125rem",
               }}>
-                <Tag size={14} style={{ color: "#2E5E4E", flexShrink: 0 }} />
+                <Tag size={14} style={{ color: "var(--color-success)", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: "#234A3D" }}>
+                  <div style={{ fontWeight: 700, color: "var(--color-success)" }}>
                     {discount.percent}% OFF applied
                   </div>
-                  <div style={{ color: "#2E5E4E", fontSize: "0.6875rem" }}>
+                  <div style={{ color: "var(--color-success)", fontSize: "0.6875rem" }}>
                     {discount.type === "welcome" ? "Welcome discount" : `Code: ${discount.code}`}
                   </div>
                 </div>
@@ -764,7 +752,7 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={removeDiscount}
                     aria-label="Remove discount"
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#2E5E4E", padding: 4, display: "flex" }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-success)", padding: 4, display: "flex" }}
                   >
                     <XIcon size={14} />
                   </button>
@@ -787,10 +775,9 @@ export default function CheckoutPage() {
                     disabled={!promoInput.trim() || applyingPromo}
                     style={{
                       padding: "0 0.875rem",
-                      borderRadius: "12px",
                       border: "none",
                       background: "var(--color-accent)",
-                      color: "#fff",
+                      color: "var(--color-on-accent)",
                       fontWeight: 600,
                       fontSize: "0.8125rem",
                       cursor: promoInput.trim() && !applyingPromo ? "pointer" : "not-allowed",
@@ -811,14 +798,14 @@ export default function CheckoutPage() {
               <span style={{ fontWeight: 500 }}>{formatPrice(convert(cart.subtotal), currency)}</span>
             </div>
             {discount && (
-              <div style={{ display: "flex", justifyContent: "space-between", color: "#2E5E4E" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-success)" }}>
                 <span>Discount ({discount.percent}%)</span>
                 <span style={{ fontWeight: 600 }}>−{formatPrice(convert(discountAmount), currency)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--color-text-secondary)" }}>Shipping</span>
-              <span style={{ fontWeight: 500, color: finalShipping === 0 ? "#3F7A54" : undefined }}>
+              <span style={{ fontWeight: 500, color: finalShipping === 0 ? "var(--color-success)" : undefined }}>
                 {finalShipping > 0 ? formatPrice(convert(finalShipping), currency) : "Free"}
               </span>
             </div>

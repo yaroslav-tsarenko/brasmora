@@ -55,16 +55,16 @@ export default function ProfilePage() {
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
           <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.25rem" }}>Email</label>
-          <input value={user?.email || ""} readOnly style={{ width: "100%", padding: "0.5rem 0.75rem", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)", fontSize: "0.875rem", opacity: 0.6 }} />
+          <input value={user?.email || ""} readOnly style={{ width: "100%", padding: "0.5rem 0.75rem", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)", fontSize: "0.875rem", opacity: 0.6 }} />
         </div>
         <div>
           <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.25rem" }}>Name</label>
-          <input {...register("name")} style={{ width: "100%", padding: "0.5rem 0.75rem", borderRadius: "var(--radius-md)", border: errors.name ? "1px solid red" : "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)", fontSize: "0.875rem" }} />
+          <input {...register("name")} style={{ width: "100%", padding: "0.5rem 0.75rem", border: errors.name ? "1px solid red" : "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)", fontSize: "0.875rem" }} />
           {errors.name && <p style={{ color: "red", fontSize: "0.75rem", marginTop: "0.25rem" }}>{errors.name.message}</p>}
         </div>
         <div>
           <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.25rem" }}>Phone</label>
-          <input {...register("phone")} style={{ width: "100%", padding: "0.5rem 0.75rem", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)", fontSize: "0.875rem" }} />
+          <input {...register("phone")} style={{ width: "100%", padding: "0.5rem 0.75rem", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)", fontSize: "0.875rem" }} />
         </div>
         <Button type="submit" color="primary" isLoading={loading}>{common("save")}</Button>
       </form>

@@ -1,172 +1,219 @@
-/*
- * Solvetaworld Design Tokens — "Forest & Stone".
- *
- * Direction chosen deliberately for maximal distance from the sibling store
- * (Avant Shop: cool white/blue-grey surfaces, red #E53935 + purple #6C5CE7
- * accents, pill buttons, soft shadows). Solvetaworld goes the opposite way:
- * warm stone paper (#F4F2ED) and white surfaces, deep pine-charcoal ink,
- * a single deep forest green accent (#2E5E4E) for actions, and warm copper
- * for price emphasis and sale moments. Elevation is drawn with hairline
- * borders, not shadows; corners are tight rectangles (4–14px), never pills.
- *
- * These CSS variables are the single source of truth for colour. The Tailwind
- * @theme in globals.css and tailwind.config.ts both read them, so every utility
- * (bg-brand, text-ink, border-line, …) resolves here and nowhere else.
- */
-
 :root {
-  /* ── Brand & accents ── */
-  --color-primary: #1e2420;             /* pine-charcoal ink */
-  --color-secondary: #ffffff;
-  --color-accent: #2e5e4e;              /* Deep forest — primary action. 7.4:1 on white */
-  --color-accent-hover: #234a3d;
-  --color-accent-light: #e4eee9;        /* forest tint for soft fills */
-  --color-accent-2: #8fb3a3;            /* soft sage — decorative highlight, never body text */
-  --color-accent-3: #a5561f;            /* warm copper — price emphasis & sale. 5.3:1 on white */
-  --color-success: #3f7a54;
-  --color-warning: #9a6b15;
-  --color-danger: #a8402f;              /* muted brick */
-  --color-info: #4a6b7c;
+  --color-primary: #2a1a15;
+  --color-secondary: #fafbfa;
 
-  /* ── Primary scale (forest) ── */
-  --color-primary-50:  #eef4f1;
-  --color-primary-100: #d8e6df;
-  --color-primary-200: #b3cfc2;
-  --color-primary-300: #8ab3a1;
-  --color-primary-400: #5c8a75;
-  --color-primary-500: #2e5e4e;
-  --color-primary-600: #234a3d;
-  --color-primary-700: #1b3a30;
-  --color-primary-800: #142b24;
-  --color-primary-900: #0d1c17;
+  --color-bg: #f1f3f2;
+  --color-bg-secondary: #e5e8e6;
+  --color-bg-tertiary: #dce0de;
+  --color-bg-warm: #f2ead8;
+  --color-raised: #fafbfa;
+  --color-stage: #ffffff;
+  --color-on-stage: #2a1a15;
+  --color-surface-dark: #3b2620;
 
-  /* ── Accent scale (copper) ── */
-  --color-accent-50:  #faf1e8;
-  --color-accent-100: #f2ddc8;
-  --color-accent-200: #e5bd97;
-  --color-accent-300: #d59a64;
-  --color-accent-400: #c17739;
-  --color-accent-500: #a5561f;
-  --color-accent-600: #8a4719;
-  --color-accent-700: #6e3813;
-  --color-accent-800: #52290e;
-  --color-accent-900: #371b09;
+  --color-text: #2a1a15;
+  --color-text-secondary: #5b4c47;
+  --color-text-tertiary: #72625d;
 
-  /* ── Gradients ──
-     The brand language is flat; these exist only for the few legacy
-     `gradient-*` consumers and stay within a single hue, nearly imperceptible. */
-  --gradient-primary: linear-gradient(160deg, #234a3d 0%, #2e5e4e 100%);
-  --gradient-accent: linear-gradient(160deg, #2e5e4e 0%, #3c6f5d 100%);
-  --gradient-warm: linear-gradient(160deg, #a5561f 0%, #c17739 100%);
-  --gradient-cool: linear-gradient(160deg, #3c6f5d 0%, #234a3d 100%);
-  --gradient-hero: linear-gradient(160deg, #f4f2ed 0%, #efece4 100%);
-  --gradient-card-hover: linear-gradient(160deg, rgba(46, 94, 78, 0.04) 0%, rgba(46, 94, 78, 0.02) 100%);
-  --gradient-badge: linear-gradient(160deg, #a5561f 0%, #c17739 100%);
+  --color-accent: #3b2620;
+  --color-accent-hover: #22140f;
+  --color-accent-light: #e6deda;
+  --color-on-accent: #f1f3f2;
+  --color-accent-2: #c9a04e;
+  --color-accent-3: #7a5a1e;
 
-  /* ── Surfaces ── */
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f4f2ed;         /* warm stone page ground */
-  --color-bg-tertiary: #ece8df;
-  --color-bg-warm: #f6eadf;              /* copper tint */
-  --color-surface-dark: #1e2420;         /* pine-charcoal surface for hero/cards */
+  --color-paint: #3b2620;
+  --color-plinth: #2e1d18;
+  --color-on-paint: #f1f3f2;
+  --color-on-paint-muted: #c8bbb3;
+  --color-on-paint-line: rgba(241, 243, 242, 0.16);
+  --color-brass: #c9a04e;
+  --color-on-brass: #2a1a15;
+  --color-brass-tint: #f2ead8;
+  --color-brass-on-paint: #d6b064;
 
-  /* ── Text ── */
-  --color-text: #1e2420;
-  --color-text-secondary: #6f756d;
-  --color-text-tertiary: #979d92;
+  --color-shelf: #3b2620;
+  --color-shelf-hairline: rgba(59, 38, 32, 0.28);
+  --color-border: #d2d3cf;
+  --color-border-hover: #a9a49d;
+  --color-border-control: #8a7e79;
+  --color-focus: #3b2620;
+  --color-focus-on-paint: #f1f3f2;
 
-  /* ── Borders ── */
-  --color-border: #e0dcd2;
-  --color-border-hover: #c6c0b1;
+  --color-success: #2f6b45;
+  --color-success-tint: #e1eee5;
+  --color-warning: #8a4b0f;
+  --color-warning-tint: #f5e8d8;
+  --color-danger: #a3262b;
+  --color-danger-tint: #f6e3e1;
+  --color-on-danger: #ffffff;
+  --color-info: #45525a;
+  --color-info-tint: #e3e8ea;
 
-  /* ── Shadows ──
-     Elevation is hairline-first: a 1px inked outline instead of blur. The two
-     largest steps keep a whisper of depth for modals/popovers only. */
-  --shadow-sm: 0 0 0 1px rgba(30, 36, 32, 0.06);
-  --shadow-md: 0 0 0 1px rgba(30, 36, 32, 0.08), 0 1px 2px rgba(30, 36, 32, 0.04);
-  --shadow-lg: 0 0 0 1px rgba(30, 36, 32, 0.08), 0 4px 12px rgba(30, 36, 32, 0.07);
-  --shadow-xl: 0 0 0 1px rgba(30, 36, 32, 0.08), 0 10px 28px rgba(30, 36, 32, 0.1);
-  --shadow-accent: 0 0 0 1px rgba(46, 94, 78, 0.35);
-  --shadow-card: 0 0 0 1px rgba(30, 36, 32, 0.07);
-  --shadow-card-hover: 0 0 0 1px rgba(46, 94, 78, 0.4), 0 2px 6px rgba(30, 36, 32, 0.06);
+  --color-scrim: rgba(42, 26, 21, 0.48);
 
-  /* ── Radii ── tight rectangles, no pills */
-  --radius-sm: 0.25rem;   /* 4px */
-  --radius-md: 0.375rem;  /* 6px — default control radius */
-  --radius-lg: 0.625rem;  /* 10px */
-  --radius-xl: 0.875rem;  /* 14px */
-  --radius-2xl: 1.125rem; /* 18px — imagery only */
-  --radius-pill: 0.375rem; /* deprecated: pills removed from the brand; resolves to md */
+  --promo-bg-blue: #e5e8e6;
+  --promo-bg-warm: #f2ead8;
+  --promo-bg-green: #e5e8e6;
 
-  /* ── Layout ── */
-  --max-width: 1400px; /* keep in sync with --container-container (max-w-container) */
-  --header-height: 64px;
-  --announcement-height: 36px;
+  --gradient-primary: linear-gradient(#3b2620, #3b2620);
+  --gradient-accent: linear-gradient(#3b2620, #3b2620);
+  --gradient-warm: linear-gradient(#c9a04e, #c9a04e);
+  --gradient-cool: linear-gradient(#3b2620, #3b2620);
+  --gradient-hero: linear-gradient(#f1f3f2, #f1f3f2);
+  --gradient-card-hover: linear-gradient(transparent, transparent);
+  --gradient-badge: linear-gradient(#c9a04e, #c9a04e);
 
-  /* ── Fonts & easing ── */
-  --font-sans: var(--font-karla), "Karla", system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-bricolage), "Bricolage Grotesque", Georgia, serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 1px 0 #d2d3cf, 0 18px 40px -24px rgba(42, 26, 21, 0.35);
+  --shadow-xl: 0 1px 0 #d2d3cf, 0 28px 60px -28px rgba(42, 26, 21, 0.45);
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-accent: 0 0 0 2px #3b2620;
+  --shadow-panel: -1px 0 0 #d2d3cf, -24px 0 48px -32px rgba(42, 26, 21, 0.45);
+  --shadow-panel-left: 1px 0 0 #d2d3cf, 24px 0 48px -32px rgba(42, 26, 21, 0.45);
+  --shadow-contact: rgba(42, 26, 21, 0.2);
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-pill: 0;
+
+  --bevel-xs: 3px;
+  --bevel-sm: 4px;
+  --bevel-md: 6px;
+  --bevel-lg: 10px;
+
+  --shelf-weight: 2px;
+  --shelf-gap: 3px;
+  --shelf-hairline-weight: 1px;
+
+  --max-width: 1320px;
+  --header-height: 72px;
+  --header-height-compact: 56px;
+  --header-height-mobile: 56px;
+  --utility-height: 32px;
+  --announcement-height: 32px;
+  --gutter: 16px;
+
+  --z-base: 0;
+  --z-shelf-item: 1;
+  --z-sticky: 40;
+  --z-dropdown: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --z-cookie: 90;
+
+  --font-sans: var(--font-commissioner), "Commissioner Variable", "Commissioner Fallback", "Segoe UI", sans-serif;
+  --font-display: var(--font-gloock), "Gloock", "Gloock Fallback", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-furniture: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --dur-micro: 160ms;
+  --dur-ui: 260ms;
+  --dur-panel: 320ms;
+  --dur-panel-close: 260ms;
+  --dur-reveal: 900ms;
+  --dur-reduced: 120ms;
 
-  /* ── Promo tints ── */
-  --promo-bg-blue: #e4eee9;
-  --promo-bg-warm: #f6eadf;
-  --promo-bg-green: #e9efe6;
+  --selection-bg: #c9a04e;
+  --selection-fg: #2a1a15;
+}
 
-  /* ── Selection ── */
-  --selection-bg: rgba(46, 94, 78, 0.18);
-  --selection-fg: #142b24;
+@media (min-width: 640px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 40px;
+  }
+}
+
+[data-theme="dark"] {
+  --color-primary: #f0ebe5;
+  --color-secondary: #2b211c;
+
+  --color-bg: #1d1613;
+  --color-bg-secondary: #241b17;
+  --color-bg-tertiary: #15100e;
+  --color-bg-warm: #3a3020;
+  --color-raised: #2b211c;
+  --color-stage: #f4f1ec;
+  --color-on-stage: #1d1613;
+  --color-surface-dark: #120d0b;
+
+  --color-text: #f0ebe5;
+  --color-text-secondary: #bdb0a7;
+  --color-text-tertiary: #968880;
+
+  --color-accent: #ede7df;
+  --color-accent-hover: #ffffff;
+  --color-accent-light: #3a2e28;
+  --color-on-accent: #1d1613;
+  --color-accent-2: #d6b064;
+  --color-accent-3: #d6b064;
+
+  --color-paint: #120d0b;
+  --color-plinth: #120d0b;
+  --color-on-paint: #f0ebe5;
+  --color-on-paint-muted: #bdb0a7;
+  --color-on-paint-line: rgba(240, 235, 229, 0.16);
+  --color-brass: #d6b064;
+  --color-on-brass: #1d1613;
+  --color-brass-tint: #3a3020;
+  --color-brass-on-paint: #d6b064;
+
+  --color-shelf: #8a786d;
+  --color-shelf-hairline: rgba(240, 235, 229, 0.18);
+  --color-border: #3f322b;
+  --color-border-hover: #5c4c43;
+  --color-border-control: #7f6f66;
+  --color-focus: #ede7df;
+  --color-focus-on-paint: #f0ebe5;
+
+  --color-success: #8fc7a1;
+  --color-success-tint: #22302a;
+  --color-warning: #e7a56a;
+  --color-warning-tint: #3a2a1c;
+  --color-danger: #f08f86;
+  --color-danger-tint: #3d2220;
+  --color-on-danger: #1d1613;
+  --color-info: #a9b6bd;
+  --color-info-tint: #263034;
+
+  --color-scrim: rgba(8, 5, 4, 0.66);
+
+  --promo-bg-blue: #241b17;
+  --promo-bg-warm: #3a3020;
+  --promo-bg-green: #241b17;
+
+  --gradient-primary: linear-gradient(#ede7df, #ede7df);
+  --gradient-accent: linear-gradient(#ede7df, #ede7df);
+  --gradient-hero: linear-gradient(#1d1613, #1d1613);
+
+  --shadow-lg: 0 1px 0 #3f322b, 0 18px 40px -24px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 1px 0 #3f322b, 0 28px 60px -28px rgba(0, 0, 0, 0.7);
+  --shadow-accent: 0 0 0 2px #ede7df;
+  --shadow-panel: -1px 0 0 #3f322b, -24px 0 48px -32px rgba(0, 0, 0, 0.7);
+  --shadow-panel-left: 1px 0 0 #3f322b, 24px 0 48px -32px rgba(0, 0, 0, 0.7);
+  --shadow-contact: rgba(0, 0, 0, 0.5);
+
+  --selection-bg: #d6b064;
+  --selection-fg: #1d1613;
 }
 
 ::selection {
   background: var(--selection-bg);
   color: var(--selection-fg);
-}
-
-[data-theme="dark"] {
-  --color-primary: #eceae2;
-  --color-secondary: #161b18;
-  /* Forest green lifts two steps on deep pine ground; copper warms slightly. */
-  --color-accent: #6fa28d;
-  --color-accent-hover: #8cb8a5;
-  --color-accent-light: rgba(111, 162, 141, 0.16);
-  --color-accent-2: #a7c4b6;
-  --color-accent-3: #d08a55;
-  --color-success: #7cab8c;
-  --color-warning: #c99b4a;
-  --color-danger: #cf7663;
-  --color-info: #86a5b5;
-
-  --gradient-hero: linear-gradient(160deg, #161b18 0%, #1b221d 100%);
-  --gradient-card-hover: linear-gradient(160deg, rgba(111, 162, 141, 0.08) 0%, rgba(111, 162, 141, 0.04) 100%);
-
-  --color-bg: #161b18;
-  --color-bg-secondary: #1b211d;
-  --color-bg-tertiary: #242b26;
-  --color-bg-warm: #29211a;
-  --color-surface-dark: #10140f;
-
-  --color-text: #eceae2;
-  --color-text-secondary: #a8ada3;
-  --color-text-tertiary: #767c72;
-
-  --color-border: #2b322c;
-  --color-border-hover: #3d453e;
-
-  --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
-  --shadow-xl: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.45);
-  --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.35);
-  --shadow-card-hover: 0 0 0 1px rgba(111, 162, 141, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-accent: 0 0 0 1px rgba(111, 162, 141, 0.4);
-
-  --promo-bg-blue: #1d2a24;
-  --promo-bg-warm: #29211a;
-  --promo-bg-green: #202a1e;
-
-  --selection-bg: rgba(111, 162, 141, 0.3);
-  --selection-fg: #eceae2;
 }

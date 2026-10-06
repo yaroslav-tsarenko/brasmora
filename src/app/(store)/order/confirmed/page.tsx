@@ -5,11 +5,11 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { CheckCircle, Warning, Package, MapPin, Truck, EnvelopeSimple, CaretRight } from "@phosphor-icons/react";
+import { CircleCheck, TriangleAlert, Package, MapPin, Truck, Mail, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCurrency } from "@/providers/CurrencyProvider";
 import { formatPrice } from "@/lib/utils/format-price";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
 import { useCart } from "@/providers/CartProvider";
 import type { OrderDetail } from "@/types/order";
 
@@ -83,7 +83,7 @@ function ConfirmedContent() {
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: "1.5rem" }}>
-        <LoadingSpinner />
+        <ShelfLoader block />
         <h2 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Checking payment status...</h2>
         <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>Please do not close or refresh this page.</p>
       </div>
@@ -107,18 +107,17 @@ function ConfirmedContent() {
           style={{
             width: 72,
             height: 72,
-            borderRadius: "50%",
             background: isFailed
-              ? "rgba(168, 64, 47, 0.12)"
-              : "var(--color-success-light, rgba(63,122,84,0.12))",
-            color: isFailed ? "var(--color-danger, #A8402F)" : "var(--color-success)",
+              ? "var(--color-danger-tint)"
+              : "var(--color-success-tint)",
+            color: isFailed ? "var(--color-danger)" : "var(--color-success)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 1rem",
           }}
         >
-          {isFailed ? <Warning size={40} /> : <CheckCircle size={40} />}
+          {isFailed ? <TriangleAlert size={40} /> : <CircleCheck size={40} />}
         </motion.div>
         <h1 style={{ fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "0.5rem" }}>
           {isFailed ? "Payment Failed" : t("orderPlaced")}
@@ -142,7 +141,6 @@ function ConfirmedContent() {
           transition={{ delay: 0.3 }}
           style={{
             border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-xl)",
             background: "var(--color-bg)",
             padding: "1.5rem",
             marginBottom: "1.5rem",
@@ -208,7 +206,7 @@ function ConfirmedContent() {
             marginBottom: "1.5rem",
           }}
         >
-          <div style={{ padding: "1rem 1.25rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", background: "var(--color-bg)" }}>
+          <div style={{ padding: "1rem 1.25rem", border: "1px solid var(--color-border)", background: "var(--color-bg)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
               <MapPin size={14} color="var(--color-accent)" />
               <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--color-text-tertiary)" }}>
@@ -222,7 +220,7 @@ function ConfirmedContent() {
               {order.shippingAddress.country}
             </p>
           </div>
-          <div style={{ padding: "1rem 1.25rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", background: "var(--color-bg)" }}>
+          <div style={{ padding: "1rem 1.25rem", border: "1px solid var(--color-border)", background: "var(--color-bg)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
               <Truck size={14} color="var(--color-accent)" />
               <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--color-text-tertiary)" }}>
@@ -253,7 +251,6 @@ function ConfirmedContent() {
             padding: "0.875rem 1rem",
             background: "var(--color-accent-light)",
             border: "1px solid var(--color-accent)",
-            borderRadius: "var(--radius-lg)",
             display: "flex",
             alignItems: "center",
             gap: "0.625rem",
@@ -261,7 +258,7 @@ function ConfirmedContent() {
             fontSize: "0.8125rem",
           }}
         >
-          <EnvelopeSimple size={16} color="var(--color-accent)" style={{ flexShrink: 0 }} />
+          <Mail size={16} color="var(--color-accent)" style={{ flexShrink: 0 }} />
           <span>
             A confirmation email has been sent to{" "}
             <strong>{order.customerEmail}</strong>
@@ -280,7 +277,7 @@ function ConfirmedContent() {
         }}
       >
         <Button as={Link} href="/account/orders" variant="bordered" style={{ flex: "1 1 200px" }}>
-          View Orders <CaretRight size={16} />
+          View Orders <ChevronRight size={16} />
         </Button>
         <Button as={Link} href="/catalog" color="primary" style={{ flex: "1 1 200px" }}>
           Continue Shopping
@@ -292,7 +289,7 @@ function ConfirmedContent() {
 
 export default function OrderConfirmedPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<ShelfLoader block />}>
       <ConfirmedContent />
     </Suspense>
   );

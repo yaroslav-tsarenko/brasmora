@@ -2,50 +2,49 @@
 
 import { formatPrice } from "@/lib/utils/format-price";
 import { useCurrency } from "@/providers/CurrencyProvider";
+import { cn } from "@/lib/utils/cn";
 
 interface PriceDisplayProps {
   price: number;
   comparePrice?: number | null;
   size?: "sm" | "md" | "lg";
+  tone?: "default" | "on-paint";
+  className?: string;
 }
 
-const sizes = {
-  sm: { price: "0.9375rem", compare: "0.75rem" },
-  md: { price: "1.25rem", compare: "0.875rem" },
-  lg: { price: "1.75rem", compare: "1.0625rem" },
+const PRICE_SIZE = {
+  sm: "text-step-1 leading-[1.1]",
+  md: "text-step-2 leading-[1.1]",
+  lg: "text-step-3 leading-[1.05]",
 };
 
-export function PriceDisplay({
-  price,
-  comparePrice,
-  size = "md",
-}: PriceDisplayProps) {
+export function PriceDisplay({ price, comparePrice, size = "md", tone = "default", className }: PriceDisplayProps) {
   const { currency, convert } = useCurrency();
-  const isOnSale = comparePrice && comparePrice > price;
+  const isOnSale = Boolean(comparePrice && comparePrice > price);
 
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+    <span className={cn("inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5", className)}>
       <span
-        style={{
-          fontSize: sizes[size].price,
-          fontWeight: 800,
-          letterSpacing: "-0.02em",
-          color: isOnSale ? "var(--color-danger)" : "var(--color-text)",
-        }}
+        className={cn(
+          "tabular font-display",
+          PRICE_SIZE[size],
+          isOnSale ? (tone === "on-paint" ? "text-brass-on-paint" : "text-sale") : tone === "on-paint" ? "text-on-paint" : "text-ink",
+        )}
       >
+        {isOnSale ? <span className="sr-only">Now </span> : null}
         {formatPrice(convert(price), currency)}
       </span>
-      {isOnSale && (
-        <span
-          style={{
-            fontSize: sizes[size].compare,
-            color: "var(--color-text-tertiary)",
-            textDecoration: "line-through",
-          }}
-        >
+      {isOnSale && comparePrice ? (
+        <s className={cn("tabular text-ui-sm", tone === "on-paint" ? "text-on-paint-muted" : "text-ink-muted")}>
+          <span className="sr-only">Was </span>
           {formatPrice(convert(comparePrice), currency)}
-        </span>
-      )}
-    </div>
+        </s>
+      ) : null}
+    </span>
   );
+}
+
+export function discountPercent(price: number, comparePrice?: number | null): number {
+  if (!comparePrice || comparePrice <= price) return 0;
+  return Math.floor(((comparePrice - price) / comparePrice) * 100);
 }

@@ -1,461 +1,236 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Basket, MagnifyingGlass, List, X, UserCircle, Shield,
-  CaretRight, Heart, CaretDown,
-  Plugs, SquaresFour, Lightning, Lightbulb, Cpu, Plug,
-  Cube, Wrench, Shield as ShieldIcon, Stack,
-} from "@phosphor-icons/react";
+import { usePathname } from "next/navigation";
+import { ChevronDown, Handbag, Menu, Search } from "lucide-react";
+import { Wordmark } from "@/components/layout/BrandMark";
+import { Plate } from "@/components/ui/Plate";
 import { useCart } from "@/providers/CartProvider";
 import { useAuth } from "@/providers/AuthProvider";
+import { useCategoryTree } from "@/lib/hooks/useCategoryTree";
+import { CORNICE_LINKS, navCategory } from "@/config/navigation";
+import { SHIPPING } from "@/config/shipping";
+import { cn } from "@/lib/utils/cn";
 import { ThemeToggle } from "./ThemeToggle";
-import { LanguageSwitcher } from "./LanguageSwitcher";
-import { AnimatePresence, motion } from "framer-motion";
-import { BrandMark } from "../BrandMark";
-import { BRAND } from "@/lib/brand";
-import { cachedFetchJSON, readCached } from "@/lib/utils/reliable-fetch";
+import { CurrencySelect } from "./CurrencySelect";
+import { MegaMenu } from "./MegaMenu";
+import { MobileMenu } from "./MobileMenu";
+import { SearchDialog } from "@/components/search/SearchDialog/SearchDialog";
+import { CartSheet } from "@/components/cart/CartSheet/CartSheet";
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  _count: { products: number };
-  children?: Category[];
-}
+type HeaderState = "top" | "compact" | "hidden";
 
-function subtreeCount(cat: Category): number {
-  const own = cat._count?.products || 0;
-  return own + (cat.children || []).reduce((s, c) => s + subtreeCount(c), 0);
-}
+const corniceLink = cn(
+  "relative inline-flex h-full items-center whitespace-nowrap text-ui-md font-medium text-on-paint",
+  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-[calc(50%-17px)] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brass-on-paint after:transition-transform after:duration-[160ms] after:ease-[var(--ease-furniture)]",
+  "hover-device:hover:after:scale-x-100 aria-[current=page]:after:scale-x-100 aria-expanded:after:scale-x-100",
+);
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  "wiring": Plugs,
-  "cable": Plugs,
-  "automation": Cpu,
-  "control": Cpu,
-  "distribution": SquaresFour,
-  "energy": Lightning,
-  "protection": ShieldIcon,
-  "protective": ShieldIcon,
-  "fuse": Lightning,
-  "lighting": Lightbulb,
-  "light": Lightbulb,
-  "terminal": Stack,
-  "mounting": Cube,
-  "box": Cube,
-  "conduit": Wrench,
-  "connector": Plug,
-  "power": Lightning,
-  "plug": Plug,
-};
-
-function getIconForCategory(name: string) {
-  const lower = name.toLowerCase();
-  for (const [keyword, Icon] of Object.entries(ICON_MAP)) {
-    if (lower.includes(keyword)) return Icon;
-  }
-  return SquaresFour;
-}
-
-const iconButtonCls =
-  "relative flex items-center justify-center w-9 h-9 rounded-md bg-transparent border-0 cursor-pointer text-ink-muted transition-colors no-underline hover:bg-surface-1 hover:text-ink";
-const navTabCls =
-  "text-[0.8125rem] font-medium text-ink-muted transition-colors py-2.5 border-b-2 border-transparent whitespace-nowrap no-underline bg-transparent cursor-pointer hover:text-ink hover:border-brand focus-visible:text-ink focus-visible:border-brand";
-const drawerNavLinkCls =
-  "text-[0.9375rem] font-medium text-ink py-3 px-3 rounded-md flex items-center justify-between transition-colors no-underline hover:bg-surface-1";
-const drawerBtnCls =
-  "flex items-center justify-center py-3 rounded-md font-semibold text-sm border-0 cursor-pointer";
+const corniceAction = "relative inline-flex h-11 cursor-pointer items-center gap-2 whitespace-nowrap text-ui-md font-medium text-on-paint hover-device:hover:underline hover-device:hover:decoration-1 hover-device:hover:underline-offset-[6px]";
 
 export function Header() {
-  const t = useTranslations("nav");
-  const tCommon = useTranslations("common");
-  const router = useRouter();
-  const { itemCount, cartBounce } = useCart();
+  const pathname = usePathname();
+  const { itemCount, cartBounce, openSheet, isSheetOpen } = useCart();
   const { user, role } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const categories = useCategoryTree();
+  const megaId = useId();
   const [megaOpen, setMegaOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  // Cache is read in an effect (not the useState initializer) so the first
-  // client render matches the server markup — category tabs are now SSR'd.
-  const [categories, setCategories] = useState<Category[]>([]);
-  const megaRef = useRef<HTMLDivElement>(null);
-  const megaTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [state, setState] = useState<HeaderState>("top");
+  const megaTimer = useRef<number | undefined>(undefined);
+  const megaTrigger = useRef<HTMLButtonElement>(null);
+  const lastY = useRef(0);
+  const anyOpen = megaOpen || mobileOpen || searchOpen || isSheetOpen;
+  const anyOpenRef = useRef(anyOpen);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
+    anyOpenRef.current = anyOpen;
+  }, [anyOpen]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastY.current;
+      lastY.current = y;
+      if (anyOpenRef.current) return;
+      if (y <= 120) setState("top");
+      else if (delta > 4) setState("hidden");
+      else if (delta < -4) setState("compact");
+    };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
+    setMegaOpen(false);
+  }, [pathname]);
+
+  const openMega = useCallback((delay: number) => {
+    window.clearTimeout(megaTimer.current);
+    megaTimer.current = window.setTimeout(() => setMegaOpen(true), delay);
+  }, []);
+
+  const closeMega = useCallback((delay: number, restoreFocus = false) => {
+    window.clearTimeout(megaTimer.current);
+    megaTimer.current = window.setTimeout(() => {
+      setMegaOpen(false);
+      if (restoreFocus) megaTrigger.current?.focus();
+    }, delay);
+  }, []);
 
   useEffect(() => {
-    const cached = readCached<Category[]>({ cacheKey: "header:categories", storage: "session" });
-    if (cached) setCategories(cached);
-    cachedFetchJSON<Category[]>("/api/categories", {
-      cacheKey: "header:categories",
-      storage: "session",
-    })
-      .then((data) => { if (Array.isArray(data)) setCategories(data); })
-      .catch(() => {});
-  }, []);
+    if (!megaOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMega(0, true);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [megaOpen, closeMega]);
 
-  const topCategories = useMemo(
-    () => [...categories].sort((a, b) => subtreeCount(b) - subtreeCount(a)),
-    [categories]
-  );
+  const compact = state !== "top";
+  const isAdmin = Boolean(user && (role === "ADMIN" || role === "SUPER_ADMIN"));
 
-  const openMega = useCallback(() => {
-    clearTimeout(megaTimeout.current);
-    setMegaOpen(true);
-  }, []);
-
-  const closeMega = useCallback(() => {
-    megaTimeout.current = setTimeout(() => setMegaOpen(false), 200);
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+  const bagPlate =
+    itemCount > 0 ? (
+      <Plate key={cartBounce} variant="on-paint" size="sm" data-bag-count="" className={cn("min-w-5 justify-center px-1.5", cartBounce > 0 && "animate-plate-in")}>
+        {itemCount > 99 ? "99+" : itemCount}
+      </Plate>
+    ) : null;
 
   return (
     <>
+      <div aria-hidden="true" className="h-[var(--header-height-mobile)] shrink-0 lg:h-[calc(var(--utility-height)+var(--header-height))]" />
       <header
-        className={`sticky top-0 z-50 border-b border-line bg-surface transition-shadow ${
-          scrolled ? "shadow-[0_2px_8px_rgba(15,23,42,0.06)]" : ""
-        }`}
+        data-header=""
+        data-header-state={state}
+        data-print-hide=""
+        onPointerLeave={() => {
+          if (megaOpen) closeMega(250);
+        }}
+        className={cn(
+          "fixed inset-x-0 top-0 z-40 transition-transform duration-[320ms] ease-[var(--ease-furniture)]",
+          state === "hidden" && "-translate-y-full",
+          state === "compact" && "lg:-translate-y-[var(--utility-height)]",
+        )}
       >
-        {/* Tier 1: logo / catalog trigger / search / actions */}
-        <div className="max-w-[1400px] mx-auto px-4 max-sm:px-3 lg:px-6 h-[64px] flex items-center gap-4 max-sm:gap-2">
-          <button
-            className={`${iconButtonCls} flex lg:hidden -ml-1`}
-            onClick={() => setMobileOpen(true)}
-            aria-label="Menu"
-          >
-            <List size={22} />
-          </button>
-
-          <Link
-            href="/"
-            className="text-2xl max-sm:text-lg font-extrabold tracking-[-0.04em] text-ink whitespace-nowrap flex items-center gap-[0.4rem] max-sm:gap-1 shrink-0 no-underline"
-          >
-            <BrandMark size={24} gradientId="brandMarkHeader" />
-            <span className="font-black">
-              {BRAND.name}
-            </span>
-          </Link>
-
-          <div
-            className="relative hidden lg:block shrink-0"
-            ref={megaRef}
-            onMouseEnter={openMega}
-            onMouseLeave={closeMega}
-          >
-            <button
-              className="flex items-center gap-2 h-[38px] px-4 rounded-md bg-brand text-white text-[0.8125rem] font-semibold border-0 cursor-pointer transition-colors hover:bg-brand-hover"
-              onClick={() => setMegaOpen(!megaOpen)}
-              aria-expanded={megaOpen}
-              aria-haspopup="true"
-            >
-              <SquaresFour size={16} />
-              {t("catalog")}
-              <CaretDown
-                size={14}
-                style={{
-                  transition: "transform 0.2s",
-                  transform: megaOpen ? "rotate(180deg)" : undefined,
-                }}
-              />
-            </button>
-
-            <AnimatePresence>
-              {megaOpen && (
-                <motion.div
-                  className="absolute top-[calc(100%+8px)] left-0 z-[45] w-[560px] bg-surface border border-line rounded-lg shadow-[0_12px_40px_rgba(15,23,42,0.1)] overflow-hidden"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  onMouseEnter={openMega}
-                  onMouseLeave={closeMega}
-                >
-                  <div className="p-3">
-                    {topCategories.length === 0 ? (
-                      <div className="grid grid-cols-2 gap-1">
-                        {Array.from({ length: 10 }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md">
-                            <div className="w-9 h-9 rounded-md bg-[linear-gradient(90deg,var(--color-bg-tertiary)_25%,var(--color-bg-secondary)_50%,var(--color-bg-tertiary)_75%)] bg-[length:200%_100%] animate-shimmer shrink-0" />
-                            <div className="flex flex-col gap-1.5 flex-1">
-                              <div
-                                className="h-2.5 rounded-[5px] bg-[linear-gradient(90deg,var(--color-bg-tertiary)_25%,var(--color-bg-secondary)_50%,var(--color-bg-tertiary)_75%)] bg-[length:200%_100%] animate-shimmer"
-                                style={{ width: `${55 + (i * 17) % 35}%` }}
-                              />
-                              <div className="h-2.5 rounded-[5px] bg-[linear-gradient(90deg,var(--color-bg-tertiary)_25%,var(--color-bg-secondary)_50%,var(--color-bg-tertiary)_75%)] bg-[length:200%_100%] animate-shimmer w-[40%]" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-1">
-                        {topCategories.slice(0, 10).map((cat) => {
-                          const Icon = getIconForCategory(cat.name);
-                          const count = subtreeCount(cat);
-                          return (
-                            <Link
-                              key={cat.id}
-                              href={`/catalog/${cat.slug}`}
-                              className="group flex items-center gap-3 px-3 py-2.5 rounded-md no-underline text-ink transition-colors hover:bg-surface-1"
-                              onClick={() => setMegaOpen(false)}
-                            >
-                              <div className="w-9 h-9 rounded-md bg-brand-soft flex items-center justify-center shrink-0 text-brand transition-colors group-hover:bg-brand group-hover:text-white">
-                                <Icon size={20} />
-                              </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-[0.8rem] font-semibold leading-[1.3] whitespace-nowrap overflow-hidden text-ellipsis">
-                                  {cat.name}
-                                </span>
-                                <span className="text-[0.675rem] text-ink-subtle">
-                                  {count} products
-                                </span>
-                              </div>
-                              <CaretRight
-                                size={14}
-                                className="ml-auto shrink-0 text-line opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5"
-                              />
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div className="mt-2 pt-2.5 border-t border-line flex items-center px-3 pb-1">
-                      <Link
-                        href="/catalog"
-                        className="text-[0.8125rem] font-semibold text-brand flex items-center gap-1 no-underline transition-all hover:gap-2"
-                        onClick={() => setMegaOpen(false)}
-                      >
-                        Browse all categories <CaretRight size={14} />
-                      </Link>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <form
-            className="hidden md:flex flex-1 relative items-center h-[38px] border-2 border-brand rounded-lg overflow-hidden bg-surface"
-            onSubmit={handleSearch}
-            role="search"
-          >
-            <MagnifyingGlass size={16} className="absolute left-2.5 text-ink-subtle pointer-events-none" />
-            <input
-              type="text"
-              className="flex-1 h-full pl-8 pr-3 border-0 outline-none text-[0.8125rem] bg-transparent text-ink placeholder:text-ink-subtle"
-              placeholder={t("search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button
-              type="submit"
-              className="h-full px-5 bg-brand text-white border-0 text-[0.8125rem] font-semibold cursor-pointer transition-colors whitespace-nowrap hover:bg-brand-hover"
-            >
-              {tCommon("search")}
-            </button>
-          </form>
-
-          <div className="flex items-center gap-0.5 ml-auto shrink-0">
-            <Link
-              href="/search"
-              className={`${iconButtonCls} flex md:hidden`}
-              aria-label={t("search")}
-            >
-              <MagnifyingGlass size={20} />
-            </Link>
-
-            <LanguageSwitcher />
-
-            <ThemeToggle />
-
-            {user && (
-              <Link href="/account/wishlist" className={iconButtonCls} aria-label="Wishlist">
-                <Heart size={20} />
+        <div data-depth="0" className="hidden h-[var(--utility-height)] border-b border-line bg-surface lg:block">
+          <div className="mx-auto flex h-full max-w-container items-center justify-between gap-6 px-gutter">
+            <p className="meta text-ink-muted">{SHIPPING.statement}</p>
+            <div className="flex items-center gap-4">
+              <CurrencySelect />
+              <ThemeToggle />
+              <Link href="/faq" className="meta text-ink-muted hover-device:hover:text-ink hover-device:hover:underline hover-device:hover:underline-offset-4">
+                Help
               </Link>
-            )}
-
-            <Link
-              href="/cart"
-              className={`${iconButtonCls} relative`}
-              aria-label={t("cart")}
-            >
-              <Basket size={20} />
-              {itemCount > 0 && (
-                <motion.span
-                  key={cartBounce}
-                  className="absolute -top-[3px] -right-[3px] bg-brand text-white text-[0.625rem] font-bold min-w-[1.125rem] h-[1.125rem] flex items-center justify-center rounded-full px-1 border-2 border-surface"
-                  initial={cartBounce > 0 ? { scale: 0.5 } : false}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", damping: 10, stiffness: 400 }}
-                >
-                  {itemCount > 99 ? "99+" : itemCount}
-                </motion.span>
-              )}
-            </Link>
-
-            {user && (role === "ADMIN" || role === "SUPER_ADMIN") && (
-              <a href="/admin" className={iconButtonCls} aria-label="Admin">
-                <Shield size={20} />
-              </a>
-            )}
-
-            {user ? (
-              <Link href="/account" className={iconButtonCls} aria-label={t("account")}>
-                <UserCircle size={20} />
-              </Link>
-            ) : (
-              <Link href="/auth/login" className={iconButtonCls} aria-label={t("login")}>
-                <UserCircle size={20} />
-              </Link>
-            )}
+              {isAdmin ? (
+                <a href="/admin" className="meta text-ink-muted hover-device:hover:text-ink hover-device:hover:underline hover-device:hover:underline-offset-4">
+                  Admin
+                </a>
+              ) : null}
+            </div>
           </div>
         </div>
 
-        {/* Tier 2: category tabs row (desktop) */}
-        <nav
-          className="hidden lg:block border-t border-line"
-          aria-label="Primary"
+        <div
+          data-cornice=""
+          data-depth="3"
+          className={cn(
+            "on-paint relative bg-paint text-on-paint transition-[height] duration-[320ms] ease-[var(--ease-furniture)]",
+            "h-[var(--header-height-mobile)]",
+            compact ? "lg:h-[var(--header-height-compact)]" : "lg:h-[var(--header-height)]",
+          )}
         >
-          <div className="max-w-[1400px] mx-auto px-6 flex items-center gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Link href="/" className={navTabCls}>
-              {t("home")}
+          <div className="relative mx-auto grid h-full max-w-container grid-cols-[1fr_auto_1fr] items-center gap-4 px-gutter lg:flex lg:justify-between lg:gap-8">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              className="-ml-2 flex h-11 min-w-11 cursor-pointer items-center gap-2 justify-self-start px-2 text-on-paint lg:hidden"
+            >
+              <Menu size={20} aria-hidden="true" />
+              <span className="text-ui-md font-medium max-[389px]:sr-only">Menu</span>
+            </button>
+
+            <Link href="/" aria-label="Brasmora, home" className="flex shrink-0 items-center justify-self-center text-on-paint">
+              <Wordmark className={cn("w-auto transition-[height] duration-[320ms] ease-[var(--ease-furniture)]", "h-[25px]", compact ? "lg:h-[25px]" : "lg:h-[33px]")} />
             </Link>
-            {topCategories.slice(0, 6).map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/catalog/${cat.slug}`}
-                className={navTabCls}
+
+            <nav aria-label="Main" className="hidden h-full items-center gap-7 lg:flex">
+              {CORNICE_LINKS.map((slug) => {
+                const cat = navCategory(slug);
+                const href = `/catalog/${slug}`;
+                const current = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <Link key={slug} href={href} aria-current={current ? "page" : undefined} className={cn(corniceLink, "hidden xl:inline-flex")}>
+                    {cat?.short ?? slug}
+                  </Link>
+                );
+              })}
+              <button
+                ref={megaTrigger}
+                type="button"
+                data-mega-trigger=""
+                aria-expanded={megaOpen}
+                aria-controls={megaId}
+                onClick={() => {
+                  window.clearTimeout(megaTimer.current);
+                  setMegaOpen((v) => !v);
+                }}
+                onPointerEnter={(e) => {
+                  if (e.pointerType === "mouse") openMega(150);
+                }}
+                onPointerLeave={(e) => {
+                  if (e.pointerType === "mouse" && !megaOpen) window.clearTimeout(megaTimer.current);
+                }}
+                className={cn(corniceLink, "cursor-pointer gap-1.5")}
               >
-                {cat.name}
+                <span className="xl:hidden">Shop</span>
+                <span className="hidden xl:inline">All categories</span>
+                <ChevronDown size={16} aria-hidden="true" className={cn("transition-transform duration-[260ms]", megaOpen && "rotate-180")} />
+              </button>
+            </nav>
+
+            <div className="flex items-center gap-1 justify-self-end lg:gap-6">
+              <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className={cn(corniceAction, "w-11 justify-center lg:w-auto")}>
+                <Search size={20} aria-hidden="true" className="lg:hidden" />
+                <span className="hidden lg:inline">Search</span>
+              </button>
+              <Link href={user ? "/account" : "/auth/login"} className={cn(corniceAction, "hidden lg:inline-flex")}>
+                {user ? "Account" : "Sign in"}
               </Link>
-            ))}
-            <Link href="/catalog?onSale=true" className={navTabCls}>
-              Deals
-            </Link>
-            <Link href="/catalog?sort=newest" className={navTabCls}>
-              New Arrivals
-            </Link>
-            <Link href="/contact" className={`${navTabCls} ml-auto`}>
-              {t("contact")}
-            </Link>
+              <button
+                type="button"
+                onClick={openSheet}
+                aria-label={`Bag, ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
+                data-bag-target=""
+                className={cn(corniceAction, "-mr-2 min-w-11 justify-center px-2 lg:mr-0 lg:px-0")}
+              >
+                <Handbag size={20} aria-hidden="true" className="lg:hidden" />
+                <span className="hidden lg:inline">Bag</span>
+                {bagPlate}
+              </button>
+            </div>
           </div>
-        </nav>
+          <span aria-hidden="true" className={cn("absolute inset-x-0 top-full h-[2px] bg-shelf transition-opacity duration-[160ms]", compact ? "opacity-100" : "opacity-0")} />
+          <div className="hidden lg:block">
+            <MegaMenu
+              id={megaId}
+              open={megaOpen}
+              categories={categories}
+              onClose={(restore) => closeMega(0, restore)}
+              onPointerEnter={() => window.clearTimeout(megaTimer.current)}
+              onPointerLeave={() => closeMega(250)}
+            />
+          </div>
+        </div>
       </header>
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black/40 z-[90]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
-            />
-            <motion.div
-              className="fixed top-0 left-0 bottom-0 w-[min(85vw,380px)] bg-surface z-[100] flex flex-col shadow-[4px_0_20px_rgba(15,23,42,0.08)]"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-line">
-                <span className="text-lg font-bold text-ink">Menu</span>
-                <button
-                  className="flex items-center justify-center w-9 h-9 rounded-md bg-transparent border-0 cursor-pointer text-ink-muted hover:bg-surface-1 hover:text-ink"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-5 py-4">
-                <nav className="flex flex-col gap-1">
-                  <Link href="/" className={drawerNavLinkCls} onClick={() => setMobileOpen(false)}>
-                    {t("home")} <CaretRight size={18} />
-                  </Link>
-                  <Link href="/catalog" className={drawerNavLinkCls} onClick={() => setMobileOpen(false)}>
-                    {t("catalog")} <CaretRight size={18} />
-                  </Link>
-                  <Link href="/catalog?sort=newest" className={drawerNavLinkCls} onClick={() => setMobileOpen(false)}>
-                    New Arrivals <CaretRight size={18} />
-                  </Link>
-                  <Link href="/catalog?onSale=true" className={drawerNavLinkCls} onClick={() => setMobileOpen(false)}>
-                    Deals <CaretRight size={18} />
-                  </Link>
-
-                  {topCategories.length > 0 && (
-                    <>
-                      <div className="h-px bg-line my-2" />
-                      {topCategories.slice(0, 8).map((cat) => (
-                        <Link
-                          key={cat.id}
-                          href={`/catalog/${cat.slug}`}
-                          className={drawerNavLinkCls}
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          {cat.name} <CaretRight size={18} />
-                        </Link>
-                      ))}
-                    </>
-                  )}
-
-                  <div className="h-px bg-line my-2" />
-
-                  <Link href="/contact" className={drawerNavLinkCls} onClick={() => setMobileOpen(false)}>
-                    {t("contact")} <CaretRight size={18} />
-                  </Link>
-                  {user && (role === "ADMIN" || role === "SUPER_ADMIN") && (
-                    <a href="/admin" className={drawerNavLinkCls} onClick={() => setMobileOpen(false)}>
-                      Admin Panel <CaretRight size={18} />
-                    </a>
-                  )}
-                </nav>
-              </div>
-
-              <div className="px-5 py-4 border-t border-line flex flex-col gap-3">
-                {user ? (
-                  <Link href="/account" onClick={() => setMobileOpen(false)}>
-                    <div className={`${drawerBtnCls} bg-brand text-white`}>My Account</div>
-                  </Link>
-                ) : (
-                  <>
-                    <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                      <div className={`${drawerBtnCls} bg-brand text-white`}>Sign In</div>
-                    </Link>
-                    <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
-                      <div className={`${drawerBtnCls} bg-surface-1 text-ink`}>Create Account</div>
-                    </Link>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} categories={categories} />
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} categories={categories} />
+      <CartSheet />
     </>
   );
 }

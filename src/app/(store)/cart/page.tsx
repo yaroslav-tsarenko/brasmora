@@ -4,12 +4,13 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Basket, ArrowRight, ShieldCheck, Trash, Package, Truck, ImageBroken } from "@phosphor-icons/react";
+import { Handbag, ArrowRight, ShieldCheck, Trash2, Package, Truck, ImageOff } from "lucide-react";
 import { useCart } from "@/providers/CartProvider";
 import { useCurrency } from "@/providers/CurrencyProvider";
 import { QuantitySelector } from "@/components/shared/QuantitySelector/QuantitySelector";
 import { PriceDisplay } from "@/components/shared/PriceDisplay/PriceDisplay";
 import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
+import { PaymentLogos } from "@/components/shared/PaymentLogos/PaymentLogos";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { formatPrice } from "@/lib/utils/format-price";
 
@@ -46,13 +47,13 @@ export default function CartPage() {
             subtitle={t("emptySubtitle")}
             actionLabel={t("continueShopping")}
             actionHref="/catalog"
-            icon={<Basket size={48} />}
+            icon={<Handbag size={48} />}
           />
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 lg:gap-10 items-start">
           {/* Cart Items */}
-          <div className="border border-line rounded-xl overflow-hidden bg-surface">
+          <div className="border border-line overflow-hidden bg-surface">
             <div className="flex items-center justify-between px-6 py-4 max-[480px]:px-4 max-[480px]:py-3 max-[480px]:text-[0.8125rem] border-b border-line bg-surface-1 flex-wrap gap-2">
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <Package size={16} style={{ color: "var(--color-text-secondary)" }} />
@@ -61,7 +62,7 @@ export default function CartPage() {
                 </span>
               </div>
               {subtotalConverted >= freeShippingThreshold && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", fontWeight: 600, color: "#3F7A54" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--color-success)" }}>
                   <Truck size={14} />
                   Free shipping
                 </div>
@@ -79,7 +80,7 @@ export default function CartPage() {
                   transition={{ delay: index * 0.05, duration: 0.25 }}
                   className="flex gap-5 max-sm:gap-3.5 px-6 py-5 max-sm:px-4 max-sm:py-4 items-center max-sm:items-start [&+&]:border-t [&+&]:border-line"
                 >
-                  <div className="relative w-24 h-24 max-sm:w-[72px] max-sm:h-[72px] rounded-lg overflow-hidden bg-white border border-line shrink-0">
+                  <div className="relative w-24 h-24 max-sm:w-[72px] max-sm:h-[72px] overflow-hidden bg-stage border border-line shrink-0">
                     {item.imageUrl ? (
                       <Image
                         src={item.imageUrl}
@@ -90,7 +91,7 @@ export default function CartPage() {
                       />
                     ) : (
                       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-tertiary)" }}>
-                        <ImageBroken size={24} />
+                        <ImageOff size={24} />
                       </div>
                     )}
                   </div>
@@ -123,7 +124,6 @@ export default function CartPage() {
                           style={{
                             width: "2rem",
                             height: "2rem",
-                            borderRadius: "var(--radius-lg)",
                             border: "none",
                             background: "transparent",
                             color: "var(--color-text-tertiary)",
@@ -137,7 +137,7 @@ export default function CartPage() {
                           onMouseLeave={(e) => { e.currentTarget.style.color = "var(--color-text-tertiary)"; e.currentTarget.style.background = "transparent"; }}
                           aria-label="Remove"
                         >
-                          <Trash size={16} />
+                          <Trash2 size={16} />
                         </motion.button>
                       </div>
                     </div>
@@ -152,7 +152,7 @@ export default function CartPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="p-7 max-sm:p-5 border border-line rounded-xl max-sm:rounded-lg bg-surface h-fit lg:sticky lg:top-[calc(var(--header-height)+var(--announcement-height)+1rem)] max-lg:static"
+            className="p-7 max-sm:p-5 border border-line bg-surface h-fit lg:sticky lg:top-[calc(var(--header-height)+var(--announcement-height)+1rem)] max-lg:static"
           >
             <h2 style={{ fontSize: "1.125rem", fontWeight: 700, marginBottom: "1.25rem" }}>
               Order Summary
@@ -165,7 +165,7 @@ export default function CartPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem" }}>
                 <span style={{ color: "var(--color-text-secondary)" }}>{t("shipping")}</span>
-                <span style={{ fontWeight: 600, color: cart.shippingCost === 0 ? "#3F7A54" : undefined }}>
+                <span style={{ fontWeight: 600, color: cart.shippingCost === 0 ? "var(--color-success)" : undefined }}>
                   {cart.shippingCost > 0 ? formatPrice(convert(cart.shippingCost), currency) : "Free"}
                 </span>
               </div>
@@ -178,7 +178,6 @@ export default function CartPage() {
                 <div
                   style={{
                     padding: "0.625rem 0.75rem",
-                    borderRadius: "var(--radius-md)",
                     background: "var(--color-bg-secondary)",
                     fontSize: "0.75rem",
                     color: "var(--color-text-secondary)",
@@ -209,7 +208,7 @@ export default function CartPage() {
             </div>
 
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Link href="/checkout" className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-brand text-white font-bold text-base no-underline shadow-[0_4px_14px_rgba(46,94,78,0.3)] transition-all hover:-translate-y-px hover:shadow-[0_6px_18px_rgba(46,94,78,0.4)]">
+              <Link href="/checkout" className="flex items-center justify-center gap-2 w-full py-4 bg-brand text-on-brand font-bold text-base no-underline transition-all hover:-translate-y-px">
                 {t("checkout")} <ArrowRight size={18} />
               </Link>
             </motion.div>
@@ -242,6 +241,7 @@ export default function CartPage() {
               <ShieldCheck size={14} />
               Secure checkout with SSL encryption
             </div>
+            <PaymentLogos height={24} className="mt-4 justify-center" />
           </motion.div>
         </div>
       )}

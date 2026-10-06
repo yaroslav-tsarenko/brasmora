@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface BrandData {
   id: string;
@@ -15,7 +15,7 @@ interface Props {
 }
 
 const arrowCls =
-  "w-7 h-7 flex items-center justify-center border border-line rounded-md bg-surface cursor-pointer text-ink-muted transition-colors hover:border-line-hover hover:text-ink";
+  "w-7 h-7 flex items-center justify-center border border-line bg-surface cursor-pointer text-ink-muted transition-colors hover:border-line-hover hover:text-ink";
 
 export function BrandStrip({ brands }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -27,15 +27,15 @@ export function BrandStrip({ brands }: Props) {
   if (!brands.length) return null;
 
   return (
-    <div className="bg-surface border border-line rounded-lg px-5 py-4 mb-6">
+    <div className="bg-surface border border-line px-5 py-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[0.9375rem] font-bold m-0 text-ink">Popular Brands</h3>
         <div className="flex gap-1">
           <button className={arrowCls} onClick={() => scroll(-1)} aria-label="Scroll left">
-            <CaretLeft size={16} />
+            <ChevronLeft size={16} />
           </button>
           <button className={arrowCls} onClick={() => scroll(1)} aria-label="Scroll right">
-            <CaretRight size={16} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -47,7 +47,7 @@ export function BrandStrip({ brands }: Props) {
           <a
             key={brand.id}
             href={brand.linkUrl || "#"}
-            className="shrink-0 flex items-center justify-center px-5 py-2.5 border border-line rounded-md bg-surface-1 min-w-[100px] transition-colors cursor-pointer hover:border-line-hover hover:bg-surface-2"
+            className="shrink-0 flex items-center justify-center px-5 py-2.5 border border-line bg-surface-1 min-w-[100px] transition-colors cursor-pointer hover:border-line-hover hover:bg-surface-2"
           >
             {brand.logoUrl ? (
               <img src={brand.logoUrl} alt={brand.name} className="max-h-6 max-w-20 object-contain" />

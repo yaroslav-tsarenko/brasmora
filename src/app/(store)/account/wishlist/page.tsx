@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Heart } from "@phosphor-icons/react";
+import { Heart } from "lucide-react";
 import { ProductGrid } from "@/components/product/ProductGrid/ProductGrid";
 import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
 
 export default function WishlistPage() {
   const t = useTranslations("account");
@@ -25,7 +25,7 @@ export default function WishlistPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <ShelfLoader block />;
 
   return (
     <div>

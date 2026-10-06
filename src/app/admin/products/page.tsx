@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
 import { Chip } from "@heroui/react";
-import { Plus, MagnifyingGlass, Trash } from "@phosphor-icons/react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils/format-price";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
 import { toast } from "sonner";
@@ -83,7 +83,7 @@ export default function AdminProductsPage() {
 
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.25rem" }}>
         <div style={{ position: "relative", maxWidth: "20rem", flex: 1 }}>
-          <MagnifyingGlass size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--admin-text-muted)" }} />
+          <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--admin-text-muted)" }} />
           <input
             className="admin-input"
             placeholder="Search by name, SKU, or description..."
@@ -93,7 +93,7 @@ export default function AdminProductsPage() {
           />
         </div>
         {selected.size > 0 && (
-          <Button color="danger" variant="flat" startContent={<Trash size={16} />} onPress={handleBulkDelete}>
+          <Button color="danger" variant="flat" startContent={<Trash2 size={16} />} onPress={handleBulkDelete}>
             Delete ({selected.size})
           </Button>
         )}

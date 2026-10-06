@@ -10,16 +10,12 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { COMPANY } from "@/lib/company";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  EnvelopeSimple, Phone, MapPin, Clock, PaperPlaneTilt,
-  CheckCircle, ChatCircle, Question, ShieldCheck,
-} from "@phosphor-icons/react";
+import { Mail, Phone, MapPin, Clock, Send, CircleCheck, MessageCircle, CircleHelp, ShieldCheck } from "lucide-react";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.75rem 1rem",
   paddingLeft: "2.75rem",
-  borderRadius: "12px",
   border: "1.5px solid var(--color-border)",
   background: "var(--color-bg)",
   color: "var(--color-text)",
@@ -48,7 +44,7 @@ const errorStyle: React.CSSProperties = {
 };
 
 const CONTACT_INFO = [
-  { icon: EnvelopeSimple, title: "Email Us", detail: COMPANY.email, sub: "We reply within 24 hours" },
+  { icon: Mail, title: "Email Us", detail: COMPANY.email, sub: "We reply within 24 hours" },
   ...(COMPANY.phone
     ? [{ icon: Phone, title: "Call Us", detail: COMPANY.phone, sub: COMPANY.supportHours }]
     : []),
@@ -63,10 +59,10 @@ const CONTACT_INFO = [
 ];
 
 const TOPICS = [
-  { icon: ChatCircle, label: "General Inquiry", value: "general" },
-  { icon: Question, label: "Product Support", value: "support" },
+  { icon: MessageCircle, label: "General Inquiry", value: "general" },
+  { icon: CircleHelp, label: "Product Support", value: "support" },
   { icon: ShieldCheck, label: "Warranty & Returns", value: "warranty" },
-  { icon: PaperPlaneTilt, label: "Business / Wholesale", value: "business" },
+  { icon: Send, label: "Business / Wholesale", value: "business" },
 ];
 
 export default function ContactPage() {
@@ -103,7 +99,6 @@ export default function ContactPage() {
       <style>{`
         .contact-input:focus {
           border-color: var(--color-accent) !important;
-          box-shadow: 0 0 0 3px rgba(46,94,78,0.14) !important;
         }
       `}</style>
       <Breadcrumbs items={[{ label: nav("home"), href: "/" }, { label: t("title") }]} />
@@ -135,13 +130,12 @@ export default function ContactPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 + i * 0.05 }}
-            className="p-6 max-[480px]:px-3 max-[480px]:py-4 rounded-2xl border border-line bg-surface text-center"
-            whileHover={{ y: -4, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
+            className="p-6 max-[480px]:px-3 max-[480px]:py-4 border border-line bg-surface text-center"
+            whileHover={{ y: -2 }}
           >
             <div style={{
               width: "3rem",
               height: "3rem",
-              borderRadius: "14px",
               background: "var(--color-accent-light)",
               color: "var(--color-accent)",
               display: "flex",
@@ -165,7 +159,7 @@ export default function ContactPage() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="p-8 max-sm:p-5 rounded-xl max-sm:rounded-lg border border-line bg-surface"
+          className="p-8 max-sm:p-5 border border-line bg-surface"
         >
           <AnimatePresence mode="wait">
             {submitted ? (
@@ -181,7 +175,7 @@ export default function ContactPage() {
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: "spring", damping: 12, stiffness: 300 }}
                 >
-                  <CheckCircle size={64} style={{ color: "#3F7A54", margin: "0 auto 1.5rem" }} />
+                  <CircleCheck size={64} style={{ color: "var(--color-success)", margin: "0 auto 1.5rem" }} />
                 </motion.div>
                 <h2 style={{ fontSize: "1.5rem", fontWeight: 800, marginBottom: "0.75rem" }}>Message Sent!</h2>
                 <p style={{ color: "var(--color-text-secondary)", maxWidth: "320px", margin: "0 auto 1.5rem", lineHeight: 1.6 }}>
@@ -200,8 +194,8 @@ export default function ContactPage() {
                 style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <div style={{ width: "2rem", height: "2rem", borderRadius: "10px", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <PaperPlaneTilt size={16} />
+                  <div style={{ width: "2rem", height: "2rem", background: "var(--color-accent-light)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Send size={16} />
                   </div>
                   <h2 style={{ fontSize: "1.125rem", fontWeight: 700 }}>Send us a message</h2>
                 </div>
@@ -225,7 +219,6 @@ export default function ContactPage() {
                             alignItems: "center",
                             gap: "0.5rem",
                             padding: "0.625rem 0.875rem",
-                            borderRadius: "10px",
                             border: `1.5px solid ${isActive ? "var(--color-accent)" : "var(--color-border)"}`,
                             background: isActive ? "var(--color-accent-light)" : "var(--color-bg)",
                             color: isActive ? "var(--color-accent)" : "var(--color-text-secondary)",
@@ -257,7 +250,7 @@ export default function ContactPage() {
                   <div>
                     <label style={labelStyle}>{t("email")}</label>
                     <div style={{ position: "relative" }}>
-                      <EnvelopeSimple size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-tertiary)", pointerEvents: "none" }} />
+                      <Mail size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-tertiary)", pointerEvents: "none" }} />
                       <input
                         className="contact-input"
                         type="email"
@@ -300,7 +293,7 @@ export default function ContactPage() {
                     size="lg"
                     isLoading={loading}
                     style={{ width: "100%" }}
-                    startContent={!loading ? <PaperPlaneTilt size={16} /> : undefined}
+                    startContent={!loading ? <Send size={16} /> : undefined}
                   >
                     {t("send")}
                   </Button>
@@ -320,12 +313,11 @@ export default function ContactPage() {
           {/* FAQ Teaser */}
           <div style={{
             padding: "1.75rem",
-            borderRadius: "var(--radius-xl)",
             border: "1px solid var(--color-border)",
             background: "var(--color-bg)",
           }}>
             <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Question size={18} style={{ color: "var(--color-accent)" }} />
+              <CircleHelp size={18} style={{ color: "var(--color-accent)" }} />
               Frequently Asked
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -337,7 +329,6 @@ export default function ContactPage() {
               ].map((faq, i) => (
                 <div key={i} style={{
                   padding: "0.75rem",
-                  borderRadius: "10px",
                   background: "var(--color-bg-secondary)",
                   fontSize: "0.8125rem",
                 }}>
@@ -351,25 +342,24 @@ export default function ContactPage() {
           {/* Response Time */}
           <div style={{
             padding: "1.5rem",
-            borderRadius: "var(--radius-xl)",
-            background: "linear-gradient(135deg, #1E2420 0%, #234A3D 100%)",
-            color: "#fff",
+            background: "var(--color-paint)",
+            color: "var(--color-on-accent)",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.875rem" }}>
-              <Clock size={18} style={{ color: "#8FB3A3" }} />
+              <Clock size={18} style={{ color: "var(--color-brass-on-paint)" }} />
               <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Response Times</h3>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                <span style={{ color: "rgba(255,255,255,0.7)" }}>Email</span>
+                <span style={{ color: "var(--color-on-paint-muted)" }}>Email</span>
                 <span style={{ fontWeight: 600 }}>Within 24h</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                <span style={{ color: "rgba(255,255,255,0.7)" }}>Phone</span>
+                <span style={{ color: "var(--color-on-paint-muted)" }}>Phone</span>
                 <span style={{ fontWeight: 600 }}>Immediate</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem" }}>
-                <span style={{ color: "rgba(255,255,255,0.7)" }}>Wholesale</span>
+                <span style={{ color: "var(--color-on-paint-muted)" }}>Wholesale</span>
                 <span style={{ fontWeight: 600 }}>Within 48h</span>
               </div>
             </div>
@@ -378,7 +368,6 @@ export default function ContactPage() {
           {/* Company Details */}
           <div style={{
             padding: "1.5rem",
-            borderRadius: "var(--radius-xl)",
             border: "1px solid var(--color-border)",
             background: "var(--color-bg)",
           }}>
@@ -406,14 +395,13 @@ export default function ContactPage() {
           {/* Trust */}
           <div style={{
             padding: "1.25rem",
-            borderRadius: "var(--radius-xl)",
             border: "1px solid var(--color-border)",
             background: "var(--color-bg)",
             display: "flex",
             alignItems: "center",
             gap: "0.75rem",
           }}>
-            <ShieldCheck size={20} style={{ color: "#3F7A54", flexShrink: 0 }} />
+            <ShieldCheck size={20} style={{ color: "var(--color-success)", flexShrink: 0 }} />
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
               Your information is secure and will only be used to respond to your inquiry. We never share your data.
             </p>

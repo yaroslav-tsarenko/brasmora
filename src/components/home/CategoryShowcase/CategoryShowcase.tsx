@@ -3,17 +3,17 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
-import { Package } from "@phosphor-icons/react";
+import { Package } from "lucide-react";
 
 const COLORS = [
-  "rgba(46,94,78,0.12)",
-  "rgba(165,86,31,0.10)",
-  "rgba(74,107,124,0.14)",
-  "rgba(63,122,84,0.12)",
-  "rgba(154,107,21,0.12)",
-  "rgba(35,74,61,0.14)",
-  "rgba(143,179,163,0.22)",
-  "rgba(168,64,47,0.10)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
+  "var(--color-bg-secondary)",
 ];
 
 interface CategoryItem {
@@ -54,10 +54,10 @@ export function CategoryShowcase({ categories }: Props) {
           >
             <Link
               href={`/catalog/${cat.slug}`}
-              className="flex items-center gap-3 bg-surface border border-line rounded-lg px-4 py-3.5 max-[480px]:px-3 max-[480px]:py-2.5 no-underline text-ink transition-all hover:border-line-hover hover:shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
+              className="flex items-center gap-3 bg-surface border border-line px-4 py-3.5 max-[480px]:px-3 max-[480px]:py-2.5 no-underline text-ink transition-all hover:border-line-hover"
             >
               <div
-                className="w-12 h-12 rounded-[10px] flex items-center justify-center shrink-0 text-brand"
+                className="w-12 h-12 flex items-center justify-center shrink-0 text-brand"
                 style={{ background: COLORS[i % COLORS.length] }}
               >
                 <Package size={22} />

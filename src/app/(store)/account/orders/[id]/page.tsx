@@ -2,22 +2,12 @@
 
 import { useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
-import { Chip } from "@heroui/react";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { StatusPlate } from "@/components/ui/Plate";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
 import { useCurrency } from "@/providers/CurrencyProvider";
 import { formatPrice } from "@/lib/utils/format-price";
 import { format } from "date-fns";
 import type { OrderDetail } from "@/types/order";
-
-const statusColors: Record<string, "default" | "accent" | "success" | "warning" | "danger"> = {
-  PENDING: "warning",
-  CONFIRMED: "accent",
-  PROCESSING: "accent",
-  SHIPPED: "default",
-  DELIVERED: "success",
-  CANCELLED: "danger",
-  REFUNDED: "danger",
-};
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -34,7 +24,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <ShelfLoader block />;
   if (!order) return <div style={{ padding: "2rem", textAlign: "center" }}>Order not found</div>;
 
   return (
@@ -48,11 +38,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             Placed on {format(new Date(order.createdAt), "MMM d, yyyy 'at' HH:mm")}
           </p>
         </div>
-        <Chip size="lg" color={statusColors[order.status] || "default"}>{order.status}</Chip>
+        <StatusPlate status={order.status} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="px-5 py-4 border border-line rounded-lg bg-surface">
+        <div className="px-5 py-4 border border-line bg-surface">
           <div className="font-bold text-[0.8125rem] uppercase tracking-[0.04em] text-ink-subtle mb-2">Shipping Address</div>
           <div className="text-sm text-ink-muted leading-[1.5]">
             {order.shippingAddress.firstName} {order.shippingAddress.lastName}<br />
@@ -62,7 +52,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             {order.shippingAddress.country}
           </div>
         </div>
-        <div className="px-5 py-4 border border-line rounded-lg bg-surface">
+        <div className="px-5 py-4 border border-line bg-surface">
           <div className="font-bold text-[0.8125rem] uppercase tracking-[0.04em] text-ink-subtle mb-2">Order Info</div>
           <div className="text-sm text-ink-muted leading-[1.5]">
             Payment: <strong>{order.paymentStatus}</strong>
@@ -73,7 +63,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="border border-line rounded-lg overflow-hidden bg-surface">
+      <div className="border border-line overflow-hidden bg-surface">
         <table className="w-full border-collapse max-sm:hidden [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-[0.04em] [&_th]:text-ink-subtle [&_th]:bg-surface-1 [&_th]:border-b [&_th]:border-line [&_td]:px-4 [&_td]:py-3.5 [&_td]:text-sm [&_td]:border-b [&_td]:border-line [&_tr:last-child_td]:border-b-0">
           <thead>
             <tr>

@@ -13,7 +13,7 @@ export async function GET(
       include: {
         children: { orderBy: { sortOrder: "asc" } },
         products: {
-          include: { product: { include: { images: { take: 1 } } } },
+          include: { product: { omit: { metadata: true, costPrice: true }, include: { images: { take: 1 } } } },
         },
       },
     });

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
 import { Chip } from "@heroui/react";
-import { Check, X } from "@phosphor-icons/react";
+import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
 

@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
+        omit: { metadata: true },
         include: {
           images: { orderBy: { sortOrder: "asc" }, take: 2 },
           categories: { include: { category: { select: { id: true, name: true, slug: true } } } },

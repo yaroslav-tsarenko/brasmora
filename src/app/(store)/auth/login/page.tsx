@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { EnvelopeSimple, Lock, Eye, EyeSlash, Basket } from "@phosphor-icons/react";
+import { Mail, Lock, Eye, EyeOff, Handbag } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -49,16 +49,16 @@ export default function LoginPage() {
   } as const;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-[linear-gradient(135deg,#f4f2ed_0%,#ece8df_45%,#e4eee9_100%)] dark:bg-[linear-gradient(135deg,#161b18_0%,#1b211d_50%,#1e2420_100%)] relative overflow-hidden before:content-[''] before:absolute before:-top-1/2 before:-left-1/2 before:w-[200%] before:h-[200%] before:bg-[radial-gradient(circle_at_30%_20%,rgba(46,94,78,0.08)_0%,transparent_50%),radial-gradient(circle_at_70%_80%,rgba(165,86,31,0.05)_0%,transparent_50%)] before:pointer-events-none">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-surface">
       <motion.div
-        className="relative w-full max-w-[420px] p-10 max-[480px]:px-5 max-[480px]:py-7 bg-white/85 dark:bg-[#1b211d]/85 backdrop-blur-xl rounded-lg border border-line shadow-[0_20px_60px_-10px_rgba(0,0,0,0.08),0_8px_20px_-6px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.03)]"
+        className="relative w-full max-w-[420px] p-10 max-[480px]:px-5 max-[480px]:py-7 bg-raised border border-line"
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <motion.div className="text-center mb-8" custom={0} variants={fadeUp} initial="hidden" animate="visible">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand text-white mb-5 shadow-accent">
-            <Basket size={24} />
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand text-on-brand mb-5">
+            <Handbag size={24} />
           </div>
           <h1 className="text-[1.75rem] max-[480px]:text-2xl font-extrabold text-ink m-0 mb-2 tracking-[-0.04em]">{t("loginTitle")}</h1>
           <p className="text-[0.9375rem] text-ink-muted m-0 leading-[1.5]">{t("loginSubtitle")}</p>
@@ -68,14 +68,14 @@ export default function LoginPage() {
           <motion.div className="flex flex-col gap-1.5" custom={1} variants={fadeUp} initial="hidden" animate="visible">
             <label className="text-[0.8125rem] font-medium text-ink-muted">{t("email")}</label>
             <div className="relative flex items-center">
-              <EnvelopeSimple size={16} className="absolute left-3 text-ink-subtle pointer-events-none transition-colors z-[1] peer-focus:text-brand" />
+              <Mail size={16} className="absolute left-3 text-ink-subtle pointer-events-none transition-colors z-[1] peer-focus:text-brand" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
               />
             </div>
           </motion.div>
@@ -90,15 +90,15 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Enter your password"
-                className="peer w-full pl-10 pr-10 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                className="peer w-full pl-10 pr-10 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
               />
               <button
                 type="button"
-                className="absolute right-2 flex items-center justify-center p-1 bg-transparent border-0 text-ink-subtle cursor-pointer rounded transition-colors hover:text-ink-muted"
+                className="absolute right-2 flex items-center justify-center p-1 bg-transparent border-0 text-ink-subtle cursor-pointer transition-colors hover:text-ink-muted"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
               >
-                {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </motion.div>

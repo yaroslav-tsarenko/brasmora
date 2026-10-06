@@ -3,13 +3,13 @@
 import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { productSchema, type ProductFormData } from "@/lib/validators/product";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
 import { toast } from "sonner";
-import { Plus, Trash, UploadSimple, DotsSixVertical, Image as ImageIcon, MagnifyingGlass } from "@phosphor-icons/react";
+import { Plus, Trash2, Upload, GripVertical, Image as ImageIcon, Search } from "lucide-react";
 import Image from "next/image";
 
 interface ProductImage {
@@ -231,7 +231,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     fontSize: "0",
                   }}
                 >
-                  <Trash size={12} />
+                  <Trash2 size={12} />
                 </button>
                 <div style={{
                   position: "absolute",
@@ -243,7 +243,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   padding: "0.0625rem 0.25rem",
                   borderRadius: "var(--radius-sm)",
                 }}>
-                  <DotsSixVertical size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {img.sortOrder + 1}
+                  <GripVertical size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {img.sortOrder + 1}
                 </div>
               </div>
             ))}
@@ -274,7 +274,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 <LoadingSpinner />
               ) : (
                 <>
-                  <UploadSimple size={20} />
+                  <Upload size={20} />
                   Upload
                 </>
               )}
@@ -374,7 +374,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <div>
               <label className="admin-label">Categories</label>
               <div style={{ position: "relative", marginBottom: "0.5rem" }}>
-                <MagnifyingGlass size={14} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "var(--admin-text-muted)" }} />
+                <Search size={14} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "var(--admin-text-muted)" }} />
                 <input
                   className="admin-input"
                   placeholder="Search categories..."
@@ -528,7 +528,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   }}
                   style={{ background: "none", border: "none", cursor: "pointer", color: "var(--admin-text-tertiary)", padding: "0.5rem" }}
                 >
-                  <Trash size={14} />
+                  <Trash2 size={14} />
                 </button>
               </div>
             ))}

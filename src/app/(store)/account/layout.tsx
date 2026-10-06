@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/providers/AuthProvider";
 import { AccountSidebar } from "@/components/account/AccountSidebar/AccountSidebar";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
@@ -18,7 +18,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     }
   }, [loading, user]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <ShelfLoader block />;
   if (!user) return null;
 
   return (

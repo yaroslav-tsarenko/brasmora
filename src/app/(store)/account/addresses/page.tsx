@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
-import { MapPin } from "@phosphor-icons/react";
+import { MapPin } from "lucide-react";
 
 export default function AddressesPage() {
   const t = useTranslations("account");

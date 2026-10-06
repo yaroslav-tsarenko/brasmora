@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import { formatPrice } from "@/lib/utils/format-price";
 import { getProductImage, getProductImageFallback } from "@/lib/utils/product-image";
@@ -25,7 +25,7 @@ function getTimeUntilMidnight() {
 }
 
 const timeBlockCls =
-  "bg-white/15 backdrop-blur-sm px-2 py-1 rounded text-[0.8125rem] font-bold [font-variant-numeric:tabular-nums] min-w-8 text-center";
+  "bg-on-paint/15 px-2 py-1 text-[0.8125rem] font-bold [font-variant-numeric:tabular-nums] min-w-8 text-center";
 
 export function DealOfTheDay({ product }: Props) {
   const [time, setTime] = useState(getTimeUntilMidnight);
@@ -44,7 +44,7 @@ export function DealOfTheDay({ product }: Props) {
   return (
     <motion.section
       ref={ref}
-      className="mb-6 rounded-lg overflow-hidden bg-[linear-gradient(135deg,#1E2420_0%,#20302A_50%,#234A3D_100%)] text-white flex flex-col md:flex-row items-stretch border border-white/5 relative before:content-[''] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_80%_30%,rgba(111,162,141,0.22)_0%,transparent_60%),radial-gradient(circle_at_20%_80%,rgba(165,86,31,0.14)_0%,transparent_50%)] before:pointer-events-none"
+      className="mb-6 overflow-hidden bg-paint text-on-paint flex flex-col md:flex-row items-stretch border border-on-paint/5 relative before:content-[''] before:absolute before:inset-0 before:pointer-events-none"
       initial={{ opacity: 0, scale: 0.97 }}
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.5 }}
@@ -57,7 +57,7 @@ export function DealOfTheDay({ product }: Props) {
       >
         <div className="flex items-center gap-2 mb-3">
           <motion.span
-            className="bg-sale text-white text-[0.65rem] font-bold px-2.5 py-0.5 rounded uppercase tracking-[0.05em]"
+            className="bg-brass text-on-brass text-[0.65rem] font-bold px-2.5 py-0.5 uppercase tracking-[0.05em]"
             animate={isInView ? { scale: [1, 1.08, 1] } : {}}
             transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 4 }}
           >
@@ -76,19 +76,19 @@ export function DealOfTheDay({ product }: Props) {
           Limited time offer — grab it before the deal expires!
         </p>
         <div className="flex items-baseline gap-3 mb-5">
-          <span className="text-[1.75rem] max-md:text-[1.375rem] font-extrabold text-[#8FB3A3]">
+          <span className="text-[1.75rem] max-md:text-[1.375rem] font-extrabold text-brass-on-paint">
             {formatPrice(Number(product.price))}
           </span>
           {product.comparePrice && (
             <span className="text-base line-through opacity-50">{formatPrice(Number(product.comparePrice))}</span>
           )}
           {discount > 0 && (
-            <span className="bg-sale/20 text-[#D08A55] text-xs font-bold px-2 py-0.5 rounded">-{discount}%</span>
+            <span className="bg-brass text-on-brass text-xs font-bold px-2 py-0.5">-{discount}%</span>
           )}
         </div>
         <Link
           href={`/product/${product.slug}`}
-          className="inline-flex items-center gap-2 px-7 py-3 bg-brand text-white border-0 rounded-lg text-sm font-bold no-underline cursor-pointer transition-all w-fit hover:-translate-y-px hover:bg-brand-hover"
+          className="inline-flex items-center gap-2 px-7 py-3 bg-brand text-on-brand border-0 text-sm font-bold no-underline cursor-pointer transition-all w-fit hover:-translate-y-px hover:bg-brand-hover"
         >
           Shop Now <ArrowRight size={16} />
         </Link>
@@ -108,7 +108,7 @@ export function DealOfTheDay({ product }: Props) {
             alt={product.name}
             width={240}
             height={200}
-            className="max-w-full max-h-[200px] object-contain [filter:drop-shadow(0_8px_24px_rgba(0,0,0,0.3))]"
+            className="max-w-full max-h-[200px] object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).src = getProductImageFallback("240x200");
             }}

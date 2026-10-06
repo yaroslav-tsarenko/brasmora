@@ -14,7 +14,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
   if (images.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="relative aspect-square sm:aspect-[4/3] rounded-lg sm:rounded-xl overflow-hidden bg-white border border-line cursor-zoom-in p-2 sm:p-4 flex items-center justify-center text-ink-subtle">
+        <div className="relative aspect-square sm:aspect-[4/3] overflow-hidden bg-stage border border-line cursor-zoom-in p-2 sm:p-4 flex items-center justify-center text-ink-subtle">
           No Image
         </div>
       </div>
@@ -23,7 +23,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-square sm:aspect-[4/3] rounded-lg sm:rounded-xl overflow-hidden bg-white border border-line cursor-zoom-in p-2 sm:p-4">
+      <div className="relative aspect-square sm:aspect-[4/3] overflow-hidden bg-stage border border-line cursor-zoom-in p-2 sm:p-4">
         <Image
           src={images[selectedIndex].url}
           alt={images[selectedIndex].alt || productName}
@@ -38,7 +38,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
           {images.map((image, index) => (
             <button
               key={image.id}
-              className={`relative w-14 h-14 sm:w-[72px] sm:h-[72px] rounded-lg overflow-hidden cursor-pointer border-2 shrink-0 bg-surface-2 transition-all ${
+              className={`relative w-14 h-14 sm:w-[72px] sm:h-[72px] overflow-hidden cursor-pointer border-2 shrink-0 bg-surface-2 transition-all ${
                 index === selectedIndex
                   ? "border-brand"
                   : "border-transparent hover:border-line-hover hover:scale-105"

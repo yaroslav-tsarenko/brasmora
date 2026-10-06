@@ -34,7 +34,6 @@ export default function PoliciesIndexPage() {
                 display: "block",
                 padding: "0.875rem 1rem",
                 border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-lg)",
                 background: "var(--color-bg)",
                 color: "var(--color-text)",
                 textDecoration: "none",

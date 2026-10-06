@@ -5,19 +5,16 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
-import {
-  EnvelopeSimple, Lock, Eye, EyeSlash, User, Basket,
-  Phone, MapPin, Calendar, CaretRight, CaretLeft, Check,
-} from "@phosphor-icons/react";
+import { Mail, Lock, Eye, EyeOff, User, Handbag, Phone, MapPin, Calendar, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { COUNTRIES } from "@/lib/countries";
 
 function getPasswordStrength(password: string): { level: number; label: string; color: string } {
   if (password.length === 0) return { level: 0, label: "", color: "transparent" };
-  if (password.length < 6) return { level: 25, label: "Weak", color: "#A8402F" };
-  if (password.length < 10) return { level: 50, label: "Fair", color: "#9A6B15" };
-  if (password.length < 14) return { level: 75, label: "Good", color: "#3F7A54" };
-  return { level: 100, label: "Strong", color: "#2E5E4E" };
+  if (password.length < 6) return { level: 25, label: "Weak", color: "var(--color-danger)" };
+  if (password.length < 10) return { level: 50, label: "Fair", color: "var(--color-warning)" };
+  if (password.length < 14) return { level: 75, label: "Good", color: "var(--color-success)" };
+  return { level: 100, label: "Strong", color: "var(--color-success)" };
 }
 
 const STEP_LABELS = ["Personal Info", "Contact Details", "Address", "Password"];
@@ -153,7 +150,6 @@ export default function RegisterPage() {
     color: "var(--color-text)",
     background: "var(--color-bg)",
     border: "1px solid var(--color-border)",
-    borderRadius: "var(--radius-lg)",
     outline: "none",
     transition: "border-color 0.2s, box-shadow 0.2s",
     fontFamily: "inherit",
@@ -179,17 +175,17 @@ export default function RegisterPage() {
     ) : null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-[linear-gradient(135deg,#f4f2ed_0%,#ece8df_45%,#e4eee9_100%)] dark:bg-[linear-gradient(135deg,#161b18_0%,#1b211d_50%,#1e2420_100%)] relative overflow-hidden before:content-[''] before:absolute before:-top-1/2 before:-left-1/2 before:w-[200%] before:h-[200%] before:bg-[radial-gradient(circle_at_30%_20%,rgba(46,94,78,0.08)_0%,transparent_50%),radial-gradient(circle_at_70%_80%,rgba(165,86,31,0.05)_0%,transparent_50%)] before:pointer-events-none">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-surface">
       <motion.div
-        className="relative w-full max-w-[420px] p-10 max-[480px]:px-5 max-[480px]:py-7 bg-white/85 dark:bg-[#1b211d]/85 backdrop-blur-xl rounded-lg border border-line shadow-[0_20px_60px_-10px_rgba(0,0,0,0.08),0_8px_20px_-6px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.03)]"
+        className="relative w-full max-w-[420px] p-10 max-[480px]:px-5 max-[480px]:py-7 bg-raised border border-line"
         style={{ maxWidth: 480 }}
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand text-white mb-5 shadow-accent">
-            <Basket size={24} />
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand text-on-brand mb-5">
+            <Handbag size={24} />
           </div>
           <h1 className="text-[1.75rem] max-[480px]:text-2xl font-extrabold text-ink m-0 mb-2 tracking-[-0.04em]">{t("registerTitle")}</h1>
           <p className="text-[0.9375rem] text-ink-muted m-0 leading-[1.5]">{t("registerSubtitle")}</p>
@@ -218,7 +214,6 @@ export default function RegisterPage() {
                   justifyContent: "center",
                   gap: "0.35rem",
                   padding: "0.5rem 0.25rem",
-                  borderRadius: "10px",
                   border: "none",
                   cursor: i <= step ? "pointer" : "default",
                   background: isActive ? "var(--color-accent-light)" : "transparent",
@@ -230,8 +225,8 @@ export default function RegisterPage() {
                 }}
               >
                 {isDone ? (
-                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--color-accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Check size={10} weight="bold" />
+                  <div style={{ width: 18, height: 18, background: "var(--color-accent)", color: "var(--color-on-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Check size={10} />
                   </div>
                 ) : (
                   <Icon size={14} />
@@ -286,7 +281,7 @@ export default function RegisterPage() {
                       value={form.firstName}
                       onChange={set("firstName")}
                       placeholder="John"
-                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.firstName ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                   </div>
@@ -302,7 +297,7 @@ export default function RegisterPage() {
                       value={form.lastName}
                       onChange={set("lastName")}
                       placeholder="Doe"
-                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.lastName ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                   </div>
@@ -317,7 +312,7 @@ export default function RegisterPage() {
                       type="date"
                       value={form.dateOfBirth}
                       onChange={set("dateOfBirth")}
-                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.dateOfBirth ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                   </div>
@@ -326,7 +321,7 @@ export default function RegisterPage() {
 
                 <div className="mt-2">
                   <Button type="button" color="primary" fullWidth onPress={goNext}>
-                    Continue <CaretRight size={16} />
+                    Continue <ChevronRight size={16} />
                   </Button>
                 </div>
               </motion.div>
@@ -345,13 +340,13 @@ export default function RegisterPage() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[0.8125rem] font-medium text-ink-muted">{t("email")} *</label>
                   <div className="relative flex items-center">
-                    <EnvelopeSimple size={16} className="absolute left-3 text-ink-subtle pointer-events-none transition-colors z-[1] peer-focus:text-brand" />
+                    <Mail size={16} className="absolute left-3 text-ink-subtle pointer-events-none transition-colors z-[1] peer-focus:text-brand" />
                     <input
                       type="email"
                       value={form.email}
                       onChange={set("email")}
                       placeholder="you@example.com"
-                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.email ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                   </div>
@@ -367,7 +362,7 @@ export default function RegisterPage() {
                       value={form.phone}
                       onChange={set("phone")}
                       placeholder={`${phoneHint} XX XXX XXXX`}
-                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.phone ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                   </div>
@@ -381,10 +376,10 @@ export default function RegisterPage() {
 
                 <div style={{ display: "flex", gap: "0.75rem" }} className="mt-2">
                   <Button type="button" variant="bordered" onPress={goBack}>
-                    <CaretLeft size={16} /> Back
+                    <ChevronLeft size={16} /> Back
                   </Button>
                   <Button type="button" color="primary" style={{ flex: 1 }} onPress={goNext}>
-                    Continue <CaretRight size={16} />
+                    Continue <ChevronRight size={16} />
                   </Button>
                 </div>
               </motion.div>
@@ -409,7 +404,7 @@ export default function RegisterPage() {
                       value={form.street}
                       onChange={set("street")}
                       placeholder="123 Main Street, Apt 4B"
-                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-3 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.street ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                   </div>
@@ -467,10 +462,10 @@ export default function RegisterPage() {
 
                 <div style={{ display: "flex", gap: "0.75rem" }} className="mt-2">
                   <Button type="button" variant="bordered" onPress={goBack}>
-                    <CaretLeft size={16} /> Back
+                    <ChevronLeft size={16} /> Back
                   </Button>
                   <Button type="button" color="primary" style={{ flex: 1 }} onPress={goNext}>
-                    Continue <CaretRight size={16} />
+                    Continue <ChevronRight size={16} />
                   </Button>
                 </div>
               </motion.div>
@@ -495,16 +490,16 @@ export default function RegisterPage() {
                       value={form.password}
                       onChange={set("password")}
                       placeholder="Min 6 characters"
-                      className="peer w-full pl-10 pr-10 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-10 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.password ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                     <button
                       type="button"
-                      className="absolute right-2 flex items-center justify-center p-1 bg-transparent border-0 text-ink-subtle cursor-pointer rounded transition-colors hover:text-ink-muted"
+                      className="absolute right-2 flex items-center justify-center p-1 bg-transparent border-0 text-ink-subtle cursor-pointer transition-colors hover:text-ink-muted"
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   {renderError("password")}
@@ -527,16 +522,16 @@ export default function RegisterPage() {
                       value={form.confirmPassword}
                       onChange={set("confirmPassword")}
                       placeholder="Confirm your password"
-                      className="peer w-full pl-10 pr-10 py-2.5 text-sm text-ink bg-surface border border-line rounded-lg outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand focus:shadow-[0_0_0_3px_rgba(46,94,78,0.18)]"
+                      className="peer w-full pl-10 pr-10 py-2.5 text-sm text-ink bg-surface border border-line outline-none transition-all placeholder:text-ink-subtle hover:border-line-hover focus:border-brand"
                       style={errors.confirmPassword ? { borderColor: "var(--color-danger)" } : undefined}
                     />
                     <button
                       type="button"
-                      className="absolute right-2 flex items-center justify-center p-1 bg-transparent border-0 text-ink-subtle cursor-pointer rounded transition-colors hover:text-ink-muted"
+                      className="absolute right-2 flex items-center justify-center p-1 bg-transparent border-0 text-ink-subtle cursor-pointer transition-colors hover:text-ink-muted"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       tabIndex={-1}
                     >
-                      {showConfirmPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   {renderError("confirmPassword")}
@@ -565,7 +560,7 @@ export default function RegisterPage() {
 
                 <div style={{ display: "flex", gap: "0.75rem" }} className="mt-2">
                   <Button type="button" variant="bordered" onPress={goBack}>
-                    <CaretLeft size={16} /> Back
+                    <ChevronLeft size={16} /> Back
                   </Button>
                   <Button type="submit" color="primary" style={{ flex: 1 }} isLoading={loading}>
                     {t("signUp")}

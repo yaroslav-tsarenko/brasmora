@@ -13,6 +13,7 @@ export async function GET() {
       where: { userId: user.id },
       include: {
         product: {
+          omit: { metadata: true, costPrice: true },
           include: { images: { take: 1, orderBy: { sortOrder: "asc" } } },
         },
       },

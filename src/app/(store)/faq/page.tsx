@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CaretDown } from "@phosphor-icons/react";
+import { ChevronDown } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { motion, AnimatePresence } from "framer-motion";
 import { COMPANY } from "@/lib/company";
@@ -46,7 +46,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
   return (
     <div style={{
-      borderRadius: "var(--radius-xl)",
       border: "1px solid var(--color-border)",
       overflow: "hidden",
       background: open ? "var(--color-bg-secondary)" : "var(--color-bg)",
@@ -68,7 +67,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         }}
       >
         <span style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--color-text)" }}>{q}</span>
-        <CaretDown
+        <ChevronDown
           size={18}
           style={{
             color: "var(--color-text-tertiary)",

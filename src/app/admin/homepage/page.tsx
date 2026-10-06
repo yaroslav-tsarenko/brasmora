@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import {
-  Plus, Trash, FloppyDisk, CaretDown, CaretUp, Eye, EyeSlash,
-  SquaresFour, Image, Tag, Stack, GridNine, TextT, LinkSimple, Megaphone, Medal
-} from "@phosphor-icons/react";
+import { Plus, Trash2, Save, ChevronDown, ChevronUp, Eye, EyeOff, LayoutGrid, Image, Tag, Layers, Grid3x3, Type, Link, Megaphone, Award } from "lucide-react";
 
 type Tab = "banners" | "brands" | "sections" | "tabs" | "utility" | "promo-strip";
 
@@ -85,10 +82,10 @@ interface PromoStripItemData {
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "banners", label: "Banners & Slides", icon: Image },
-  { key: "brands", label: "Brands", icon: Medal },
-  { key: "sections", label: "Product Sections", icon: GridNine },
-  { key: "tabs", label: "Navigation Tabs", icon: Stack },
-  { key: "utility", label: "Utility Links", icon: LinkSimple },
+  { key: "brands", label: "Brands", icon: Award },
+  { key: "sections", label: "Product Sections", icon: Grid3x3 },
+  { key: "tabs", label: "Navigation Tabs", icon: Layers },
+  { key: "utility", label: "Utility Links", icon: Link },
   { key: "promo-strip", label: "Promo Strip", icon: Megaphone },
 ];
 
@@ -368,13 +365,13 @@ function ItemRow({ title, subtitle, active, onEdit, onDelete, onToggle, badges }
         {subtitle && <p style={{ fontSize: "0.75rem", color: "#888", margin: "0.125rem 0 0" }}>{subtitle}</p>}
       </div>
       <button onClick={onToggle} style={{ background: "none", border: "none", cursor: "pointer", color: active ? "#3F7A54" : "#999", padding: "4px" }}>
-        {active ? <Eye size={16} /> : <EyeSlash size={16} />}
+        {active ? <Eye size={16} /> : <EyeOff size={16} />}
       </button>
       <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", color: "#555", padding: "4px" }}>
-        <FloppyDisk size={16} />
+        <Save size={16} />
       </button>
       <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", color: "#2E5E4E", padding: "4px" }}>
-        <Trash size={16} />
+        <Trash2 size={16} />
       </button>
     </div>
   );
@@ -439,7 +436,7 @@ function renderPromoStripList(items: PromoStripItemData[], onEdit: (i: PromoStri
 function EmptyState() {
   return (
     <div style={{ textAlign: "center", padding: "3rem", color: "#999", background: "#fafafa", borderRadius: "8px", border: "1px dashed #e0e0e0" }}>
-      <SquaresFour size={32} style={{ marginBottom: "0.5rem", opacity: 0.4 }} />
+      <LayoutGrid size={32} style={{ marginBottom: "0.5rem", opacity: 0.4 }} />
       <p style={{ margin: 0, fontWeight: 500 }}>No items yet</p>
       <p style={{ margin: "0.25rem 0 0", fontSize: "0.8125rem" }}>Click &ldquo;Add New&rdquo; to create one, or &ldquo;Seed Default Data&rdquo; to populate all sections.</p>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { CheckCircle } from "@phosphor-icons/react";
+import { CircleCheck } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
 export function NewsletterBanner() {
@@ -18,7 +18,7 @@ export function NewsletterBanner() {
   return (
     <motion.section
       ref={ref}
-      className="h-full rounded-lg bg-brand text-white p-8 max-md:p-6 max-md:text-center flex flex-col md:flex-row items-center max-md:items-stretch justify-between gap-8 relative overflow-hidden before:content-[''] before:absolute before:-top-[40%] before:-right-[10%] before:w-[300px] before:h-[300px] before:bg-white/10 before:rounded-full before:pointer-events-none after:content-[''] after:absolute after:-bottom-[50%] after:left-[10%] after:w-[200px] after:h-[200px] after:bg-white/5 after:rounded-full after:pointer-events-none"
+      className="h-full bg-brand text-on-brand p-8 max-md:p-6 max-md:text-center flex flex-col md:flex-row items-center max-md:items-stretch justify-between gap-8 relative overflow-hidden before:content-[''] before:absolute before:-top-[40%] before:-right-[10%] before:w-[300px] before:h-[300px] before:bg-on-paint/10 before:rounded-full before:pointer-events-none after:content-[''] after:absolute after:-bottom-[50%] after:left-[10%] after:w-[200px] after:h-[200px] after:bg-on-paint/5 after:rounded-full after:pointer-events-none"
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6 }}
@@ -31,7 +31,7 @@ export function NewsletterBanner() {
       >
         <div className="flex items-center gap-3 mb-2.5 max-md:justify-center">
           <motion.div
-            className="w-[52px] h-[52px] bg-white/20 backdrop-blur-sm rounded-full flex flex-col items-center justify-center leading-none shrink-0"
+            className="w-[52px] h-[52px] bg-on-paint/20 flex flex-col items-center justify-center leading-none shrink-0"
             animate={isInView ? { rotate: [0, -8, 8, -4, 0] } : {}}
             transition={{ duration: 0.8, delay: 0.5 }}
           >
@@ -59,7 +59,7 @@ export function NewsletterBanner() {
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200 }}
           >
-            <CheckCircle size={18} /> You&apos;re in! Check your inbox.
+            <CircleCheck size={18} /> You&apos;re in! Check your inbox.
           </motion.span>
         ) : (
           <form onSubmit={handleSubmit} className="flex gap-2 max-md:flex-col max-md:w-full">
@@ -69,11 +69,11 @@ export function NewsletterBanner() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
-              className="px-4 py-3 rounded-lg border-2 border-white/25 bg-white/15 backdrop-blur-sm text-white text-sm w-[260px] max-md:w-full outline-none transition-colors placeholder:text-white/60 focus:border-white/50"
+              className="px-4 py-3 border-2 border-on-paint/25 bg-on-paint/15 text-on-paint text-sm w-[260px] max-md:w-full outline-none transition-colors placeholder:text-on-paint/60 focus:border-on-paint/50"
             />
             <button
               type="submit"
-              className="px-6 py-3 rounded-lg border-0 bg-white text-brand text-sm font-bold cursor-pointer transition-all whitespace-nowrap hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.15)]"
+              className="px-6 py-3 border-0 bg-stage text-brand text-sm font-bold cursor-pointer transition-all whitespace-nowrap hover:-translate-y-0.5"
             >
               Subscribe
             </button>

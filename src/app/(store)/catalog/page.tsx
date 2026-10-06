@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Sliders, X } from "@phosphor-icons/react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { ProductGrid } from "@/components/product/ProductGrid/ProductGrid";
 import { ProductFilters } from "@/components/product/ProductFilters/ProductFilters";
 import { ProductSort } from "@/components/product/ProductSort/ProductSort";
@@ -11,7 +11,8 @@ import { ProductSkeleton } from "@/components/product/ProductSkeleton/ProductSke
 import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { cachedFetchJSON, readCached } from "@/lib/utils/reliable-fetch";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
+import { Pagination } from "@/components/ui/Pagination";
 
 function CatalogContent() {
   const t = useTranslations("product");
@@ -138,13 +139,13 @@ function CatalogContent() {
         <div className="flex items-center gap-3 max-[480px]:w-full max-[480px]:justify-between max-[480px]:gap-2">
           <button
             onClick={() => setMobileFiltersOpen(true)}
-            className="hidden max-lg:inline-flex items-center gap-1.5 px-4 py-2 rounded-pill border border-line bg-surface cursor-pointer text-[0.8125rem] font-semibold text-ink-muted hover:border-brand hover:text-brand"
+            className="hidden max-lg:inline-flex items-center gap-1.5 px-4 py-2 border border-line bg-surface cursor-pointer text-[0.8125rem] font-semibold text-ink-muted hover:border-brand hover:text-brand"
             type="button"
           >
-            <Sliders size={16} />
+            <SlidersHorizontal size={16} />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-brand text-white rounded-pill px-1.5 py-px text-[0.6875rem] font-bold">{activeFilterCount}</span>
+              <span className="bg-brand text-on-brand px-1.5 py-px text-[0.6875rem] font-bold">{activeFilterCount}</span>
             )}
           </button>
           <ProductSort value={sort} onChange={(v) => updateParams({ sort: v, page: "1" })} />
@@ -184,51 +185,7 @@ function CatalogContent() {
           ) : (
             <>
               <ProductGrid products={products} />
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-1.5 mt-10 pb-12 flex-wrap">
-                  <button
-                    onClick={() => updateParams({ page: String(page - 1) })}
-                    disabled={page <= 1}
-                    className={`w-9 h-9 rounded-lg border border-line bg-surface text-ink cursor-pointer text-[0.8125rem] font-medium flex items-center justify-center px-4 !w-auto h-9 ${page <= 1 ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Prev
-                  </button>
-                  {(() => {
-                    const pages: (number | "ellipsis-start" | "ellipsis-end")[] = [];
-                    if (totalPages <= 7) {
-                      for (let i = 1; i <= totalPages; i++) pages.push(i);
-                    } else {
-                      pages.push(1);
-                      if (page > 3) pages.push("ellipsis-start");
-                      const start = Math.max(2, page - 1);
-                      const end = Math.min(totalPages - 1, page + 1);
-                      for (let i = start; i <= end; i++) pages.push(i);
-                      if (page < totalPages - 2) pages.push("ellipsis-end");
-                      pages.push(totalPages);
-                    }
-                    return pages.map((p) =>
-                      typeof p === "string" ? (
-                        <span key={p} className="w-9 h-9 flex items-center justify-center text-[0.8125rem] text-ink-muted">…</span>
-                      ) : (
-                        <button
-                          key={p}
-                          onClick={() => updateParams({ page: String(p) })}
-                          className={`w-9 h-9 rounded-lg border border-line bg-surface text-ink cursor-pointer text-[0.8125rem] font-medium flex items-center justify-center ${p === page ? "bg-brand !border-0 text-white font-bold" : ""}`}
-                        >
-                          {p}
-                        </button>
-                      )
-                    );
-                  })()}
-                  <button
-                    onClick={() => updateParams({ page: String(page + 1) })}
-                    disabled={page >= totalPages}
-                    className={`w-9 h-9 rounded-lg border border-line bg-surface text-ink cursor-pointer text-[0.8125rem] font-medium flex items-center justify-center px-4 !w-auto h-9 ${page >= totalPages ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
+              <Pagination page={page} totalPages={totalPages} onPageChange={(p) => updateParams({ page: String(p) })} className="mt-14 pb-12" />
             </>
           )}
         </div>
@@ -237,13 +194,13 @@ function CatalogContent() {
       {/* Mobile filters overlay */}
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-[200]">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileFiltersOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-surface rounded-t-2xl overflow-auto p-6 flex flex-col">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-surface overflow-auto p-6 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <span className="font-bold text-lg">Filters</span>
               <button
                 onClick={() => setMobileFiltersOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border-0 bg-surface-2 cursor-pointer text-ink"
+                className="w-8 h-8 flex items-center justify-center border-0 bg-surface-2 cursor-pointer text-ink"
                 aria-label="Close filters"
               >
                 <X size={18} />
@@ -274,7 +231,7 @@ function CatalogContent() {
 
 export default function CatalogPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<ShelfLoader block />}>
       <CatalogContent />
     </Suspense>
   );

@@ -1,18 +1,32 @@
 "use client";
 
-import { Moon, Sun } from "@phosphor-icons/react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
+import { cn } from "@/lib/utils/cn";
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = "icon", className }: { variant?: "icon" | "row"; className?: string }) {
   const { theme, toggleTheme } = useTheme();
+  const next = theme === "light" ? "dark" : "light";
+  const label = `Switch to ${next} theme`;
+
+  if (variant === "row") {
+    return (
+      <button type="button" onClick={toggleTheme} className={cn("flex min-h-14 w-full cursor-pointer items-center justify-between text-step-0 text-ink", className)}>
+        <span>{theme === "light" ? "Dark theme" : "Light theme"}</span>
+        {theme === "light" ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
+      </button>
+    );
+  }
 
   return (
     <button
-      className="relative flex items-center justify-center w-9 h-9 rounded-md bg-transparent border-0 cursor-pointer text-ink-muted transition-colors no-underline hover:bg-surface-1 hover:text-ink"
+      type="button"
       onClick={toggleTheme}
-      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+      aria-label={label}
+      title={label}
+      className={cn("flex size-8 cursor-pointer items-center justify-center text-ink-muted transition-colors duration-[160ms] hover-device:hover:bg-brand-soft hover-device:hover:text-ink", className)}
     >
-      {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+      {theme === "light" ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
     </button>
   );
 }

@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 const cardCls =
-  "group relative block rounded-2xl overflow-hidden min-h-[260px] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-xl)]";
+  "group relative block overflow-hidden min-h-[260px] transition-all duration-300 hover:-translate-y-1";
 const cardContentCls =
-  "relative z-[1] p-10 text-white flex flex-col h-full min-h-[260px] justify-end";
+  "relative z-[1] p-10 text-on-paint flex flex-col h-full min-h-[260px] justify-end";
 const cardCtaCls =
-  "inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-pill w-fit transition-all group-hover:bg-white/30 group-hover:gap-3";
+  "inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 bg-on-paint/20 w-fit transition-all group-hover:bg-on-paint/30 group-hover:gap-3";
 
 export function PromoBanner() {
   return (

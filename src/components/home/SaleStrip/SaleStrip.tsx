@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Fire, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import { formatPrice } from "@/lib/utils/format-price";
 import { getProductImage, getProductImageFallback } from "@/lib/utils/product-image";
@@ -14,7 +14,7 @@ interface Props {
 }
 
 const arrowCls =
-  "w-7 h-7 flex items-center justify-center border border-line rounded-md bg-surface cursor-pointer text-ink-muted transition-colors hover:border-line-hover hover:text-ink";
+  "w-7 h-7 flex items-center justify-center border border-line bg-surface cursor-pointer text-ink-muted transition-colors hover:border-line-hover hover:text-ink";
 
 export function SaleStrip({ products }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -40,24 +40,24 @@ export function SaleStrip({ products }: Props) {
             animate={isInView ? { scale: [1, 1.2, 1] } : {}}
             transition={{ duration: 0.6, delay: 0.3, repeat: Infinity, repeatDelay: 3 }}
           >
-            <Fire size={18} className="text-sale" />
+            <Flame size={18} className="text-sale" />
           </motion.div>
           <h2 className="text-base font-extrabold m-0 text-ink">Hot Deals</h2>
-          <span className="bg-sale text-white text-[0.65rem] font-bold px-2 py-0.5 rounded uppercase">Sale</span>
+          <span className="bg-brass text-on-brass text-[0.65rem] font-bold px-2 py-0.5 uppercase">Sale</span>
         </div>
         <div className="flex gap-2 items-center">
           <Link
             href="/catalog?sort=price-asc&onSale=true"
             className="text-[0.8125rem] font-semibold text-sale no-underline flex items-center gap-0.5 whitespace-nowrap hover:opacity-80"
           >
-            View all <CaretRight size={14} />
+            View all <ChevronRight size={14} />
           </Link>
           <div className="flex gap-1">
             <button className={arrowCls} onClick={() => scroll(-1)} aria-label="Scroll left">
-              <CaretLeft size={16} />
+              <ChevronLeft size={16} />
             </button>
             <button className={arrowCls} onClick={() => scroll(1)} aria-label="Scroll right">
-              <CaretRight size={16} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
@@ -79,10 +79,10 @@ export function SaleStrip({ products }: Props) {
               >
                 <Link
                   href={`/product/${p.slug}`}
-                  className="shrink-0 w-40 max-[480px]:w-[140px] bg-surface border border-line rounded-lg p-3 no-underline text-ink flex flex-col relative transition-all hover:border-line-hover hover:shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
+                  className="shrink-0 w-40 max-[480px]:w-[140px] bg-surface border border-line p-3 no-underline text-ink flex flex-col relative transition-all hover:border-line-hover"
                 >
                   {discount > 0 && (
-                    <span className="absolute top-1.5 left-1.5 bg-sale text-white text-[0.65rem] font-bold px-1.5 py-0.5 rounded z-[1]">
+                    <span className="absolute top-1.5 left-1.5 bg-brass text-on-brass text-[0.65rem] font-bold px-1.5 py-0.5 z-[1]">
                       -{discount}%
                     </span>
                   )}
@@ -92,7 +92,7 @@ export function SaleStrip({ products }: Props) {
                       alt={p.name}
                       width={120}
                       height={100}
-                      className="object-contain max-w-full max-h-full rounded"
+                      className="object-contain max-w-full max-h-full"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = getProductImageFallback("120x100");
                       }}

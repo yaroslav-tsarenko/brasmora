@@ -4,18 +4,18 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/providers/AuthProvider";
-import { SquaresFour, Package, UserCircle, MapPin, Heart, SignOut } from "@phosphor-icons/react";
+import { LayoutGrid, Package, CircleUser, MapPin, Heart, LogOut } from "lucide-react";
 
 const navItems = [
-  { href: "/account", icon: <SquaresFour size={18} />, labelKey: "title" as const },
+  { href: "/account", icon: <LayoutGrid size={18} />, labelKey: "title" as const },
   { href: "/account/orders", icon: <Package size={18} />, labelKey: "orders" as const },
-  { href: "/account/profile", icon: <UserCircle size={18} />, labelKey: "profile" as const },
+  { href: "/account/profile", icon: <CircleUser size={18} />, labelKey: "profile" as const },
   { href: "/account/addresses", icon: <MapPin size={18} />, labelKey: "addresses" as const },
   { href: "/account/wishlist", icon: <Heart size={18} />, labelKey: "wishlist" as const },
 ];
 
 const linkBase =
-  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors no-underline max-md:shrink-0 max-md:whitespace-nowrap max-md:px-3.5 max-md:py-2 max-md:text-[0.8125rem]";
+  "flex items-center gap-3 px-3 py-2.5 text-sm transition-colors no-underline max-md:shrink-0 max-md:whitespace-nowrap max-md:px-3.5 max-md:py-2 max-md:text-[0.8125rem]";
 
 export function AccountSidebar() {
   const pathname = usePathname();
@@ -23,9 +23,9 @@ export function AccountSidebar() {
   const { user, signOut } = useAuth();
 
   return (
-    <aside className="w-60 max-md:w-full bg-surface-1 border border-line rounded-lg py-6 max-md:py-4 flex flex-col h-fit sticky top-8 max-md:static">
+    <aside className="w-60 max-md:w-full bg-surface-1 border border-line py-6 max-md:py-4 flex flex-col h-fit sticky top-8 max-md:static">
       <div className="flex items-center gap-3 px-5 max-md:px-4 pb-5 max-md:pb-3 border-b border-line mb-3 max-md:mb-2">
-        <div className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center font-bold text-base shrink-0">
+        <div className="w-10 h-10 bg-brand text-on-brand flex items-center justify-center font-bold text-base shrink-0">
           {(user?.name?.[0] || user?.email?.[0] || "U").toUpperCase()}
         </div>
         <div>
@@ -59,7 +59,7 @@ export function AccountSidebar() {
           className={`${linkBase} text-danger bg-transparent border-0 cursor-pointer w-full text-left mt-2 max-md:mt-0 hover:bg-surface-2`}
           onClick={signOut}
         >
-          <SignOut size={18} />
+          <LogOut size={18} />
           {t("logout")}
         </button>
       </nav>

@@ -103,7 +103,7 @@ export function ProductTabs({ description, characteristics, reviews }: ProductTa
         {activeTab === "reviews" && (
           reviews.length > 0 ? (
             <>
-              <div className="flex items-center gap-8 max-sm:gap-5 p-6 max-sm:p-5 bg-surface-1 rounded-xl mb-6">
+              <div className="flex items-center gap-8 max-sm:gap-5 p-6 max-sm:p-5 bg-surface-1 mb-6">
                 <div className="text-center">
                   <div className="text-[2.5rem] max-sm:text-3xl font-extrabold leading-none text-ink">{avgRating.toFixed(1)}</div>
                   <div className="text-warning text-[1.125rem] mt-1">
@@ -114,7 +114,7 @@ export function ProductTabs({ description, characteristics, reviews }: ProductTa
               </div>
               <div className="grid grid-cols-1 sm:[grid-template-columns:repeat(auto-fill,minmax(280px,1fr))] gap-4">
                 {reviews.map((review) => (
-                  <div key={review.id} className="p-6 max-sm:px-5 max-sm:py-4 border border-line rounded-xl bg-surface transition-shadow hover:shadow-[var(--shadow-md)]">
+                  <div key={review.id} className="p-6 max-sm:px-5 max-sm:py-4 border border-line bg-surface transition-shadow">
                     <div className="flex justify-between items-center mb-3">
                       <span className="font-bold text-[0.9375rem] text-ink">
                         {review.user.name || "Anonymous"}

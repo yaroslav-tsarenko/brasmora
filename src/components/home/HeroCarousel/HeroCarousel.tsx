@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image, { type StaticImageData } from "next/image";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import banner1 from "@/assets/banner1.jpg";
 import banner2 from "@/assets/banner2.jpg";
@@ -51,8 +51,8 @@ const defaultSlides: DefaultSlide[] = [
     subtitle: "Certified panels, circuit breakers, and modular enclosures for residential and commercial installations",
     ctaLabel: "Shop Now",
     linkUrl: "/catalog",
-    bgColor: "#1E2420",
-    textColor: "#ffffff",
+    bgColor: "var(--color-paint)",
+    textColor: "var(--color-on-paint)",
     bgImage: banner1,
   },
   {
@@ -62,8 +62,8 @@ const defaultSlides: DefaultSlide[] = [
     subtitle: "From compact enclosures to full-size distribution cabinets — everything for your next project",
     ctaLabel: "Browse Equipment",
     linkUrl: "/catalog",
-    bgColor: "#20302A",
-    textColor: "#ffffff",
+    bgColor: "var(--color-paint)",
+    textColor: "var(--color-on-paint)",
     bgImage: banner2,
   },
   {
@@ -73,8 +73,8 @@ const defaultSlides: DefaultSlide[] = [
     subtitle: "Premium copper cables, flexible wiring, terminal blocks and accessories at wholesale prices",
     ctaLabel: "View Cables",
     linkUrl: "/catalog",
-    bgColor: "#1E2420",
-    textColor: "#ffffff",
+    bgColor: "var(--color-paint)",
+    textColor: "var(--color-on-paint)",
     bgImage: banner3,
   },
 ];
@@ -91,7 +91,7 @@ interface Props {
 }
 
 const controlBtnCls =
-  "bg-white/10 border border-white/25 rounded-full w-9 h-9 flex items-center justify-center cursor-pointer text-white transition-colors hover:bg-white/25";
+  "bg-on-paint/10 border border-on-paint/25 w-9 h-9 flex items-center justify-center cursor-pointer text-on-paint transition-colors hover:bg-on-paint/25";
 
 export function HeroCarousel({ slides, deals }: Props) {
   const useDefaults = slides.length === 0;
@@ -129,7 +129,7 @@ export function HeroCarousel({ slides, deals }: Props) {
           {/* Text column leads */}
           <div className="flex flex-col items-start min-w-0">
             {slide.badgeText && (
-              <span className="inline-block px-3 py-1 rounded bg-brand text-white text-[0.7rem] font-bold uppercase tracking-[0.05em] mb-4">
+              <span className="inline-block px-3 py-1 bg-brand text-on-brand text-[0.7rem] font-bold uppercase tracking-[0.05em] mb-4">
                 {slide.badgeText}
               </span>
             )}
@@ -142,7 +142,7 @@ export function HeroCarousel({ slides, deals }: Props) {
             {slide.linkUrl && (
               <Link
                 href={slide.linkUrl}
-                className="inline-block px-6 py-2.5 rounded-md text-white no-underline text-sm font-semibold transition-opacity bg-brand hover:opacity-90"
+                className="inline-block px-6 py-2.5 text-on-brand no-underline text-sm font-semibold transition-opacity bg-brand hover:opacity-90"
               >
                 {slide.ctaLabel || "Shop Now"}
               </Link>
@@ -152,10 +152,10 @@ export function HeroCarousel({ slides, deals }: Props) {
               <div className="flex items-center gap-4 mt-8 max-sm:mt-5">
                 <div className="flex gap-2">
                   <button className={controlBtnCls} onClick={prev} aria-label="Previous slide">
-                    <CaretLeft size={20} />
+                    <ChevronLeft size={20} />
                   </button>
                   <button className={controlBtnCls} onClick={next} aria-label="Next slide">
-                    <CaretRight size={20} />
+                    <ChevronRight size={20} />
                   </button>
                 </div>
                 <div className="flex gap-1.5" role="tablist" aria-label="Slides">
@@ -164,8 +164,8 @@ export function HeroCarousel({ slides, deals }: Props) {
                       key={i}
                       role="tab"
                       aria-selected={i === current}
-                      className={`h-2 rounded-full border-0 cursor-pointer transition-all ${
-                        i === current ? "bg-white w-5 rounded" : "bg-white/40 w-2"
+                      className={`h-2 border-0 cursor-pointer transition-all ${
+                        i === current ? "bg-stage w-5" : "bg-on-paint/40 w-2"
                       }`}
                       onClick={() => setCurrent(i)}
                       aria-label={`Slide ${i + 1}`}
@@ -177,7 +177,7 @@ export function HeroCarousel({ slides, deals }: Props) {
           </div>
 
           {/* Imagery column */}
-          <div className="relative rounded-[10px] overflow-hidden min-h-[340px] max-lg:min-h-[260px] max-sm:min-h-[180px]">
+          <div className="relative overflow-hidden min-h-[340px] max-lg:min-h-[260px] max-sm:min-h-[180px]">
             {bgImage ? (
               <Image
                 src={bgImage}
@@ -202,17 +202,17 @@ export function HeroCarousel({ slides, deals }: Props) {
               <Link
                 key={deal.id}
                 href={deal.linkUrl || "/catalog"}
-                className="bg-surface border border-line rounded-lg p-4 no-underline text-ink flex items-center gap-4 relative transition-all hover:border-line-hover hover:shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
+                className="bg-surface border border-line p-4 no-underline text-ink flex items-center gap-4 relative transition-all hover:border-line-hover"
               >
                 {deal.discountText && (
-                  <span className="absolute top-2 right-2 bg-sale text-white text-[0.7rem] font-bold px-1.5 py-0.5 rounded">
+                  <span className="absolute top-2 right-2 bg-brass text-on-brass text-[0.7rem] font-bold px-1.5 py-0.5">
                     {deal.discountText}
                   </span>
                 )}
                 {deal.imageUrl ? (
-                  <img src={deal.imageUrl} alt={deal.title} className="w-16 h-16 object-contain rounded-lg shrink-0" />
+                  <img src={deal.imageUrl} alt={deal.title} className="w-16 h-16 object-contain shrink-0" />
                 ) : (
-                  <div className="w-16 h-16 bg-surface-2 rounded-lg shrink-0" />
+                  <div className="w-16 h-16 bg-surface-2 shrink-0" />
                 )}
                 <div className="flex flex-col min-w-0">
                   <h4 className="text-[0.8125rem] font-semibold m-0 mb-1.5 leading-[1.3]">{deal.title}</h4>

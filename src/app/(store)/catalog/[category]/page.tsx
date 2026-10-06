@@ -27,6 +27,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     where: { categoryId: { in: categoryIds } },
     include: {
       product: {
+        omit: { metadata: true, costPrice: true },
         include: {
           images: { orderBy: { sortOrder: "asc" }, take: 1 },
           categories: { include: { category: { select: { name: true } } } },

@@ -1,12 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Truck, ArrowCounterClockwise, Headset, ShieldCheck } from "@phosphor-icons/react";
+import { Truck, RotateCcw, Headset, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 const promos = [
   { icon: <Truck size={22} />, titleKey: "promoFreeShipping" as const, descKey: "promoFreeShippingDesc" as const },
-  { icon: <ArrowCounterClockwise size={22} />, titleKey: "promoReturns" as const, descKey: "promoReturnsDesc" as const },
+  { icon: <RotateCcw size={22} />, titleKey: "promoReturns" as const, descKey: "promoReturnsDesc" as const },
   { icon: <Headset size={22} />, titleKey: "promoSupport" as const, descKey: "promoSupportDesc" as const },
   { icon: <ShieldCheck size={22} />, titleKey: "promoSecure" as const, descKey: "promoSecureDesc" as const },
 ];
@@ -20,13 +20,13 @@ export function PromoBar() {
         {promos.map((promo, i) => (
           <motion.div
             key={promo.titleKey}
-            className="flex items-center gap-4 p-4 rounded-xl bg-surface-1 border border-line transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
+            className="flex items-center gap-4 p-4 bg-surface-1 border border-line transition-all hover:-translate-y-0.5-hover"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.08, duration: 0.4 }}
           >
-            <div className="w-11 h-11 rounded-lg bg-brand-soft flex items-center justify-center shrink-0 text-brand">
+            <div className="w-11 h-11 bg-brand-soft flex items-center justify-center shrink-0 text-brand">
               {promo.icon}
             </div>
             <div>

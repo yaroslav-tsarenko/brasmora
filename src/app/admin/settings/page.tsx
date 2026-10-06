@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
 import { toast } from "sonner";
-import { Sun, Moon } from "@phosphor-icons/react";
+import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 
 interface Settings {

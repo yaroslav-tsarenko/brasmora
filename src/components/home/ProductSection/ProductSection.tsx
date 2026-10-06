@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
-import { CaretRight } from "@phosphor-icons/react";
+import { ChevronRight } from "lucide-react";
 import { motion, useInView } from "framer-motion";
-import { MarketplaceProductCard } from "../MarketplaceProductCard/MarketplaceProductCard";
+import { ShelfTile } from "@/components/product/ShelfTile/ShelfTile";
 
 interface Product {
   id: string;
@@ -51,7 +51,7 @@ export function ProductSection({
   return (
     <section
       ref={ref}
-      className={`mb-6 ${bg === "gray" ? "bg-surface-1 rounded-lg p-5" : ""}`}
+      className={`mb-6 ${bg === "gray" ? "bg-surface-1 p-5" : ""}`}
     >
       <motion.div
         className="flex items-center gap-4 mb-4 flex-wrap max-[480px]:flex-col max-[480px]:items-start"
@@ -68,7 +68,7 @@ export function ProductSection({
             {tabs.map((tab, i) => (
               <button
                 key={tab}
-                className={`px-3 py-1 border rounded-[5px] text-xs cursor-pointer transition-colors whitespace-nowrap ${
+                className={`px-3 py-1 border text-xs cursor-pointer transition-colors whitespace-nowrap ${
                   i === activeTab
                     ? "border-brand text-brand bg-brand-soft"
                     : "border-line bg-surface text-ink-muted hover:border-line-hover hover:text-ink"
@@ -85,23 +85,22 @@ export function ProductSection({
             href={viewAllHref}
             className="ml-auto max-[480px]:ml-0 text-[0.8125rem] font-semibold text-brand no-underline flex items-center gap-0.5 whitespace-nowrap transition-opacity hover:opacity-80"
           >
-            {viewAllLabel || "View all"} <CaretRight size={14} />
+            {viewAllLabel || "View all"} <ChevronRight size={14} />
           </Link>
         )}
       </motion.div>
       <div
-        className="grid gap-3 max-[1200px]:!grid-cols-4 max-[1024px]:!grid-cols-3 max-md:!grid-cols-2 max-[480px]:gap-2"
+        className="grid gap-x-6 gap-y-10 max-[1200px]:!grid-cols-4 max-[1024px]:!grid-cols-3 max-md:!grid-cols-2 max-[480px]:gap-x-3"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {filtered.map((p, i) => (
           <motion.div
             key={p.id}
-            className="[&>a]:h-full"
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4, delay: Math.min(i * 0.07, 0.5) }}
           >
-            <MarketplaceProductCard product={p} />
+            <ShelfTile product={p} />
           </motion.div>
         ))}
       </div>

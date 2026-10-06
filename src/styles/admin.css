@@ -1140,3 +1140,20 @@
 [data-admin-theme] .recharts-legend-item-text {
   color: var(--admin-text-secondary) !important;
 }
+
+[data-admin-theme] {
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-pill: 0.375rem;
+  --font-display: var(--font-sans);
+}
+
+:where([data-admin-theme] h1, [data-admin-theme] h2, [data-admin-theme] h3, [data-admin-theme] h4, [data-admin-theme] h5, [data-admin-theme] h6) {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-synthesis: weight;
+  text-wrap: wrap;
+}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Chip } from "@heroui/react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
-import { UsersThree, Basket, Star } from "@phosphor-icons/react";
+import { Users, Handbag, Star } from "lucide-react";
 import { format } from "date-fns";
 
 interface UserRow {
@@ -41,7 +41,7 @@ export default function AdminUsersPage() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div className="admin-page-header">
         <h1 className="admin-page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <UsersThree size={24} /> Users
+          <Users size={24} /> Users
         </h1>
         <span className="admin-badge admin-badge-default">{users.length} total</span>
       </div>
@@ -71,7 +71,7 @@ export default function AdminUsersPage() {
                 </td>
                 <td style={{ textAlign: "center" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", color: "var(--admin-text-secondary)" }}>
-                    <Basket size={14} /> {u._count.orders}
+                    <Handbag size={14} /> {u._count.orders}
                   </span>
                 </td>
                 <td style={{ textAlign: "center" }}>

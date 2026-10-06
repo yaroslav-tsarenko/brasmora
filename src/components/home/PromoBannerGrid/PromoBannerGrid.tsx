@@ -27,7 +27,7 @@ const defaultSmall: BannerData[] = [
 ];
 
 const defaultWide: BannerData[] = [
-  { id: "w1", badgeText: "Pro Account", title: "Register & Get 10% Off Your First Order", subtitle: "Free shipping over £100, trade pricing, and priority support", bgColor: "#1E2420", textColor: "#ffffff", linkUrl: "/auth/register", ctaLabel: "Join Free" },
+  { id: "w1", badgeText: "Pro Account", title: "Register & Get 10% Off Your First Order", subtitle: "Free shipping over £100, trade pricing, and priority support", bgColor: "var(--color-paint)", textColor: "var(--color-on-paint)", linkUrl: "/auth/register", ctaLabel: "Join Free" },
 ];
 
 export function PromoBannerGrid({ smallBanners, wideBanners }: Props) {
@@ -42,12 +42,12 @@ export function PromoBannerGrid({ smallBanners, wideBanners }: Props) {
           <Link
             key={b.id}
             href={b.linkUrl || "#"}
-            className="flex-1 flex flex-col justify-center items-start px-8 py-8 max-md:px-5 max-md:py-5 rounded-lg no-underline transition-opacity gap-3 hover:opacity-95"
+            className="flex-1 flex flex-col justify-center items-start px-8 py-8 max-md:px-5 max-md:py-5 no-underline transition-opacity gap-3 hover:opacity-95"
             style={{ background: b.bgColor, color: b.textColor }}
           >
             <div>
               {b.badgeText && (
-                <span className="inline-block px-2 py-0.5 rounded text-[0.65rem] font-bold uppercase tracking-[0.05em] text-white bg-brand mb-2">
+                <span className="inline-block px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.05em] text-on-brand bg-brand mb-2">
                   {b.badgeText}
                 </span>
               )}
@@ -55,7 +55,7 @@ export function PromoBannerGrid({ smallBanners, wideBanners }: Props) {
               {b.subtitle && <p className="text-[0.8125rem] opacity-70 m-0">{b.subtitle}</p>}
             </div>
             {b.ctaLabel && (
-              <span className="px-6 py-2.5 rounded-md bg-brand text-white text-sm font-semibold shrink-0">
+              <span className="px-6 py-2.5 bg-brand text-on-brand text-sm font-semibold shrink-0">
                 {b.ctaLabel}
               </span>
             )}
@@ -70,7 +70,7 @@ export function PromoBannerGrid({ smallBanners, wideBanners }: Props) {
             <Link
               key={b.id}
               href={b.linkUrl || "#"}
-              className="flex-1 flex items-center justify-between gap-4 px-5 py-4 rounded-lg no-underline border border-line transition-all hover:shadow-[0_2px_10px_rgba(15,23,42,0.06)] hover:-translate-y-px"
+              className="flex-1 flex items-center justify-between gap-4 px-5 py-4 no-underline border border-line transition-all hover:-translate-y-px"
               style={{ background: b.bgColor, color: b.textColor }}
             >
               <div className="flex flex-col min-w-0">

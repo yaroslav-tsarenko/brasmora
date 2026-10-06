@@ -3,33 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  SquaresFour, Package, Basket, UsersThree, TreeStructure,
-  UploadSimple, ChartBar, Rss, FileText, Gear, Star, Image,
-  SignOut, Storefront, House,
-} from "@phosphor-icons/react";
+import { LayoutGrid, Package, Handbag, Users, ListTree, Upload, ChartColumn, Rss, FileText, Settings, Star, Image, LogOut, Store, House } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 
 const navItems = [
-  { href: "/admin", icon: SquaresFour, label: "Dashboard" },
+  { href: "/admin", icon: LayoutGrid, label: "Dashboard" },
   { section: "Catalog" },
   { href: "/admin/products", icon: Package, label: "Products" },
-  { href: "/admin/categories", icon: TreeStructure, label: "Categories" },
-  { href: "/admin/import", icon: UploadSimple, label: "Import" },
+  { href: "/admin/categories", icon: ListTree, label: "Categories" },
+  { href: "/admin/import", icon: Upload, label: "Import" },
   { section: "Sales" },
-  { href: "/admin/orders", icon: Basket, label: "Orders" },
-  { href: "/admin/customers", icon: UsersThree, label: "Customers" },
-  { href: "/admin/users", icon: UsersThree, label: "Users" },
+  { href: "/admin/orders", icon: Handbag, label: "Orders" },
+  { href: "/admin/customers", icon: Users, label: "Customers" },
+  { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/reviews", icon: Star, label: "Reviews" },
   { section: "Marketing" },
-  { href: "/admin/analytics", icon: ChartBar, label: "Analytics" },
+  { href: "/admin/analytics", icon: ChartColumn, label: "Analytics" },
   { href: "/admin/feeds", icon: Rss, label: "Feeds" },
   { section: "Content" },
   { href: "/admin/homepage", icon: House, label: "Homepage" },
   { href: "/admin/content/banners", icon: Image, label: "Banners" },
   { href: "/admin/content/pages", icon: FileText, label: "Pages" },
   { section: "System" },
-  { href: "/admin/settings", icon: Gear, label: "Settings" },
+  { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
 export function AdminSidebar() {
@@ -44,7 +40,7 @@ export function AdminSidebar() {
     <aside className="admin-sidebar">
       <div className="admin-sidebar-header">
         <div className="admin-sidebar-logo">
-          <Storefront size={16} />
+          <Store size={16} />
         </div>
         <div>
           <div className="admin-sidebar-brand">My Store</div>
@@ -98,7 +94,7 @@ export function AdminSidebar() {
           <div className="admin-sidebar-footer-email">{user?.email || ""}</div>
         </div>
         <button className="admin-topbar-icon" onClick={signOut} title="Sign out">
-          <SignOut size={14} />
+          <LogOut size={14} />
         </button>
       </div>
     </aside>

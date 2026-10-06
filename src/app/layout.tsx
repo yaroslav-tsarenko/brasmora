@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { getLocale } from "next-intl/server";
-import "@fontsource-variable/bricolage-grotesque";
-import "@fontsource-variable/karla";
+import { preload } from "react-dom";
+import "@fontsource-variable/commissioner/wght.css";
 import "./fonts.css";
 import "@/styles/globals.css";
 import { BRAND, SITE_URL } from "@/lib/brand";
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: `${BRAND.name} — ${BRAND.tagline}`,
     template: `%s | ${BRAND.name}`,
   },
-  description: "Your trusted source for electrical materials, wiring, and installation supplies. Professional quality delivered to your door.",
+  description: "Cookware, bakeware, tableware, glassware and bar tools, delivered to the UK and EU.",
   metadataBase: new URL(SITE_URL),
   applicationName: BRAND.name,
   manifest: "/manifest.json",
@@ -34,10 +34,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#2E5E4E" },
-    { media: "(prefers-color-scheme: dark)", color: "#161B18" },
+    { media: "(prefers-color-scheme: light)", color: "#3B2620" },
+    { media: "(prefers-color-scheme: dark)", color: "#120D0B" },
   ],
 };
+
+const THEME_INIT = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}var d=document.documentElement;d.setAttribute("data-theme",t);d.classList.toggle("dark",t==="dark")}catch(e){}})();`;
 
 export default async function RootLayout({
   children,
@@ -45,6 +47,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  preload("/fonts/gloock-latin-400-normal.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
 
   return (
     <html
@@ -52,7 +55,10 @@ export default async function RootLayout({
       suppressHydrationWarning
       className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        {children}
+      </body>
     </html>
   );
 }

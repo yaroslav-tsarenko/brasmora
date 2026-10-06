@@ -4,9 +4,11 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { CartProvider } from "@/providers/CartProvider";
 import { CurrencyProvider } from "@/providers/CurrencyProvider";
+import { WishlistProvider } from "@/providers/WishlistProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
 import { Header } from "@/components/layout/Header/Header";
 import { Footer } from "@/components/layout/Footer/Footer";
+import { CookieConsent } from "@/components/consent/CookieConsent";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,12 +18,23 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         <AuthProvider>
           <CurrencyProvider>
             <CartProvider>
-              <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-              <ToastProvider />
+              <WishlistProvider>
+                <div className="flex min-h-screen flex-col">
+                  <a
+                    href="#main"
+                    className="sr-only z-90 bg-paint px-4 py-3 text-ui-sm font-semibold text-on-paint focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+                  >
+                    Skip to content
+                  </a>
+                  <Header />
+                  <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <CookieConsent />
+                <ToastProvider />
+              </WishlistProvider>
             </CartProvider>
           </CurrencyProvider>
         </AuthProvider>

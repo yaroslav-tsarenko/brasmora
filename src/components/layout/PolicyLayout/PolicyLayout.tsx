@@ -44,7 +44,7 @@ export function PolicyLayout({ title, lastUpdated, children }: PolicyLayoutProps
 
 export function ContactBlock() {
   return (
-    <div className="mt-2 leading-[1.7] px-4 py-3.5 border border-line rounded-md bg-surface-1 text-sm">
+    <div className="mt-2 leading-[1.7] px-4 py-3.5 border border-line bg-surface-1 text-sm">
       <p>
         <strong>{COMPANY.name}</strong>
         <br />

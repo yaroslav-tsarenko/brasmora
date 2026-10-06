@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
-import { Copy, ArrowSquareOut, Rss } from "@phosphor-icons/react";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
+import { Copy, ExternalLink, Rss } from "lucide-react";
 import { toast } from "sonner";
 
 const feeds = [
@@ -46,7 +46,7 @@ export default function AdminFeedsPage() {
               <Button size="sm" variant="flat" startContent={<Copy size={14} />} onPress={() => copyUrl(feed.url)}>
                 Copy URL
               </Button>
-              <Button size="sm" variant="flat" as="a" href={feed.url} target="_blank" startContent={<ArrowSquareOut size={14} />}>
+              <Button size="sm" variant="flat" as="a" href={feed.url} target="_blank" startContent={<ExternalLink size={14} />}>
                 Preview
               </Button>
             </div>

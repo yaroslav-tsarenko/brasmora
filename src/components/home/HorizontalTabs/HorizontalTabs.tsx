@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Fire, AppleLogo, Wind, Gift, DeviceMobile, GameController,
-  Lightbulb, Sparkle, Tag, Package, Star, Lightning,
-} from "@phosphor-icons/react";
+import { Flame, Apple, Wind, Gift, Smartphone, Gamepad2, Lightbulb, Sparkles, Tag, Package, Star, Zap } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  Flame: Fire, Apple: AppleLogo, Wind, Gift, Smartphone: DeviceMobile, Gamepad2: GameController,
-  Lightbulb, Sparkles: Sparkle, Tag, Package, Star, Zap: Lightning,
+  Flame: Flame, Apple: Apple, Wind, Gift, Smartphone: Smartphone, Gamepad2: Gamepad2,
+  Lightbulb, Sparkles: Sparkles, Tag, Package, Star, Zap: Zap,
 };
 
 interface TabData {
@@ -39,10 +36,10 @@ export function HorizontalTabs({ tabs }: Props) {
             <Link
               key={tab.id}
               href={tab.linkUrl}
-              className={`flex items-center gap-1.5 px-3 py-1.5 bg-surface border rounded-md text-[0.8125rem] font-medium text-ink no-underline whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 bg-surface border text-[0.8125rem] font-medium text-ink no-underline whitespace-nowrap transition-all ${
                 isActive
                   ? "border-brand bg-brand-soft"
-                  : "border-line hover:border-line-hover hover:shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
+                  : "border-line hover:border-line-hover"
               }`}
               onClick={() => setActive(i)}
             >

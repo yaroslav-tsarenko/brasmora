@@ -1,63 +1,72 @@
 "use client";
 
-import Image from "next/image";
-import { Button } from "@/components/ui/Button";
-import { Trash } from "@phosphor-icons/react";
+import { useState } from "react";
+import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { QuantitySelector } from "@/components/shared/QuantitySelector/QuantitySelector";
 import { PriceDisplay } from "@/components/shared/PriceDisplay/PriceDisplay";
+import { Cubby } from "@/components/product/ShelfTile/ShelfTile";
 import { useCart } from "@/providers/CartProvider";
+import { cn } from "@/lib/utils/cn";
 import type { CartItem as CartItemType } from "@/types/cart";
 
 interface CartItemProps {
   item: CartItemType;
+  size?: "compact" | "full";
+  onNavigate?: () => void;
 }
 
-export function CartItem({ item }: CartItemProps) {
+export function CartItem({ item, size = "compact", onNavigate }: CartItemProps) {
   const { updateQuantity, removeItem } = useCart();
+  const [removing, setRemoving] = useState(false);
+  const full = size === "full";
+
+  const remove = () => {
+    setRemoving(true);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(() => removeItem(item.productId, item.variantId), reduced ? 0 : 260);
+  };
 
   return (
-    <div className="flex gap-4 py-5 border-b border-line first:pt-0">
-      <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-[linear-gradient(135deg,var(--color-bg-tertiary)_0%,var(--color-bg-secondary)_100%)] shrink-0">
-        {item.imageUrl ? (
-          <Image
-            src={item.imageUrl}
-            alt={item.name}
-            fill
-            sizes="80px"
-            style={{ objectFit: "contain", padding: "4px" }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-[0.625rem] text-ink-subtle">
-            No Image
-          </div>
-        )}
-      </div>
-      <div className="flex-1 flex flex-col gap-1">
-        <h3 className="font-semibold text-[0.9375rem]">{item.name}</h3>
-        {item.variantName && (
-          <span className="text-xs text-ink-subtle">{item.variantName}</span>
-        )}
-        <div className="flex items-center justify-between mt-auto">
-          <QuantitySelector
-            quantity={item.quantity}
-            maxQuantity={item.maxQuantity}
-            onChange={(qty) => updateQuantity(item.productId, qty, item.variantId)}
-          />
-          <div className="flex items-center gap-3">
-            <PriceDisplay price={item.price * item.quantity} size="sm" />
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              color="danger"
-              onPress={() => removeItem(item.productId, item.variantId)}
-              aria-label="Remove"
-            >
-              <Trash size={16} />
-            </Button>
+    <li
+      data-shelf-item=""
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-[260ms] ease-[var(--ease-furniture)]",
+        removing ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr]",
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div className={cn("flex gap-4 py-5", full && "sm:gap-6")}>
+          <Cubby src={item.imageUrl} alt="" size="compact" sizes={full ? "120px" : "72px"} className={cn("shrink-0", full ? "w-[72px] sm:w-[120px]" : "w-[72px]")} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/product/${item.slug}`} onClick={onNavigate} className="line-clamp-2 text-ui-sm font-medium leading-[1.4] text-ink hover-device:hover:underline">
+                {item.name}
+              </Link>
+              <PriceDisplay price={item.price * item.quantity} size="sm" className="shrink-0" />
+            </div>
+            {item.variantName ? <p className="meta text-ink-muted">{item.variantName}</p> : null}
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <QuantitySelector
+                quantity={item.quantity}
+                maxQuantity={item.maxQuantity}
+                size={full ? "md" : "compact"}
+                label={`Quantity of ${item.name}`}
+                onChange={(qty) => updateQuantity(item.productId, qty, item.variantId)}
+              />
+              <button
+                type="button"
+                onClick={remove}
+                disabled={removing}
+                className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 text-ui-sm text-ink-muted underline decoration-1 underline-offset-4 hover-device:hover:text-ink"
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                Remove<span className="sr-only"> {item.name}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </li>
   );
 }

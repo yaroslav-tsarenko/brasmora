@@ -13,6 +13,11 @@ interface CartContextType {
   clearCart: () => void;
   itemCount: number;
   cartBounce: number;
+  lastAdded: CartItem | null;
+  isHydrated: boolean;
+  isSheetOpen: boolean;
+  openSheet: () => void;
+  closeSheet: () => void;
 }
 
 const CART_STORAGE_KEY = "e-commerce-cart";
@@ -41,6 +46,11 @@ function calculateTotals(items: CartItem[], taxRate: number = 21): Cart {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>(emptyCart);
   const [cartBounce, setCartBounce] = useState(0);
+  const [lastAdded, setLastAdded] = useState<CartItem | null>(null);
+  const [isHydrated, setHydrated] = useState(false);
+  const [isSheetOpen, setSheetOpen] = useState(false);
+  const openSheet = useCallback(() => setSheetOpen(true), []);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
 
   useEffect(() => {
     const stored = localStorage.getItem(CART_STORAGE_KEY);
@@ -52,6 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(CART_STORAGE_KEY);
       }
     }
+    setHydrated(true);
   }, []);
 
   const persistCart = useCallback((items: CartItem[]) => {
@@ -86,13 +97,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedItems));
         setCartBounce((b) => b + 1);
-        toast.custom(() => (
+        setLastAdded({ ...newItem, id: `${newItem.productId}-${newItem.variantId || "default"}` });
+        toast.custom((id) => (
           <CartToast
+            toastId={id}
             name={newItem.name}
             imageUrl={newItem.imageUrl}
             quantity={newItem.quantity}
           />
-        ), { duration: 2500 });
+        ), { duration: 5000, className: "!w-auto !border-0 !bg-transparent !p-0 !shadow-none" });
         return calculateTotals(updatedItems);
       });
     },
@@ -107,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             !(item.productId === productId && item.variantId === variantId)
         );
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedItems));
-        toast.success("Removed from cart");
+        toast.success("Removed from your bag");
         return calculateTotals(updatedItems);
       });
     },
@@ -137,7 +150,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ cart, addItem, removeItem, updateQuantity, clearCart, itemCount: cart.itemCount, cartBounce }}
+      value={{ cart, addItem, removeItem, updateQuantity, clearCart, itemCount: cart.itemCount, cartBounce, lastAdded, isHydrated, isSheetOpen, openSheet, closeSheet }}
     >
       {children}
     </CartContext.Provider>

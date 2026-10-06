@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
 import { Chip } from "@heroui/react";
 import { formatPrice } from "@/lib/utils/format-price";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";

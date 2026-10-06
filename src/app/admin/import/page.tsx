@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
 import { Chip } from "@heroui/react";
-import { UploadSimple, DownloadSimple, FileCsv } from "@phosphor-icons/react";
+import { Upload, Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 interface PreviewRow {
@@ -73,7 +73,7 @@ export default function AdminImportPage() {
           href="/api/import/template"
           download
           variant="bordered"
-          startContent={<DownloadSimple size={16} />}
+          startContent={<Download size={16} />}
         >
           Download Template
         </Button>
@@ -94,7 +94,7 @@ export default function AdminImportPage() {
             className="admin-upload-zone"
             onClick={() => document.getElementById("file-input")?.click()}
           >
-            <FileCsv size={32} style={{ margin: "0 auto 0.5rem", color: "var(--admin-text-muted)" }} />
+            <FileSpreadsheet size={32} style={{ margin: "0 auto 0.5rem", color: "var(--admin-text-muted)" }} />
             <p style={{ fontWeight: 500, color: "var(--admin-text)" }}>{file ? file.name : "Click to upload CSV or Excel file"}</p>
             <p style={{ fontSize: "0.75rem", color: "var(--admin-text-muted)", marginTop: "0.25rem" }}>Supports .csv, .xlsx</p>
             <input
@@ -106,7 +106,7 @@ export default function AdminImportPage() {
             />
           </div>
 
-          <Button color="primary" onPress={handlePreview} isDisabled={!file} startContent={<UploadSimple size={16} />}>
+          <Button color="primary" onPress={handlePreview} isDisabled={!file} startContent={<Upload size={16} />}>
             Preview Import
           </Button>
         </div>

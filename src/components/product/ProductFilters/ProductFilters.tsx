@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useTranslations } from "next-intl";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { ChevronDown, X } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import { useCurrency } from "@/providers/CurrencyProvider";
+import { Plate } from "@/components/ui/Plate";
+import { Checkbox, Radio } from "@/components/ui/Choice";
+import { Input } from "@/components/ui/Field";
+import { Button } from "@/components/ui/Button";
+import { Sheet } from "@/components/ui/Dialog";
+import { FilterChip, FilterChipRow } from "@/components/ui/Chip";
+import { SkeletonBar } from "@/components/ui/ShelfLoader";
 
 interface Category {
   id: string;
@@ -27,76 +35,159 @@ interface ProductFiltersProps {
   onInStockChange: (value: boolean) => void;
   onSaleChange: (value: boolean) => void;
   onBrandChange: (value: string) => void;
+  priceBounds?: { min: number; max: number } | null;
+  extraGroups?: ReactNode;
+  className?: string;
 }
 
-function FilterSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function subtree(cat: Category): number {
+  return (cat._count?.products || 0) + (cat.children || []).reduce((s, c) => s + subtree(c), 0);
+}
+
+export function FilterDrawer({
+  title,
+  selectedCount = 0,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  selectedCount?: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const id = useId();
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-line last:border-b-0">
-      <button className="flex items-center justify-between w-full px-5 py-4 bg-transparent border-0 cursor-pointer text-ink-muted transition-colors hover:bg-surface-2" onClick={() => setOpen(!open)}>
-        <h3 className="text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-ink">{title}</h3>
-        {open ? <CaretUp size={16} /> : <CaretDown size={16} />}
-      </button>
-      {open && <div className="px-5 pb-4">{children}</div>}
+    <div data-drawer="" className="border-b border-line">
+      <h3 className="m-0 font-sans tracking-normal">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={`${id}-panel`}
+          id={`${id}-trigger`}
+          onClick={() => setOpen((v) => !v)}
+          className="flex h-[52px] w-full cursor-pointer items-center gap-3 text-left text-ink"
+        >
+          <span className="eyebrow flex-1">{title}</span>
+          {selectedCount > 0 ? (
+            <Plate size="sm" aria-label={`${selectedCount} selected`}>
+              {selectedCount}
+            </Plate>
+          ) : null}
+          <ChevronDown size={16} aria-hidden="true" className={cn("text-ink-muted transition-transform duration-[260ms] ease-[var(--ease-furniture)]", open && "rotate-180")} />
+        </button>
+      </h3>
+      <div
+        id={`${id}-panel`}
+        role="region"
+        aria-labelledby={`${id}-trigger`}
+        inert={!open}
+        className={cn("grid transition-[grid-template-rows] duration-[260ms] ease-[var(--ease-furniture)]", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="border-t border-line bg-raised px-4 py-3">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function CategoryItem({
-  cat,
-  depth,
-  selectedCategory,
-  onCategoryChange,
-}: {
-  cat: Category;
-  depth: number;
-  selectedCategory: string;
-  onCategoryChange: (slug: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  const hasChildren = cat.children && cat.children.length > 0;
-  const isActive = selectedCategory === cat.slug;
-  const count = cat._count?.products || 0;
-
+function CategoryOptions({ cats, depth, selected, onChange, name }: { cats: Category[]; depth: number; selected: string; onChange: (slug: string) => void; name: string }) {
   return (
     <>
-      <li
-        className={`text-sm text-ink-muted px-2.5 py-2 rounded-md cursor-pointer transition-colors ${isActive ? "bg-brand-soft text-brand font-semibold" : "hover:bg-surface-2 hover:text-ink"}`}
-        style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
-      >
-        <span
-          onClick={() => onCategoryChange(cat.slug)}
-          style={{ flex: 1, cursor: "pointer" }}
-        >
-          {cat.name}
-          {count > 0 && (
-            <span style={{ color: "var(--color-text-tertiary)", fontSize: "0.75rem", marginLeft: "0.25rem" }}>
-              ({count})
-            </span>
-          )}
-        </span>
-        {hasChildren && (
-          <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: "var(--color-text-tertiary)", padding: "0.125rem", display: "flex",
-            }}
-          >
-            {expanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
-          </button>
-        )}
-      </li>
-      {hasChildren && expanded && cat.children!.map((child) => (
-        <CategoryItem
-          key={child.id}
-          cat={child}
-          depth={depth + 1}
-          selectedCategory={selectedCategory}
-          onCategoryChange={onCategoryChange}
-        />
+      {cats.map((cat) => (
+        <div key={cat.id} style={{ paddingLeft: depth * 16 }}>
+          <Radio name={name} label={cat.name} count={subtree(cat)} checked={selected === cat.slug} onChange={() => onChange(cat.slug)} wrapperClassName="py-1.5" />
+          {cat.children && cat.children.length > 0 ? <CategoryOptions cats={cat.children} depth={depth + 1} selected={selected} onChange={onChange} name={name} /> : null}
+        </div>
       ))}
     </>
+  );
+}
+
+export interface PriceRangeProps {
+  bounds: { min: number; max: number };
+  value: { min: number; max: number };
+  onCommit: (value: { min: number; max: number }) => void;
+  format: (n: number) => string;
+  step?: number;
+}
+
+export function PriceRange({ bounds, value, onCommit, format, step = 1 }: PriceRangeProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [local, setLocal] = useState(value);
+  const dragging = useRef<"min" | "max" | null>(null);
+  const span = Math.max(step, bounds.max - bounds.min);
+
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  const pct = (n: number) => ((n - bounds.min) / span) * 100;
+  const clampStep = (n: number) => Math.round(Math.min(bounds.max, Math.max(bounds.min, n)) / step) * step;
+
+  const fromPointer = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return bounds.min;
+    return clampStep(bounds.min + ((clientX - rect.left) / rect.width) * span);
+  };
+
+  const update = (thumb: "min" | "max", next: number) => {
+    setLocal((cur) => (thumb === "min" ? { min: Math.min(next, cur.max), max: cur.max } : { min: cur.min, max: Math.max(next, cur.min) }));
+  };
+
+  const onKey = (thumb: "min" | "max") => (e: KeyboardEvent<HTMLSpanElement>) => {
+    const current = local[thumb];
+    const big = Math.max(step, Math.round(span / 10));
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") next = current + step;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowDown") next = current - step;
+    else if (e.key === "PageUp") next = current + big;
+    else if (e.key === "PageDown") next = current - big;
+    else if (e.key === "Home") next = bounds.min;
+    else if (e.key === "End") next = bounds.max;
+    if (next === null) return;
+    e.preventDefault();
+    update(thumb, clampStep(next));
+  };
+
+  const thumb = (which: "min" | "max") => (
+    <span
+      role="slider"
+      tabIndex={0}
+      aria-label={which === "min" ? "Minimum price" : "Maximum price"}
+      aria-valuemin={which === "min" ? bounds.min : local.min}
+      aria-valuemax={which === "min" ? local.max : bounds.max}
+      aria-valuenow={local[which]}
+      aria-valuetext={format(local[which])}
+      onKeyDown={onKey(which)}
+      onKeyUp={() => onCommit(local)}
+      onBlur={() => onCommit(local)}
+      onPointerDown={(e: PointerEvent<HTMLSpanElement>) => {
+        dragging.current = which;
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e: PointerEvent<HTMLSpanElement>) => {
+        if (dragging.current === which) update(which, fromPointer(e.clientX));
+      }}
+      onPointerUp={() => {
+        dragging.current = null;
+        onCommit(local);
+      }}
+      style={{ left: `${pct(local[which])}%` }}
+      className="bevel-xs absolute top-1/2 z-[1] size-[18px] -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none before:bg-brand active:cursor-grabbing focus-visible:outline-offset-2"
+    />
+  );
+
+  return (
+    <div className="px-2 pb-2 pt-5">
+      <div ref={trackRef} className="relative h-[18px]">
+        <span aria-hidden="true" className="shelf-rule absolute inset-x-0 top-[6px] opacity-40" />
+        <span aria-hidden="true" className="shelf-rule-solid absolute top-[6px]" style={{ left: `${pct(local.min)}%`, right: `${100 - pct(local.max)}%` }} />
+        {thumb("min")}
+        {thumb("max")}
+      </div>
+    </div>
   );
 }
 
@@ -115,101 +206,163 @@ export function ProductFilters({
   onInStockChange,
   onSaleChange,
   onBrandChange,
+  priceBounds,
+  extraGroups,
+  className,
 }: ProductFiltersProps) {
-  const t = useTranslations("product");
-  const nav = useTranslations("nav");
+  const name = useId();
+  const { currency, rates } = useCurrency();
+  const rate = rates[currency] || 1;
+  const toDisplay = (base: string) => (base ? String(Math.round(Number(base) * rate * 100) / 100) : "");
+  const toBase = (display: string) => (display ? String(Math.round((Number(display) / rate) * 100) / 100) : "");
+  const signature = `${minPrice}|${maxPrice}|${rate}`;
+  const [draft, setDraft] = useState({ signature, min: toDisplay(minPrice), max: toDisplay(maxPrice) });
+  if (draft.signature !== signature) setDraft({ signature, min: toDisplay(minPrice), max: toDisplay(maxPrice) });
+  const draftMin = draft.min;
+  const draftMax = draft.max;
+  const setDraftMin = (min: string) => setDraft((d) => ({ ...d, min }));
+  const setDraftMax = (max: string) => setDraft((d) => ({ ...d, max }));
+  const symbol = currency === "GBP" ? "£" : currency === "EUR" ? "€" : "$";
+  const format = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+
+  const priceCount = (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
+  const availabilityCount = (inStock ? 1 : 0) + (onSale ? 1 : 0);
 
   return (
-    <aside className="flex flex-col gap-0 bg-surface border border-line rounded-xl overflow-hidden">
-      <FilterSection title={t("filterBy")}>
+    <div className={cn("border-t border-line", className)}>
+      <FilterDrawer title="Category" selectedCount={selectedCategory ? 1 : 0} defaultOpen>
         {categories.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-2 px-2.5 py-2">
-                <div className="h-3 rounded-md bg-[linear-gradient(90deg,var(--color-bg-tertiary)_25%,var(--color-bg-secondary)_50%,var(--color-bg-tertiary)_75%)] bg-[length:200%_100%] animate-shimmer" style={{ width: `${50 + (i * 19) % 40}%`, flex: 1 }} />
-                <div className="h-3 rounded-md bg-[linear-gradient(90deg,var(--color-bg-tertiary)_25%,var(--color-bg-secondary)_50%,var(--color-bg-tertiary)_75%)] bg-[length:200%_100%] animate-shimmer" style={{ width: "20px" }} />
-              </div>
+          <div className="flex flex-col gap-3 py-2" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonBar key={i} className={i % 2 ? "w-3/5" : "w-4/5"} />
             ))}
           </div>
         ) : (
-          <ul className="list-none p-0 m-0 flex flex-col gap-0.5 max-h-[220px] overflow-y-auto">
-            <li
-              className={`text-sm text-ink-muted px-2.5 py-2 rounded-md cursor-pointer transition-colors ${!selectedCategory ? "bg-brand-soft text-brand font-semibold" : "hover:bg-surface-2 hover:text-ink"}`}
-              onClick={() => onCategoryChange("")}
-            >
-              {nav("allCategories")}
-            </li>
-            {categories.map((cat) => (
-              <CategoryItem
-                key={cat.id}
-                cat={cat}
-                depth={0}
-                selectedCategory={selectedCategory}
-                onCategoryChange={onCategoryChange}
-              />
-            ))}
-          </ul>
+          <div role="radiogroup" aria-label="Category" className="max-h-[360px] overflow-y-auto">
+            <Radio name={`${name}-cat`} label="All categories" checked={!selectedCategory} onChange={() => onCategoryChange("")} wrapperClassName="py-1.5" />
+            <CategoryOptions cats={categories} depth={0} selected={selectedCategory} onChange={onCategoryChange} name={`${name}-cat`} />
+          </div>
         )}
-      </FilterSection>
+      </FilterDrawer>
 
-      <FilterSection title={t("priceRange")}>
-        <div className="flex gap-2 items-center mb-3">
-          <input
-            type="number"
-            placeholder="Min"
-            value={minPrice}
-            onChange={(e) => onMinPriceChange(e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-line bg-surface text-ink text-sm transition-colors focus:outline-none focus:border-brand"
+      <FilterDrawer title="Price" selectedCount={priceCount} defaultOpen={priceCount > 0}>
+        <form
+          className="grid grid-cols-2 gap-3 pt-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onMinPriceChange(toBase(draftMin));
+            onMaxPriceChange(toBase(draftMax));
+          }}
+        >
+          <Input label="Min" size="sm" inputMode="decimal" prefix={symbol} value={draftMin} onChange={(e) => setDraftMin(e.target.value.replace(/[^0-9.]/g, ""))} onBlur={() => onMinPriceChange(toBase(draftMin))} />
+          <Input label="Max" size="sm" inputMode="decimal" prefix={symbol} value={draftMax} onChange={(e) => setDraftMax(e.target.value.replace(/[^0-9.]/g, ""))} onBlur={() => onMaxPriceChange(toBase(draftMax))} />
+          <button type="submit" className="sr-only">
+            Apply price
+          </button>
+        </form>
+        {priceBounds && priceBounds.max > priceBounds.min ? (
+          <PriceRange
+            bounds={{ min: Math.floor(priceBounds.min * rate), max: Math.ceil(priceBounds.max * rate) }}
+            value={{
+              min: draftMin ? Number(draftMin) : Math.floor(priceBounds.min * rate),
+              max: draftMax ? Number(draftMax) : Math.ceil(priceBounds.max * rate),
+            }}
+            format={format}
+            onCommit={(v) => {
+              const lo = Math.floor(priceBounds.min * rate);
+              const hi = Math.ceil(priceBounds.max * rate);
+              onMinPriceChange(v.min > lo ? toBase(String(v.min)) : "");
+              onMaxPriceChange(v.max < hi ? toBase(String(v.max)) : "");
+            }}
           />
-          <span className="text-ink-subtle shrink-0">–</span>
-          <input
-            type="number"
-            placeholder="Max"
-            value={maxPrice}
-            onChange={(e) => onMaxPriceChange(e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-line bg-surface text-ink text-sm transition-colors focus:outline-none focus:border-brand"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button className="px-1 py-1.5 text-xs rounded-md border border-line bg-surface text-ink-muted cursor-pointer transition-all font-medium hover:bg-brand-soft hover:text-brand hover:border-brand" onClick={() => { onMinPriceChange(""); onMaxPriceChange("25"); }}>Under £25</button>
-          <button className="px-1 py-1.5 text-xs rounded-md border border-line bg-surface text-ink-muted cursor-pointer transition-all font-medium hover:bg-brand-soft hover:text-brand hover:border-brand" onClick={() => { onMinPriceChange("25"); onMaxPriceChange("50"); }}>£25–£50</button>
-          <button className="px-1 py-1.5 text-xs rounded-md border border-line bg-surface text-ink-muted cursor-pointer transition-all font-medium hover:bg-brand-soft hover:text-brand hover:border-brand" onClick={() => { onMinPriceChange("50"); onMaxPriceChange("100"); }}>£50–£100</button>
-          <button className="px-1 py-1.5 text-xs rounded-md border border-line bg-surface text-ink-muted cursor-pointer transition-all font-medium hover:bg-brand-soft hover:text-brand hover:border-brand" onClick={() => { onMinPriceChange("100"); onMaxPriceChange(""); }}>£100+</button>
-        </div>
-      </FilterSection>
+        ) : null}
+      </FilterDrawer>
 
-      {brands.length > 0 && (
-        <FilterSection title="Brand" defaultOpen={false}>
-          <ul className="list-none p-0 m-0 flex flex-col gap-0.5 max-h-[220px] overflow-y-auto">
-            <li
-              className={`text-sm text-ink-muted px-2.5 py-2 rounded-md cursor-pointer transition-colors ${!selectedBrand ? "bg-brand-soft text-brand font-semibold" : "hover:bg-surface-2 hover:text-ink"}`}
-              onClick={() => onBrandChange("")}
-            >
-              All Brands
-            </li>
+      {brands.length > 0 ? (
+        <FilterDrawer title="Brand" selectedCount={selectedBrand ? 1 : 0} defaultOpen={Boolean(selectedBrand)}>
+          <div role="radiogroup" aria-label="Brand" className="max-h-[300px] overflow-y-auto">
+            <Radio name={`${name}-brand`} label="All brands" checked={!selectedBrand} onChange={() => onBrandChange("")} wrapperClassName="py-1.5" />
             {brands.map((brand) => (
-              <li
-                key={brand}
-                className={`text-sm text-ink-muted px-2.5 py-2 rounded-md cursor-pointer transition-colors ${selectedBrand === brand ? "bg-brand-soft text-brand font-semibold" : "hover:bg-surface-2 hover:text-ink"}`}
-                onClick={() => onBrandChange(brand)}
-              >
-                {brand}
-              </li>
+              <Radio key={brand} name={`${name}-brand`} label={brand} checked={selectedBrand === brand} onChange={() => onBrandChange(brand)} wrapperClassName="py-1.5" />
             ))}
-          </ul>
-        </FilterSection>
-      )}
+          </div>
+        </FilterDrawer>
+      ) : null}
 
-      <FilterSection title={t("availability")} defaultOpen={false}>
-        <label className="flex items-center gap-2 text-sm text-ink-muted cursor-pointer py-1.5 [&_input[type=checkbox]]:accent-brand [&_input[type=checkbox]]:w-4 [&_input[type=checkbox]]:h-4">
-          <input type="checkbox" checked={inStock} onChange={(e) => onInStockChange(e.target.checked)} />
-          <span>{t("inStock")}</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-ink-muted cursor-pointer py-1.5 [&_input[type=checkbox]]:accent-brand [&_input[type=checkbox]]:w-4 [&_input[type=checkbox]]:h-4">
-          <input type="checkbox" checked={onSale} onChange={(e) => onSaleChange(e.target.checked)} />
-          <span>On Sale</span>
-        </label>
-      </FilterSection>
-    </aside>
+      {extraGroups}
+
+      <FilterDrawer title="Availability" selectedCount={availabilityCount} defaultOpen={availabilityCount > 0}>
+        <Checkbox dense label="In stock only" checked={inStock} onChange={(e) => onInStockChange(e.target.checked)} />
+        <Checkbox dense label="Reduced" checked={onSale} onChange={(e) => onSaleChange(e.target.checked)} />
+      </FilterDrawer>
+    </div>
+  );
+}
+
+export function FilterSummary({
+  total,
+  parts = [],
+  chips = [],
+  onClearAll,
+  className,
+}: {
+  total: number;
+  parts?: string[];
+  chips?: { key: string; label: string; onRemove: () => void }[];
+  onClearAll?: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-3", className)}>
+      <p className="tabular text-ui-sm text-ink" aria-live="polite">
+        {[`${total} ${total === 1 ? "product" : "products"}`, ...parts].join(" · ")}
+      </p>
+      {chips.length > 0 ? (
+        <FilterChipRow onClearAll={onClearAll}>
+          {chips.map((chip) => (
+            <FilterChip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
+          ))}
+        </FilterChipRow>
+      ) : null}
+    </div>
+  );
+}
+
+export function ProductFiltersDrawer({
+  open,
+  onClose,
+  total,
+  onClearAll,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  total: number;
+  onClearAll: () => void;
+  children: ReactNode;
+}) {
+  const titleId = useId();
+  return (
+    <Sheet open={open} onClose={onClose} side="left" labelledBy={titleId} motion="drawer-left">
+      <div className="flex h-full flex-col">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-line pl-4 pr-2">
+          <h2 id={titleId} className="text-step-2 leading-none">
+            Filter
+          </h2>
+          <button type="button" onClick={onClose} aria-label="Close filters" className="flex size-11 cursor-pointer items-center justify-center text-ink">
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4">{children}</div>
+        <div className="flex shrink-0 items-center justify-between gap-4 border-t border-line bg-raised px-4 py-3">
+          <Button variant="ghost" onPress={onClearAll}>
+            Clear all
+          </Button>
+          <Button onPress={onClose} className="flex-1">
+            Show {total} {total === 1 ? "product" : "products"}
+          </Button>
+        </div>
+      </div>
+    </Sheet>
   );
 }

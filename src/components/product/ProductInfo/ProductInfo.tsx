@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
-import { Heart, Basket, Shield, Truck, ArrowCounterClockwise, Lock } from "@phosphor-icons/react";
+import { Heart, Handbag, Shield, Truck, RotateCcw, Lock } from "lucide-react";
 import { PriceDisplay } from "@/components/shared/PriceDisplay/PriceDisplay";
 import { QuantitySelector } from "@/components/shared/QuantitySelector/QuantitySelector";
 import { useCart } from "@/providers/CartProvider";
@@ -156,11 +156,11 @@ export function ProductInfo({
 
       <div className="flex items-center gap-4">
         <PriceDisplay price={price} comparePrice={comparePrice} size="lg" />
-        {isOnSale && <span className="text-xs font-bold text-white bg-danger px-2.5 py-1 rounded-pill">-{savingsPercent}%</span>}
+        {isOnSale && <span className="text-xs font-bold text-on-danger bg-danger px-2.5 py-1">-{savingsPercent}%</span>}
       </div>
 
       <p
-        className={`text-[0.8125rem] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill ${outOfStock ? "text-danger bg-danger/10" : lowStock ? "text-warning bg-warning/10" : "text-success bg-success/10"}`}
+        className={`text-[0.8125rem] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 ${outOfStock ? "text-danger bg-danger/10" : lowStock ? "text-warning bg-warning/10" : "text-success bg-success/10"}`}
       >
         {outOfStock
           ? t("outOfStock")
@@ -183,7 +183,7 @@ export function ProductInfo({
             {WARRANTY_OPTIONS.map((opt, idx) => (
               <button
                 key={opt.key}
-                className={`flex flex-col items-center gap-0.5 px-2 py-2.5 border-2 rounded-lg bg-surface cursor-pointer transition-all text-[0.8125rem] font-semibold text-ink text-center ${idx === selectedWarranty ? "border-brand bg-brand-soft shadow-[0_0_0_1px_var(--color-accent)]" : "border-line hover:border-brand hover:bg-brand-soft"}`}
+                className={`flex flex-col items-center gap-0.5 px-2 py-2.5 border-2 bg-surface cursor-pointer transition-all text-[0.8125rem] font-semibold text-ink text-center ${idx === selectedWarranty ? "border-brand bg-brand-soft" : "border-line hover:border-brand hover:bg-brand-soft"}`}
                 onClick={() => setSelectedWarranty(idx)}
               >
                 {idx === 0 ? t("noWarranty") : t(`warrantyOption${opt.years}year` as "warrantyOption1year" | "warrantyOption2year" | "warrantyOption3year")}
@@ -207,7 +207,7 @@ export function ProductInfo({
           size="lg"
           onPress={handleAddToCart}
           isDisabled={outOfStock}
-          startContent={<Basket size={18} />}
+          startContent={<Handbag size={18} />}
           style={{ flex: 1 }}
         >
           {selectedWarranty > 0 ? t("addToCartWithWarranty") : t("addToCart")}
@@ -256,17 +256,17 @@ export function ProductInfo({
       </div>
 
       <div className="grid grid-cols-3 gap-3 max-[380px]:gap-2 pt-2">
-        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 rounded-lg bg-surface-1">
+        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 bg-surface-1">
           <Truck size={18} className="text-brand" />
           <span className="text-[0.6875rem] font-bold text-ink">{t("freeShipping")}</span>
           <span className="text-[0.625rem] text-ink-subtle">{t("freeShippingDesc")}</span>
         </div>
-        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 rounded-lg bg-surface-1">
-          <ArrowCounterClockwise size={18} className="text-brand" />
+        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 bg-surface-1">
+          <RotateCcw size={18} className="text-brand" />
           <span className="text-[0.6875rem] font-bold text-ink">{t("easyReturns")}</span>
           <span className="text-[0.625rem] text-ink-subtle">{t("easyReturnsDesc")}</span>
         </div>
-        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 rounded-lg bg-surface-1">
+        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 bg-surface-1">
           <Lock size={18} className="text-brand" />
           <span className="text-[0.6875rem] font-bold text-ink">{t("securePayment")}</span>
           <span className="text-[0.625rem] text-ink-subtle">{t("securePaymentDesc")}</span>

@@ -52,6 +52,7 @@ async function getHomeData() {
       prisma.promoStripItem.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
       prisma.product.findMany({
         where: { status: "ACTIVE" },
+        omit: { metadata: true, costPrice: true },
         include: productInclude,
         orderBy: { createdAt: "desc" },
         take: 500,

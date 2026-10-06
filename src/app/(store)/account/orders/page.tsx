@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { Chip } from "@heroui/react";
+import { StatusPlate } from "@/components/ui/Plate";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCurrency } from "@/providers/CurrencyProvider";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner/LoadingSpinner";
+import { ShelfLoader } from "@/components/ui/ShelfLoader";
 import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
 import { formatPrice } from "@/lib/utils/format-price";
 import { format } from "date-fns";
-import { Package } from "@phosphor-icons/react";
+import { Package } from "lucide-react";
 
 interface Order {
   id: string;
@@ -20,16 +20,6 @@ interface Order {
   createdAt: string;
   items: { id: string }[];
 }
-
-const statusColors: Record<string, "default" | "accent" | "success" | "warning" | "danger"> = {
-  PENDING: "warning",
-  CONFIRMED: "accent",
-  PROCESSING: "accent",
-  SHIPPED: "default",
-  DELIVERED: "success",
-  CANCELLED: "danger",
-  REFUNDED: "danger",
-};
 
 export default function OrdersPage() {
   const t = useTranslations("account");
@@ -48,7 +38,7 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <ShelfLoader block />;
 
   return (
     <div>
@@ -65,7 +55,7 @@ export default function OrdersPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {orders.map((order) => (
-            <Link key={order.id} href={`/account/orders/${order.id}`} className="grid grid-cols-[1fr_auto_auto] max-sm:grid-cols-[1fr_auto] items-center gap-6 max-sm:gap-2 max-sm:gap-x-4 px-6 py-4 max-sm:px-4 max-sm:py-3.5 border border-line rounded-lg bg-surface no-underline text-ink transition-all hover:border-brand hover:-translate-y-px">
+            <Link key={order.id} href={`/account/orders/${order.id}`} className="grid grid-cols-[1fr_auto_auto] max-sm:grid-cols-[1fr_auto] items-center gap-6 max-sm:gap-2 max-sm:gap-x-4 px-6 py-4 max-sm:px-4 max-sm:py-3.5 border border-line bg-surface no-underline text-ink transition-all hover:border-brand hover:-translate-y-px">
               <div className="min-w-0 max-sm:col-span-full">
                 <div className="font-bold text-[0.9375rem]">#{order.orderNumber.slice(-8)}</div>
                 <div className="text-xs text-ink-subtle mt-0.5">{format(new Date(order.createdAt), "MMM d, yyyy")}</div>
@@ -73,7 +63,7 @@ export default function OrdersPage() {
                   {order.items.length} {order.items.length === 1 ? "item" : "items"}
                 </div>
               </div>
-              <Chip size="sm" color={statusColors[order.status] || "default"}>{order.status}</Chip>
+              <StatusPlate status={order.status} />
               <span className="font-bold text-[0.9375rem] max-sm:text-base whitespace-nowrap">{formatPrice(convert(Number(order.total)), currency)}</span>
             </Link>
           ))}

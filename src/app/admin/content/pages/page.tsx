@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
-import { Plus } from "@phosphor-icons/react";
+import { AdminButton as Button } from "@/components/admin/AdminButton/AdminButton";
+import { Plus } from "lucide-react";
 
 export default function AdminPagesPage() {
   return (

@@ -11,15 +11,27 @@ export function FaqIndex({ label, groups }: { label: string; groups: { id: strin
   useEffect(() => {
     const targets = groups.map((g) => document.getElementById(g.id)).filter((el): el is HTMLElement => Boolean(el));
     if (!targets.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      { rootMargin: "-20% 0px -60% 0px" },
-    );
-    targets.forEach((t) => observer.observe(t));
-    return () => observer.disconnect();
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const line = window.innerHeight * 0.35;
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      let current = targets[0];
+      if (atBottom) current = targets[targets.length - 1];
+      else for (const t of targets) if (t.getBoundingClientRect().top <= line) current = t;
+      setActive(current.id);
+    };
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [groups]);
 
   return (

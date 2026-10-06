@@ -93,7 +93,7 @@ export function CookieConsent() {
     setSettingsOpen(false);
   };
 
-  const showBanner = ready && !consent;
+  const showBanner = ready && !consent && !settingsOpen;
 
   return (
     <>

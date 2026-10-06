@@ -27,7 +27,7 @@
     "standard": "Standard tracked delivery",
     "standardTime": "Packed within {processing}, then {transit}.",
     "dispatch": "Ships from {from}.",
-    "freeOver": "Spend {amount} more for free delivery (orders over {threshold}).",
+    "freeOver": "Spend {amount} more for free delivery (orders of {threshold} or more).",
     "billingSame": "My billing address is the same as the delivery address",
     "billingTitle": "Billing address"
   },

@@ -166,6 +166,7 @@ export function Button({
   children,
   className,
   onClick,
+  onMouseDown,
   disabled,
   ...rest
 }: ButtonProps) {
@@ -180,6 +181,12 @@ export function Button({
     }
     (onClick as ((event: React.MouseEvent<HTMLElement>) => void) | undefined)?.(e);
     onPress?.();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
+    (onMouseDown as ((event: React.MouseEvent<HTMLButtonElement>) => void) | undefined)?.(e);
+    const active = document.activeElement;
+    if (!e.defaultPrevented && active instanceof HTMLElement && active.matches("input, textarea, select")) e.preventDefault();
   };
 
   const content = isIconOnly ? (
@@ -222,6 +229,7 @@ export function Button({
       type={(rest.type as "button" | "submit" | "reset" | undefined) || "button"}
       className={classes}
       onClick={handleClick}
+      onMouseDown={handleMouseDown}
       disabled={inert}
       aria-busy={isLoading || undefined}
       aria-disabled={isLoading || undefined}

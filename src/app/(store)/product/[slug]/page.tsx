@@ -251,7 +251,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <ProductTabs descriptionHtml={sanitizeHtml(product.description)} specs={dedupedSpecs} care={care} />
       </div>
 
-      <ProductReviews reviews={reviews} />
+      {reviews.length ? <ProductReviews reviews={reviews} /> : null}
       <RelatedProducts products={related} />
     </div>
   );

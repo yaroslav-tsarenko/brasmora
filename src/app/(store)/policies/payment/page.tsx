@@ -15,7 +15,7 @@ const sections: PolicySection[] = [
       <>
         <p>We accept {F.cardMethods} credit and debit cards. We do not accept other payment methods.</p>
         <p>
-          You pay on the hosted payment page of {F.paymentProvider}, a PCI DSS compliant payment provider. When you select Pay at checkout,
+          You pay on the hosted payment page of {F.paymentProviderNamed ? `${F.paymentProviderNamed}, a PCI DSS compliant payment provider` : "our PCI DSS compliant payment provider"}. When you select Pay at checkout,
           you are taken to that page to enter your card details, and brought back to {F.brand} once the payment is complete.
         </p>
       </>
@@ -27,7 +27,8 @@ const sections: PolicySection[] = [
     body: (
       <>
         <p>
-          <strong>We do not store or process full payment card data.</strong> Your card number, expiry date and security code are entered on
+          <strong>We do not store or process full payment card data.</strong>{" "}
+          Your card number, expiry date and security code are entered on
           the payment provider&rsquo;s page and never pass through our website. We receive only the result of the payment and a transaction
           reference.
         </p>

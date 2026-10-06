@@ -2,88 +2,50 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
+import { BRAND } from "../src/lib/brand";
+import { COMPANY } from "../src/lib/company";
+import { STORE_POLICY } from "../src/config/store-policy";
 
-const connectionString =
-  process.env.DIRECT_URL ||
-  "postgres://postgres:postgres@localhost:51214/template1?sslmode=disable";
+const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DIRECT_URL or DATABASE_URL is required");
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });
 
 async function main() {
+  const settings = {
+    name: BRAND.name,
+    description: BRAND.tagline,
+    email: COMPANY.email,
+    phone: COMPANY.phone,
+    address: COMPANY.registeredOffice,
+    currency: STORE_POLICY.currency,
+    taxRate: STORE_POLICY.vatRegistered ? STORE_POLICY.tax.vatRatePercent : 0,
+    freeShippingMin: STORE_POLICY.shipping.freeThreshold,
+  };
   const storeSettings = await prisma.storeSettings.upsert({
     where: { id: "default" },
-    update: {},
-    create: {
-      id: "default",
-      name: "My Store",
-      email: "store@example.com",
-      currency: "EUR",
-      taxRate: 21,
-      freeShippingMin: 50,
-    },
+    update: settings,
+    create: { id: "default", ...settings },
   });
   console.log("Store settings:", storeSettings.name);
 
-  const categories = await Promise.all(
-    [
-      { name: "Electronics", slug: "electronics", description: "Gadgets, devices, and more" },
-      { name: "Clothing", slug: "clothing", description: "Fashion and apparel" },
-      { name: "Home & Garden", slug: "home-garden", description: "Everything for your home" },
-      { name: "Sports", slug: "sports", description: "Sports equipment and gear" },
-    ].map((cat) =>
-      prisma.category.upsert({
-        where: { slug: cat.slug },
-        update: {},
-        create: { ...cat, isActive: true, sortOrder: 0 },
-      })
-    )
-  );
-  console.log(`Created ${categories.length} categories`);
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) {
+    console.log("No admin created: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one.");
+    return;
+  }
+  if (adminPassword.length < 12) throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters");
 
-  // Test users
-  // test@gmail.com / test123! — Customer with $10,000 budget
-  // admin@gmail.com / admin123! — Admin user
-  const testPassword = await bcrypt.hash("test123!", 12);
-  const adminPassword = await bcrypt.hash("admin123!", 12);
-
-  const testUser = await prisma.user.upsert({
-    where: { email: "test@gmail.com" },
-    update: { passwordHash: testPassword },
-    create: {
-      email: "test@gmail.com",
-      passwordHash: testPassword,
-      name: "Test Customer",
-      role: "CUSTOMER",
-    },
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: { passwordHash, role: "ADMIN" },
+    create: { email: adminEmail, passwordHash, name: `${BRAND.name} admin`, role: "ADMIN" },
   });
-  console.log(`Created test user: ${testUser.email} (role: ${testUser.role})`);
-
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@gmail.com" },
-    update: { passwordHash: adminPassword },
-    create: {
-      email: "admin@gmail.com",
-      passwordHash: adminPassword,
-      name: "Store Admin",
-      role: "ADMIN",
-    },
-  });
-  console.log(`Created admin user: ${adminUser.email} (role: ${adminUser.role})`);
-
-  const page = await prisma.page.upsert({
-    where: { slug: "about-us" },
-    update: {},
-    create: {
-      title: "About Us",
-      slug: "about-us",
-      content:
-        "<p>Welcome to My Store! We are dedicated to providing quality products at competitive prices.</p><p>Founded in 2024, we have been serving customers worldwide with a focus on sustainability and customer satisfaction.</p>",
-      isActive: true,
-    },
-  });
-  console.log(`Created page: ${page.title}`);
+  console.log(`Admin user: ${admin.email}`);
 }
 
 main()

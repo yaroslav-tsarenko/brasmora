@@ -4,20 +4,24 @@ import { sendWelcomeEmail } from "../src/lib/email";
 config();
 
 async function main() {
-  const to = process.argv[2] || "yaroslav7v@gmail.com";
-  const name = process.argv[3] || "Yaroslav";
+  const to = process.argv[2];
+  const name = process.argv[3] || null;
+  if (!to) {
+    console.error("usage: tsx scripts/send-test-email.ts <recipient> [name]");
+    process.exit(1);
+  }
 
-  console.log(`Sending test welcome email to ${to} (as ${name})...`);
-  console.log(`API key: ${process.env.RESEND_API_KEY ? "set" : "MISSING"}`);
-  console.log(`From:    ${process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "MISSING"}`);
+  console.log(`Sending test welcome email to ${to}...`);
+  console.log(`SMTP host: ${process.env.SMTP_HOST || "MISSING"}`);
+  console.log(`From:      ${process.env.SMTP_FROM || process.env.SMTP_USER || "MISSING"}`);
 
   const ok = await sendWelcomeEmail(to, name);
 
   if (ok) {
-    console.log(`✓ Sent successfully to ${to}`);
+    console.log(`Sent to ${to}`);
     process.exit(0);
   } else {
-    console.error(`✗ Failed to send to ${to} — check logs above`);
+    console.error(`Failed to send to ${to}; check the SMTP settings above`);
     process.exit(1);
   }
 }

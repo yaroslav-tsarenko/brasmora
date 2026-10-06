@@ -345,7 +345,7 @@ ${paragraph(`Your account is set up. Sign in with <strong style="color:${C.ink};
   <tr><td style="padding:12px 0;border-bottom:1px solid ${C.line};font-size:15px;color:${C.ink};">Save cookware, tableware and glassware for later</td></tr>
 </table>
 ${button(`${SITE_URL}/catalog`, "Browse the shop")}
-${paragraph(`Delivery is ${money(STORE_POLICY.shipping.standardCost, STORE_POLICY.currency)} to the UK and EU, and free on orders over ${money(STORE_POLICY.shipping.freeThreshold, STORE_POLICY.currency)}.`, "font-size:13px;margin:16px 0 0;")}
+${paragraph(`Delivery is ${money(STORE_POLICY.shipping.standardCost, STORE_POLICY.currency)} to the UK and EU, and free on orders of ${money(STORE_POLICY.shipping.freeThreshold, STORE_POLICY.currency)} or more.`, "font-size:13px;margin:16px 0 0;")}
 ${paragraph(`If you did not create this account, reply to this email and we will close it.`, "font-size:13px;margin:8px 0 0;")}`,
       { preheader: `Your ${BRAND.name} account is ready.` },
     ),
@@ -429,7 +429,7 @@ export async function sendOrderStatusEmail(data: OrderEmailData, status: "DELIVE
     DELIVERED: {
       subject: `Order ${ref} has been delivered`,
       title: "Your order has been delivered",
-      message: `If anything arrived damaged or is not right, reply to this email within ${STORE_POLICY.returns.withdrawalDays} days and we will sort it out.`,
+      message: `If anything arrived damaged, faulty or not what you ordered, reply to this email with photographs and we will replace it or refund you. If you change your mind, you can cancel within ${STORE_POLICY.returns.withdrawalDays} days of delivery.`,
       cta: "View your order",
       href: `${SITE_URL}/account/orders/${data.orderId}`,
     },

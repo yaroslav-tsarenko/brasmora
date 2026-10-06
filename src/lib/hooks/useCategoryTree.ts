@@ -9,10 +9,12 @@ export interface CategoryNode {
   slug: string;
   description?: string | null;
   _count?: { products: number };
+  productCount?: number;
   children?: CategoryNode[];
 }
 
 export function subtreeCount(cat: CategoryNode): number {
+  if (typeof cat.productCount === "number") return cat.productCount;
   const own = cat._count?.products || 0;
   return own + (cat.children || []).reduce((sum, child) => sum + subtreeCount(child), 0);
 }

@@ -11,7 +11,7 @@ Storefront and admin for Brasmora (brasmora.com), a kitchen, cookware and tablew
 - **Auth:** JWT-based sessions (HTTP-only cookies)
 - **Animations:** Framer Motion
 - **Forms:** React Hook Form + Zod
-- **Email:** Resend (optional)
+- **Email:** SMTP via Nodemailer (Spacemail mailbox)
 - **i18n:** next-intl
 - **Charts:** Recharts
 - **Rich Text:** Tiptap
@@ -71,8 +71,9 @@ cp .env.example .env
 | `DIRECT_URL` | Direct PostgreSQL connection URL | Yes |
 | `JWT_SECRET` | Secret key for JWT tokens | Yes |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL | Yes |
-| `RESEND_API_KEY` | Resend API key for emails | No |
-| `RESEND_FROM_EMAIL` | Sender email address | No |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | SMTP server for transactional email (emails are skipped when unset) | Yes, for email |
+| `SMTP_USER`, `SMTP_PASSWORD` | Mailbox credentials on the brasmora.com domain | Yes, for email |
+| `SMTP_FROM`, `SMTP_REPLY_TO` | Sender and reply-to addresses on the brasmora.com domain | Yes, for email |
 | `PAYBYLINK_BASE_URL` | OPPWA host (`https://eu-test.oppwa.com` sandbox, `https://eu-prod.oppwa.com` live) | Yes, for checkout |
 | `PAYBYLINK_ENTITY_ID` | OPPWA entity id | Yes, for checkout |
 | `PAYBYLINK_AUTH_TOKEN` | OPPWA bearer token | Yes, for checkout |
@@ -86,7 +87,7 @@ npx prisma db push
 npx prisma db seed
 ```
 
-The seed script creates sample categories, a test customer (`test@gmail.com` / `test123!`), and an admin user (`admin@gmail.com` / `admin123!`).
+The seed script writes the store settings (name, contact email, currency, VAT rate and free-delivery threshold) from `src/lib/brand.ts`, `src/lib/company.ts` and `src/config/store-policy.ts`. It creates an admin only when `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` (12+ characters) are set. Categories and products come from `npm run catalog:import`.
 
 ### Development
 

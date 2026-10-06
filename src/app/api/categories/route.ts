@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { slugify } from "@/lib/utils/slugify";
 import { requireAdmin } from "@/lib/auth";
+import { categoryCounts, getCategoryTree } from "@/components/catalog/catalog-query";
 
 const CATEGORIES_CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
@@ -42,17 +43,17 @@ export async function GET(request: NextRequest) {
     const active = includeEmpty ? {} : { isActive: true };
     const categories = await prisma.category.findMany({
       where: { parentId: null, ...active },
-      orderBy: { name: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
         _count: { select: { products: true } },
         children: {
           where: active,
-          orderBy: { name: "asc" },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
           include: {
             _count: { select: { products: true } },
             children: {
               where: active,
-              orderBy: { name: "asc" },
+              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
               include: {
                 _count: { select: { products: true } },
               },
@@ -62,24 +63,22 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    type CountedNode = { _count?: { products: number }; children?: CountedNode[] };
-
-    function subtreeCount(cat: CountedNode): number {
-      const own = cat._count?.products || 0;
-      return own + (cat.children || []).reduce((sum, child) => sum + subtreeCount(child), 0);
+    if (includeEmpty) {
+      return NextResponse.json(categories, { headers: PRIVATE_CACHE_HEADERS });
     }
 
-    function pruneEmpty<T extends CountedNode>(cats: T[]): T[] {
+    const counts = await categoryCounts(await getCategoryTree());
+
+    type CountedNode = { id: string; children?: CountedNode[] };
+
+    function withCounts<T extends CountedNode>(cats: T[]): (T & { productCount: number })[] {
       return cats
-        .filter((c) => subtreeCount(c) > 0)
-        .map((c) => ({
-          ...c,
-          children: c.children ? pruneEmpty(c.children) : [],
-        }));
+        .map((c) => ({ ...c, productCount: counts.get(c.id) ?? 0, children: c.children ? withCounts(c.children) : [] }))
+        .filter((c) => c.productCount > 0);
     }
 
-    return NextResponse.json(includeEmpty ? categories : pruneEmpty(categories), {
-      headers: includeEmpty ? PRIVATE_CACHE_HEADERS : CATEGORIES_CACHE_HEADERS,
+    return NextResponse.json(withCounts(categories), {
+      headers: CATEGORIES_CACHE_HEADERS,
     });
   } catch (error) {
     console.error("Error fetching categories:", error);

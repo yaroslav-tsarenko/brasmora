@@ -57,7 +57,7 @@ export async function HooksRow({ categories, products }: { categories: HomeCateg
                   </div>
                   <div className="mt-3 w-full">
                     <h3 className="m-0 font-sans text-ui-sm font-medium leading-[1.4] tracking-normal">
-                      <Link href={`/product/${product.slug}`} className="line-clamp-2 text-ink hover-device:hover:underline hover-device:hover:decoration-1 hover-device:hover:underline-offset-4">
+                      <Link href={`/product/${product.slug}`} className="line-clamp-3 text-ink hover-device:hover:underline hover-device:hover:decoration-1 hover-device:hover:underline-offset-4">
                         {product.name}
                       </Link>
                     </h3>

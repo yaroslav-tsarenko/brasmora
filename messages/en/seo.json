@@ -1,6 +1,6 @@
 {
   "siteDescription": "Cookware, bakeware, tableware, glassware and bar tools, delivered to the UK and EU.",
-  "ogFreeOver": "Free delivery over {amount}",
+  "ogFreeOver": "Free delivery from {amount}",
   "ogReturns": "{days}-day returns",
   "ogFrom": "From {price}",
   "ogItems": "{count, plural, one {# item} other {# items}}",

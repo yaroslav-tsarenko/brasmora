@@ -1,0 +1,9 @@
+{
+  "notFound": "Page not found",
+  "notFoundSubtitle": "The page you're looking for doesn't exist",
+  "serverError": "Server error",
+  "unauthorized": "Please log in to continue",
+  "forbidden": "You don't have access to this page",
+  "validationError": "Please check the form for errors",
+  "networkError": "Network error. Please check your connection."
+}

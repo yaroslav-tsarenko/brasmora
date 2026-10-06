@@ -1,0 +1,20 @@
+{
+  "title": "My Account",
+  "welcome": "Welcome, {name}",
+  "orders": "My Orders",
+  "profile": "Profile",
+  "addresses": "Addresses",
+  "wishlist": "Wishlist",
+  "orderNumber": "Order #{number}",
+  "orderStatus": "Status",
+  "orderDate": "Date",
+  "orderTotal": "Total",
+  "noOrders": "You haven't placed any orders yet",
+  "noOrdersSubtitle": "When you place an order, it will appear here",
+  "editProfile": "Edit Profile",
+  "addAddress": "Add Address",
+  "defaultAddress": "Default",
+  "setDefault": "Set as default",
+  "emptyWishlist": "Your wishlist is empty",
+  "logout": "Log out"
+}

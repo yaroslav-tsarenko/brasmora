@@ -1,0 +1,12 @@
+{
+  "title": "Contact Us",
+  "subtitle": "We'd love to hear from you",
+  "name": "Your Name",
+  "email": "Your Email",
+  "subject": "Subject",
+  "message": "Message",
+  "send": "Send Message",
+  "success": "Thank you! We'll get back to you soon.",
+  "feedback": "Feedback",
+  "feedbackSubtitle": "Help us improve your experience"
+}

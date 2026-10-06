@@ -1,0 +1,16 @@
+{
+  "orderPlaced": "Order placed successfully!",
+  "orderShipped": "Your order has been shipped",
+  "profileUpdated": "Profile updated",
+  "addressAdded": "Address added",
+  "addressDeleted": "Address removed",
+  "itemAdded": "Item added to cart",
+  "itemRemoved": "Item removed from cart",
+  "cartUpdated": "Cart updated",
+  "reviewSubmitted": "Review submitted for moderation",
+  "addedToWishlist": "Added to wishlist",
+  "removedFromWishlist": "Removed from wishlist",
+  "feedGenerated": "Product feed generated",
+  "importComplete": "Import completed: {success} added, {errors} errors",
+  "settingsSaved": "Store settings saved"
+}

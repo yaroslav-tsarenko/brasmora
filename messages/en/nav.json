@@ -1,0 +1,13 @@
+{
+  "home": "Home",
+  "catalog": "Catalog",
+  "cart": "Cart",
+  "account": "Account",
+  "login": "Log in",
+  "register": "Create account",
+  "logout": "Log out",
+  "admin": "Admin Panel",
+  "search": "Search products...",
+  "allCategories": "All Categories",
+  "contact": "Contact"
+}

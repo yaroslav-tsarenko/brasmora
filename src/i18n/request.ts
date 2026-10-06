@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 import { defaultLocale, hasMultipleLocales, isLocale, LOCALE_COOKIE } from "./config";
+import { loadMessages } from "./messages";
 
 async function resolveLocale(requested: string | undefined) {
   if (isLocale(requested)) return requested;
@@ -14,6 +15,6 @@ export default getRequestConfig(async ({ locale: requested }) => {
 
   return {
     locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    messages: await loadMessages(locale),
   };
 });

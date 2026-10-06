@@ -1,0 +1,172 @@
+/*
+ * Solvetaworld Design Tokens — "Forest & Stone".
+ *
+ * Direction chosen deliberately for maximal distance from the sibling store
+ * (Avant Shop: cool white/blue-grey surfaces, red #E53935 + purple #6C5CE7
+ * accents, pill buttons, soft shadows). Solvetaworld goes the opposite way:
+ * warm stone paper (#F4F2ED) and white surfaces, deep pine-charcoal ink,
+ * a single deep forest green accent (#2E5E4E) for actions, and warm copper
+ * for price emphasis and sale moments. Elevation is drawn with hairline
+ * borders, not shadows; corners are tight rectangles (4–14px), never pills.
+ *
+ * These CSS variables are the single source of truth for colour. The Tailwind
+ * @theme in globals.css and tailwind.config.ts both read them, so every utility
+ * (bg-brand, text-ink, border-line, …) resolves here and nowhere else.
+ */
+
+:root {
+  /* ── Brand & accents ── */
+  --color-primary: #1e2420;             /* pine-charcoal ink */
+  --color-secondary: #ffffff;
+  --color-accent: #2e5e4e;              /* Deep forest — primary action. 7.4:1 on white */
+  --color-accent-hover: #234a3d;
+  --color-accent-light: #e4eee9;        /* forest tint for soft fills */
+  --color-accent-2: #8fb3a3;            /* soft sage — decorative highlight, never body text */
+  --color-accent-3: #a5561f;            /* warm copper — price emphasis & sale. 5.3:1 on white */
+  --color-success: #3f7a54;
+  --color-warning: #9a6b15;
+  --color-danger: #a8402f;              /* muted brick */
+  --color-info: #4a6b7c;
+
+  /* ── Primary scale (forest) ── */
+  --color-primary-50:  #eef4f1;
+  --color-primary-100: #d8e6df;
+  --color-primary-200: #b3cfc2;
+  --color-primary-300: #8ab3a1;
+  --color-primary-400: #5c8a75;
+  --color-primary-500: #2e5e4e;
+  --color-primary-600: #234a3d;
+  --color-primary-700: #1b3a30;
+  --color-primary-800: #142b24;
+  --color-primary-900: #0d1c17;
+
+  /* ── Accent scale (copper) ── */
+  --color-accent-50:  #faf1e8;
+  --color-accent-100: #f2ddc8;
+  --color-accent-200: #e5bd97;
+  --color-accent-300: #d59a64;
+  --color-accent-400: #c17739;
+  --color-accent-500: #a5561f;
+  --color-accent-600: #8a4719;
+  --color-accent-700: #6e3813;
+  --color-accent-800: #52290e;
+  --color-accent-900: #371b09;
+
+  /* ── Gradients ──
+     The brand language is flat; these exist only for the few legacy
+     `gradient-*` consumers and stay within a single hue, nearly imperceptible. */
+  --gradient-primary: linear-gradient(160deg, #234a3d 0%, #2e5e4e 100%);
+  --gradient-accent: linear-gradient(160deg, #2e5e4e 0%, #3c6f5d 100%);
+  --gradient-warm: linear-gradient(160deg, #a5561f 0%, #c17739 100%);
+  --gradient-cool: linear-gradient(160deg, #3c6f5d 0%, #234a3d 100%);
+  --gradient-hero: linear-gradient(160deg, #f4f2ed 0%, #efece4 100%);
+  --gradient-card-hover: linear-gradient(160deg, rgba(46, 94, 78, 0.04) 0%, rgba(46, 94, 78, 0.02) 100%);
+  --gradient-badge: linear-gradient(160deg, #a5561f 0%, #c17739 100%);
+
+  /* ── Surfaces ── */
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f4f2ed;         /* warm stone page ground */
+  --color-bg-tertiary: #ece8df;
+  --color-bg-warm: #f6eadf;              /* copper tint */
+  --color-surface-dark: #1e2420;         /* pine-charcoal surface for hero/cards */
+
+  /* ── Text ── */
+  --color-text: #1e2420;
+  --color-text-secondary: #6f756d;
+  --color-text-tertiary: #979d92;
+
+  /* ── Borders ── */
+  --color-border: #e0dcd2;
+  --color-border-hover: #c6c0b1;
+
+  /* ── Shadows ──
+     Elevation is hairline-first: a 1px inked outline instead of blur. The two
+     largest steps keep a whisper of depth for modals/popovers only. */
+  --shadow-sm: 0 0 0 1px rgba(30, 36, 32, 0.06);
+  --shadow-md: 0 0 0 1px rgba(30, 36, 32, 0.08), 0 1px 2px rgba(30, 36, 32, 0.04);
+  --shadow-lg: 0 0 0 1px rgba(30, 36, 32, 0.08), 0 4px 12px rgba(30, 36, 32, 0.07);
+  --shadow-xl: 0 0 0 1px rgba(30, 36, 32, 0.08), 0 10px 28px rgba(30, 36, 32, 0.1);
+  --shadow-accent: 0 0 0 1px rgba(46, 94, 78, 0.35);
+  --shadow-card: 0 0 0 1px rgba(30, 36, 32, 0.07);
+  --shadow-card-hover: 0 0 0 1px rgba(46, 94, 78, 0.4), 0 2px 6px rgba(30, 36, 32, 0.06);
+
+  /* ── Radii ── tight rectangles, no pills */
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.375rem;  /* 6px — default control radius */
+  --radius-lg: 0.625rem;  /* 10px */
+  --radius-xl: 0.875rem;  /* 14px */
+  --radius-2xl: 1.125rem; /* 18px — imagery only */
+  --radius-pill: 0.375rem; /* deprecated: pills removed from the brand; resolves to md */
+
+  /* ── Layout ── */
+  --max-width: 1400px; /* keep in sync with --container-container (max-w-container) */
+  --header-height: 64px;
+  --announcement-height: 36px;
+
+  /* ── Fonts & easing ── */
+  --font-sans: var(--font-karla), "Karla", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-bricolage), "Bricolage Grotesque", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Promo tints ── */
+  --promo-bg-blue: #e4eee9;
+  --promo-bg-warm: #f6eadf;
+  --promo-bg-green: #e9efe6;
+
+  /* ── Selection ── */
+  --selection-bg: rgba(46, 94, 78, 0.18);
+  --selection-fg: #142b24;
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+[data-theme="dark"] {
+  --color-primary: #eceae2;
+  --color-secondary: #161b18;
+  /* Forest green lifts two steps on deep pine ground; copper warms slightly. */
+  --color-accent: #6fa28d;
+  --color-accent-hover: #8cb8a5;
+  --color-accent-light: rgba(111, 162, 141, 0.16);
+  --color-accent-2: #a7c4b6;
+  --color-accent-3: #d08a55;
+  --color-success: #7cab8c;
+  --color-warning: #c99b4a;
+  --color-danger: #cf7663;
+  --color-info: #86a5b5;
+
+  --gradient-hero: linear-gradient(160deg, #161b18 0%, #1b221d 100%);
+  --gradient-card-hover: linear-gradient(160deg, rgba(111, 162, 141, 0.08) 0%, rgba(111, 162, 141, 0.04) 100%);
+
+  --color-bg: #161b18;
+  --color-bg-secondary: #1b211d;
+  --color-bg-tertiary: #242b26;
+  --color-bg-warm: #29211a;
+  --color-surface-dark: #10140f;
+
+  --color-text: #eceae2;
+  --color-text-secondary: #a8ada3;
+  --color-text-tertiary: #767c72;
+
+  --color-border: #2b322c;
+  --color-border-hover: #3d453e;
+
+  --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 0 0 1px rgba(111, 162, 141, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-accent: 0 0 0 1px rgba(111, 162, 141, 0.4);
+
+  --promo-bg-blue: #1d2a24;
+  --promo-bg-warm: #29211a;
+  --promo-bg-green: #202a1e;
+
+  --selection-bg: rgba(111, 162, 141, 0.3);
+  --selection-fg: #eceae2;
+}

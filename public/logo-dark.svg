@@ -1,0 +1,7 @@
+<svg width="248" height="48" viewBox="0 0 248 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Solvetaworld">
+  <circle cx="24" cy="24" r="19" fill="#6FA28D"/>
+  <ellipse cx="24" cy="24" rx="7.7" ry="19" fill="none" stroke="#161B18" stroke-width="2.4" stroke-opacity="0.85"/>
+  <path d="M6.8 29.3 C 14.5 23.4, 33.5 23.4, 41.2 29.3" fill="none" stroke="#161B18" stroke-width="2.4" stroke-opacity="0.85"/>
+  <circle cx="37" cy="14" r="6" fill="#D08A55" stroke="#161B18" stroke-width="2.4"/>
+  <text x="56" y="32" font-family="'Bricolage Grotesque', Georgia, serif" font-size="22" font-weight="600" letter-spacing="-0.01em" fill="#ECEAE2">Solveta<tspan fill="#6FA28D">world</tspan></text>
+</svg>

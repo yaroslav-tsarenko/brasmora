@@ -5,8 +5,12 @@ import { sendPasswordResetEmail } from "@/lib/email";
 import { scheduleEmail } from "@/lib/email-jobs";
 import { SITE_URL } from "@/lib/brand";
 import { forgotPasswordSchema, PASSWORD_RESET_TTL_MINUTES } from "@/lib/validators/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, "forgotPassword");
+  if (limited) return limited;
+
   try {
     const parsed = forgotPasswordSchema.safeParse(await request.json());
     if (!parsed.success) {

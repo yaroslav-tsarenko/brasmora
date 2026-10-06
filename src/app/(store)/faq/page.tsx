@@ -7,6 +7,7 @@ import { Accordion, AccordionItem } from "@/components/ui/Accordion";
 import { JsonLd } from "@/components/shared/SEO/JsonLd";
 import { POLICY_FACTS as F } from "@/lib/policy-facts";
 import { FaqIndex, OutlineLink } from "./FaqIndex";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 const GROUPS: { id: string; items: string[] }[] = [
   { id: "orders", items: ["place", "guest", "change", "limits", "noEmail"] },
@@ -59,11 +60,7 @@ const plainTags = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("faq");
-  return {
-    title: t("metaTitle"),
-    description: t("metaDescription", VALUES),
-    alternates: { canonical: "/faq" },
-  };
+  return pageMetadata({ title: t("metaTitle"), description: t("metaDescription", VALUES), path: "/faq" });
 }
 
 export default async function FaqPage() {

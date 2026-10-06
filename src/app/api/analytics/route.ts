@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

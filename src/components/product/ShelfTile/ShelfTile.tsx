@@ -11,6 +11,7 @@ import { PriceDisplay, discountPercent } from "@/components/shared/PriceDisplay/
 import { Plate } from "@/components/ui/Plate";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBar } from "@/components/ui/ShelfLoader";
+import { itemQuantityCap } from "@/lib/pricing";
 
 export interface ShelfProduct {
   id: string;
@@ -167,7 +168,7 @@ export function ShelfTile({ product, variant = "default", priority, sizes, specL
       price,
       quantity: 1,
       imageUrl,
-      maxQuantity: product.quantity ?? 99,
+      maxQuantity: itemQuantityCap(product.quantity),
     });
     setSettleKey((k) => k + 1);
     window.dispatchEvent(new CustomEvent("brasmora:bag-add", { detail: { productId: product.id, source: event.currentTarget.closest("[data-shelf-item]") } }));
@@ -212,13 +213,13 @@ export function ShelfTile({ product, variant = "default", priority, sizes, specL
           disabled={pending(product.id)}
           className={cn(
             "absolute right-2 top-2 z-[2] flex cursor-pointer items-center gap-1.5 text-ui-sm font-semibold text-on-stage [--color-focus:var(--color-on-stage)] transition-opacity duration-[160ms]",
-            "touch-device:size-11 touch-device:justify-center",
-            "hover-device:min-h-8 hover-device:px-2 hover-device:underline hover-device:decoration-1 hover-device:underline-offset-4",
+            "size-11 justify-center",
+            "hover-device:size-auto hover-device:min-h-8 hover-device:px-2 hover-device:underline hover-device:decoration-1 hover-device:underline-offset-4",
             saved ? "hover-device:opacity-100" : "hover-device:opacity-0 hover-device:group-hover:opacity-100 hover-device:group-focus-within:opacity-100",
           )}
         >
           <Heart size={18} aria-hidden="true" fill={saved ? "currentColor" : "none"} className="hover-device:hidden" />
-          <span className="touch-device:hidden">{saved ? "Saved" : "Save"}</span>
+          <span className="hidden hover-device:inline">{saved ? "Saved" : "Save"}</span>
         </button>
       </Cubby>
 
@@ -255,7 +256,7 @@ export function ShelfTile({ product, variant = "default", priority, sizes, specL
             type="button"
             onClick={add}
             aria-label={`Add ${product.name} to bag`}
-            className="bevel-sm relative z-[2] hidden size-11 shrink-0 cursor-pointer items-center justify-center text-on-brand before:bg-brand active:before:bg-brand-hover touch-device:flex"
+            className="bevel-sm relative z-[2] flex size-11 shrink-0 cursor-pointer items-center justify-center text-on-brand before:bg-brand active:before:bg-brand-hover hover-device:hidden"
           >
             <Handbag size={18} aria-hidden="true" />
           </button>

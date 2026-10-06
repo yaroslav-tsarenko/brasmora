@@ -1,42 +1,39 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { SITE_URL } from "@/lib/brand";
+import type { NextRequest } from "next/server";
+import { feedContext, feedHeaders, loadFeedItems } from "@/lib/feeds/catalog";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
   try {
-    const products = await prisma.product.findMany({
-      where: { status: "ACTIVE" },
-      omit: { metadata: true, costPrice: true },
-      include: {
-        images: { orderBy: { sortOrder: "asc" } },
-        categories: { include: { category: { select: { name: true } } } },
-      },
-    });
-
-
-    const feed = products.map((product) => ({
-      id: product.id,
-      name: product.name,
-      sku: product.sku,
-      slug: product.slug,
-      description: product.description,
-      price: Number(product.price),
-      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-      currency: "EUR",
-      availability: product.quantity > 0 ? "in_stock" : "out_of_stock",
-      quantity: product.quantity,
-      condition: product.condition,
-      brand: product.brand,
-      gtin: product.gtin,
-      categories: product.categories.map((c) => c.category.name),
-      images: product.images.map((img) => img.url),
-      url: `${SITE_URL}/product/${product.slug}`,
-      updatedAt: product.updatedAt,
+    const [ctx, items] = await Promise.all([feedContext(request.nextUrl.searchParams.get("currency")), loadFeedItems()]);
+    const products = items.map((item) => ({
+      id: item.id,
+      itemGroupId: item.itemGroupId,
+      name: item.title,
+      sku: item.id,
+      description: item.description,
+      price: ctx.convert(item.salePrice ?? item.price),
+      comparePrice: item.salePrice != null ? ctx.convert(item.price) : null,
+      currency: ctx.currency,
+      availability: item.availability,
+      quantity: item.quantity,
+      condition: item.condition,
+      brand: item.brand,
+      gtin: item.gtin,
+      mpn: item.mpn,
+      googleProductCategory: item.googleCategoryId,
+      productType: item.productType,
+      categories: item.categoryNames,
+      images: [item.imageLink, ...item.additionalImageLinks],
+      url: item.link,
+      weightKg: item.weightKg,
+      updatedAt: item.updatedAt,
     }));
-
-    return NextResponse.json({ products: feed, generatedAt: new Date().toISOString() });
+    return new Response(JSON.stringify({ products, count: products.length, currency: ctx.currency, generatedAt: new Date().toISOString() }), {
+      headers: feedHeaders("application/json; charset=utf-8"),
+    });
   } catch (error) {
     console.error("Error generating generic feed:", error);
-    return NextResponse.json({ error: "Failed to generate feed" }, { status: 500 });
+    return Response.json({ error: "Failed to generate feed" }, { status: 503, headers: { "Retry-After": "300" } });
   }
 }

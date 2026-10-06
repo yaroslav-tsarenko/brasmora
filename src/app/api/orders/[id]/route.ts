@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id } = await params;
     const order = await prisma.order.findUnique({

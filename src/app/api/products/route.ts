@@ -5,12 +5,26 @@ import { productSchema } from "@/lib/validators/product";
 import { PRODUCTS_PER_PAGE } from "@/lib/utils/constants";
 import { slugify } from "@/lib/utils/slugify";
 import { Prisma } from "@prisma/client";
+import { requireAdmin } from "@/lib/auth";
+
+const PUBLIC_CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=86400",
+  "CDN-Cache-Control": "public, s-maxage=120",
+  "Vercel-CDN-Cache-Control": "public, s-maxage=120",
+};
+const PRIVATE_CACHE_HEADERS = { "Cache-Control": "private, no-store" };
+
+function clampInt(value: string | null, fallback: number, min: number, max: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(parsed, min), max);
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const pageSize = parseInt(searchParams.get("pageSize") || String(PRODUCTS_PER_PAGE));
+    const page = clampInt(searchParams.get("page"), 1, 1, 10000);
+    const pageSize = clampInt(searchParams.get("pageSize"), PRODUCTS_PER_PAGE, 1, 100);
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
     const sort = searchParams.get("sort") || "newest";
@@ -21,6 +35,16 @@ export async function GET(request: NextRequest) {
     const featured = searchParams.get("featured");
     const brand = searchParams.get("brand") || "";
     const onSale = searchParams.get("onSale");
+
+    const adminView = Boolean(status) && status !== "ACTIVE";
+    if (adminView) {
+      const admin = await requireAdmin();
+      if (admin instanceof NextResponse) return admin;
+    }
+
+    if (status && !["ACTIVE", "DRAFT", "ARCHIVED", "ALL"].includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
 
     const where: Prisma.ProductWhereInput = {};
 
@@ -106,7 +130,7 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        omit: { metadata: true },
+        omit: adminView ? { metadata: true } : { metadata: true, costPrice: true },
         include: {
           images: { orderBy: { sortOrder: "asc" }, take: 2 },
           categories: { include: { category: { select: { id: true, name: true, slug: true } } } },
@@ -123,13 +147,7 @@ export async function GET(request: NextRequest) {
         pageSize,
         totalPages: Math.ceil(total / pageSize),
       },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=86400",
-          "CDN-Cache-Control": "public, s-maxage=120",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=120",
-        },
-      },
+      { headers: adminView ? PRIVATE_CACHE_HEADERS : PUBLIC_CACHE_HEADERS },
     );
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -138,6 +156,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const body = await request.json();
     const validated = productSchema.parse(body);

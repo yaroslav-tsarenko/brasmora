@@ -7,8 +7,12 @@ import { scheduleEmail } from "@/lib/email-jobs";
 import { registerSchema } from "@/lib/validators/auth";
 import { composePhone, parseIsoDate } from "@/lib/validators/fields";
 import { dialCodeFor } from "@/lib/countries";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, "register");
+  if (limited) return limited;
+
   try {
     const data = registerSchema.parse(await request.json());
     const email = data.email.toLowerCase();

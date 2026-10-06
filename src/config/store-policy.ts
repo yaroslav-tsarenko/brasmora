@@ -1,5 +1,7 @@
 import { COMPANY } from "@/lib/company";
 
+const DISPATCH_COUNTRY = "Spain";
+
 export const STORE_POLICY = {
   currency: "GBP",
   supportedCurrencies: ["GBP", "EUR", "USD"],
@@ -12,7 +14,8 @@ export const STORE_POLICY = {
     standardCost: 5.99,
     freeThreshold: 75,
     processingDays: "1–2 business days",
-    dispatchFrom: "our fulfilment warehouse in Spain",
+    dispatchCountry: DISPATCH_COUNTRY,
+    dispatchFrom: `our fulfilment warehouse in ${DISPATCH_COUNTRY}`,
     deliveryTimes: {
       eu: "3–6 business days after dispatch",
       uk: "4–8 business days after dispatch",
@@ -56,7 +59,7 @@ export const STORE_POLICY = {
   },
   processors: [
     { role: "Card payments", purpose: "Takes card payments on its own hosted page and runs 3-D Secure checks", name: null as string | null },
-    { role: "Fulfilment warehouse", purpose: "Picks, packs and hands your order to the carrier in Spain", name: null as string | null },
+    { role: "Fulfilment warehouse", purpose: `Picks, packs and hands your order to the carrier in ${DISPATCH_COUNTRY}`, name: null as string | null },
     { role: "Delivery carriers", purpose: "Deliver parcels and send tracking updates", name: null as string | null },
     { role: "Website hosting and database", purpose: "Runs the store and stores account and order records", name: null as string | null },
     { role: "Email delivery", purpose: "Sends order, account and support emails", name: null as string | null },

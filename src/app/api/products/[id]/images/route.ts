@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { uploadToR2, isR2Configured, deleteFromR2 } from "@/lib/r2";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
-const MAX_TOTAL_SIZE = 4 * 1024 * 1024; // Vercel serverless body limit is ~4.5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_TOTAL_SIZE = 4 * 1024 * 1024;
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
-    const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
     const { id } = await params;
 
     const product = await prisma.product.findUnique({ where: { id }, select: { id: true } });
@@ -116,26 +113,22 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
-    const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    const { id } = await params;
+    const { imageId } = await request.json().catch(() => ({}));
+    if (typeof imageId !== "string") {
+      return NextResponse.json({ error: "imageId is required" }, { status: 400 });
     }
 
-    await params;
-    const { imageId } = await request.json();
-
-    const image = await prisma.productImage.findUnique({ where: { id: imageId } });
+    const image = await prisma.productImage.findFirst({ where: { id: imageId, productId: id } });
     if (!image) {
       return NextResponse.json({ error: "Image not found" }, { status: 404 });
     }
 
     if (isR2Configured() && image.url.startsWith("http")) {
-      try {
-        await deleteFromR2(image.url);
-      } catch {
-        // continue even if R2 delete fails
-      }
+      await deleteFromR2(image.url).catch((error) => console.error("R2 delete failed:", error));
     }
 
     await prisma.productImage.delete({ where: { id: imageId } });

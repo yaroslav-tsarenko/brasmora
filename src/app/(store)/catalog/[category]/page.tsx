@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { BRAND } from "@/lib/brand";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { MEGA_ZONES } from "@/config/navigation";
 import { clampText } from "@/lib/utils/sanitize-html";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
@@ -37,7 +37,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const { category: slug } = await params;
   const tree = await getCategoryTree();
   const category = tree.bySlug.get(slug);
-  if (!category) return { title: "Category not found", robots: { index: false } };
+  if (!category) return { title: "Category not found", robots: { index: false, follow: true } };
   const t = await getTranslations("catalog");
   const query = parseCatalogParams(await searchParams);
   const stats = await categoryStats(tree.subtreeIds(category.id));
@@ -46,16 +46,15 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const pagedTitle = query.page > 1 ? t("titleWithPage", { title, page: query.page }) : title;
   const lead = category.description || t("metaCategoryFallback", { name: category.name });
   const description = clampText(`${lead} ${t("metaCategoryCount", { count: stats.count })}`, 160);
-  const canonical = query.page > 1 && !hasActiveFilters(query) ? `/catalog/${category.slug}?page=${query.page}` : `/catalog/${category.slug}`;
-  const art = tree.uniqueArt(category) ?? category.imageUrl;
-  return {
+  const filtered = hasActiveFilters(query);
+  return pageMetadata({
     title: pagedTitle,
     description,
-    alternates: { canonical },
-    robots: hasActiveFilters(query) || stats.count === 0 ? { index: false, follow: true } : undefined,
-    openGraph: { type: "website", siteName: BRAND.name, url: canonical, title: pagedTitle, description, images: art ? [{ url: art, alt: category.name }] : undefined },
-    twitter: { card: art ? "summary_large_image" : "summary", title: pagedTitle, description, images: art ? [art] : undefined },
-  };
+    path: query.page > 1 ? `/catalog/${category.slug}?page=${query.page}` : `/catalog/${category.slug}`,
+    canonical: !filtered,
+    images: false,
+    index: !filtered && stats.count > 0,
+  });
 }
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {

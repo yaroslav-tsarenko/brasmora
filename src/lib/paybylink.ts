@@ -1,3 +1,5 @@
+import { createDecipheriv } from "crypto";
+
 export type PaymentOutcome = "paid" | "pending" | "failed";
 
 const SUCCESS = /^(000\.000\.|000\.100\.1|000\.[36])/;
@@ -103,4 +105,37 @@ export async function fetchPaymentStatus(config: PayByLinkConfig, paymentLinkId:
     amount: data.amount != null && data.amount !== "" ? Number(data.amount) : null,
     currency: data.currency ?? null,
   };
+}
+
+const HEX = /^[0-9a-f]+$/i;
+
+export function getPayByLinkWebhookSecret(): Buffer | null {
+  const secret = process.env.PAYBYLINK_WEBHOOK_SECRET?.trim();
+  if (!secret || secret.length !== 64 || !HEX.test(secret)) return null;
+  return Buffer.from(secret, "hex");
+}
+
+export interface WebhookNotification {
+  type?: string;
+  payload?: {
+    id?: string;
+    ndc?: string;
+    checkoutId?: string;
+    merchantTransactionId?: string;
+    result?: { code?: string };
+  };
+}
+
+export function decryptWebhookNotification(key: Buffer, body: string, iv: string | null, tag: string | null): WebhookNotification | null {
+  const cipherText = body.trim();
+  if (!iv || !tag || !HEX.test(iv) || !HEX.test(tag) || !cipherText || !HEX.test(cipherText)) return null;
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "hex"));
+    decipher.setAuthTag(Buffer.from(tag, "hex"));
+    const plain = Buffer.concat([decipher.update(Buffer.from(cipherText, "hex")), decipher.final()]).toString("utf8");
+    const parsed: unknown = JSON.parse(plain);
+    return parsed && typeof parsed === "object" ? (parsed as WebhookNotification) : null;
+  } catch {
+    return null;
+  }
 }

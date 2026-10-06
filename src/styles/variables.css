@@ -52,18 +52,6 @@
 
   --color-scrim: rgba(42, 26, 21, 0.48);
 
-  --promo-bg-blue: #e5e8e6;
-  --promo-bg-warm: #f2ead8;
-  --promo-bg-green: #e5e8e6;
-
-  --gradient-primary: linear-gradient(#3b2620, #3b2620);
-  --gradient-accent: linear-gradient(#3b2620, #3b2620);
-  --gradient-warm: linear-gradient(#c9a04e, #c9a04e);
-  --gradient-cool: linear-gradient(#3b2620, #3b2620);
-  --gradient-hero: linear-gradient(#f1f3f2, #f1f3f2);
-  --gradient-card-hover: linear-gradient(transparent, transparent);
-  --gradient-badge: linear-gradient(#c9a04e, #c9a04e);
-
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: 0 1px 0 #d2d3cf, 0 18px 40px -24px rgba(42, 26, 21, 0.35);
@@ -193,14 +181,6 @@
   --color-info-tint: #263034;
 
   --color-scrim: rgba(8, 5, 4, 0.66);
-
-  --promo-bg-blue: #241b17;
-  --promo-bg-warm: #3a3020;
-  --promo-bg-green: #241b17;
-
-  --gradient-primary: linear-gradient(#ede7df, #ede7df);
-  --gradient-accent: linear-gradient(#ede7df, #ede7df);
-  --gradient-hero: linear-gradient(#1d1613, #1d1613);
 
   --shadow-lg: 0 1px 0 #3f322b, 0 18px 40px -24px rgba(0, 0, 0, 0.6);
   --shadow-xl: 0 1px 0 #3f322b, 0 28px 60px -28px rgba(0, 0, 0, 0.7);

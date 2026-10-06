@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { importRowSchema } from "@/lib/validators/import-row";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;

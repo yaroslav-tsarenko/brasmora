@@ -12,8 +12,17 @@ import { CurrencySelect } from "./CurrencySelect";
 import { ThemeToggle } from "./ThemeToggle";
 
 const rowCls = "flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 border-b border-line text-left text-step-0 text-ink";
+const activeRowCls = "aria-[current]:font-semibold aria-[current]:shadow-[inset_3px_0_0_var(--color-brass)] aria-[current]:pl-3";
 
-export function MobileMenu({ open, onClose, categories }: { open: boolean; onClose: () => void; categories: CategoryNode[] }) {
+interface MobileMenuProps {
+  open: boolean;
+  onClose: () => void;
+  categories: CategoryNode[];
+  activeSlug?: string | null;
+  activeRoot?: string | null;
+}
+
+export function MobileMenu({ open, onClose, categories, activeSlug = null, activeRoot = null }: MobileMenuProps) {
   const { user, role } = useAuth();
   const [panel, setPanel] = useState<string | null>(null);
   const active = panel ? findCategory(categories, panel) : undefined;
@@ -41,12 +50,12 @@ export function MobileMenu({ open, onClose, categories }: { open: boolean; onClo
                 <ChevronLeft size={20} aria-hidden="true" />
                 Back
               </button>
-              <Link href={`/catalog/${panel}`} onClick={close} className={`${rowCls} font-semibold`}>
+              <Link href={`/catalog/${panel}`} onClick={close} aria-current={activeSlug === panel ? "page" : undefined} className={`${rowCls} ${activeRowCls} font-semibold`}>
                 <span>All {activeName}</span>
                 {active ? <span className="tabular meta font-normal text-ink-muted">{subtreeCount(active)}</span> : null}
               </Link>
               {(active?.children ?? []).map((child) => (
-                <Link key={child.id} href={`/catalog/${child.slug}`} onClick={close} className={rowCls}>
+                <Link key={child.id} href={`/catalog/${child.slug}`} onClick={close} aria-current={activeSlug === child.slug ? "page" : undefined} className={`${rowCls} ${activeRowCls}`}>
                   <span>{child.name}</span>
                   <span className="tabular meta text-ink-muted">{subtreeCount(child)}</span>
                 </Link>
@@ -59,13 +68,14 @@ export function MobileMenu({ open, onClose, categories }: { open: boolean; onClo
                 {NAV_CATEGORIES.map((cat) => {
                   const node = findCategory(categories, cat.slug);
                   const hasChildren = Boolean(node?.children?.length);
+                  const current = activeSlug === cat.slug ? "page" : activeRoot === cat.slug ? "true" : undefined;
                   return hasChildren ? (
-                    <button key={cat.slug} type="button" onClick={() => setPanel(cat.slug)} className={rowCls} aria-label={`${cat.name}, show sub-categories`}>
+                    <button key={cat.slug} type="button" onClick={() => setPanel(cat.slug)} aria-current={current} className={`${rowCls} ${activeRowCls}`} aria-label={`${cat.name}, show sub-categories`}>
                       <span>{cat.name}</span>
                       <ChevronRight size={20} aria-hidden="true" className="text-ink-muted" />
                     </button>
                   ) : (
-                    <Link key={cat.slug} href={`/catalog/${cat.slug}`} onClick={close} className={rowCls}>
+                    <Link key={cat.slug} href={`/catalog/${cat.slug}`} onClick={close} aria-current={current} className={`${rowCls} ${activeRowCls}`}>
                       <span>{cat.name}</span>
                       <ChevronRight size={20} aria-hidden="true" className="text-ink-muted" />
                     </Link>

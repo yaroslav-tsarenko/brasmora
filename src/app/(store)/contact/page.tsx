@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { CredentialPlaque } from "@/components/layout/Footer/Footer";
 import { POLICY_FACTS as F } from "@/lib/policy-facts";
 import { ContactForm } from "./ContactForm";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 const VALUES = { brand: F.brand, company: F.company, replyTime: F.replyTime, supportHours: F.supportHours };
 
@@ -17,7 +18,7 @@ const linkTags = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("contact");
-  return { title: t("title"), description: t("metaDescription", VALUES), alternates: { canonical: "/contact" } };
+  return pageMetadata({ title: t("title"), description: t("metaDescription", VALUES), path: "/contact" });
 }
 
 export default async function ContactPage({ searchParams }: { searchParams: Promise<{ order?: string | string[] }> }) {

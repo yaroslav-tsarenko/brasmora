@@ -1,65 +1,18 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { SITE_URL } from "@/lib/brand";
+import type { NextRequest } from "next/server";
+import { STORE_POLICY } from "@/config/store-policy";
+import { feedContext, feedHeaders, loadFeedItems, shippingCountries } from "@/lib/feeds/catalog";
+import { googleFeedXml } from "@/lib/feeds/format";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
   try {
-    const products = await prisma.product.findMany({
-      where: { status: "ACTIVE" },
-      omit: { metadata: true, costPrice: true },
-      include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
-    });
-
-
-    const items = products
-      .map((product) => {
-        const imageUrl = product.images[0]?.url || "";
-        const price = `${Number(product.price).toFixed(2)} EUR`;
-        const availability = product.quantity > 0 ? "in_stock" : "out_of_stock";
-
-        return `    <item>
-      <g:id>${escapeXml(product.id)}</g:id>
-      <title>${escapeXml(product.name)}</title>
-      <description>${escapeXml(product.description || product.name)}</description>
-      <link>${SITE_URL}/product/${escapeXml(product.slug)}</link>
-      <g:image_link>${escapeXml(imageUrl)}</g:image_link>
-      <g:price>${price}</g:price>
-      ${product.comparePrice ? `<g:sale_price>${Number(product.price).toFixed(2)} EUR</g:sale_price>` : ""}
-      <g:availability>${availability}</g:availability>
-      <g:condition>${escapeXml(product.condition)}</g:condition>
-      ${product.brand ? `<g:brand>${escapeXml(product.brand)}</g:brand>` : ""}
-      ${product.gtin ? `<g:gtin>${escapeXml(product.gtin)}</g:gtin>` : ""}
-      ${product.mpn ? `<g:mpn>${escapeXml(product.mpn)}</g:mpn>` : ""}
-      ${product.googleCategory ? `<g:google_product_category>${escapeXml(product.googleCategory)}</g:google_product_category>` : ""}
-      ${product.weight ? `<g:shipping_weight>${Number(product.weight)} kg</g:shipping_weight>` : ""}
-    </item>`;
-      })
-      .join("\n");
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
-  <channel>
-    <title>My Store Product Feed</title>
-    <link>${SITE_URL}</link>
-    <description>Product feed for Google Merchant Center</description>
-${items}
-  </channel>
-</rss>`;
-
-    return new NextResponse(xml, {
-      headers: { "Content-Type": "application/xml" },
-    });
+    const params = request.nextUrl.searchParams;
+    const [ctx, items] = await Promise.all([feedContext(params.get("currency")), loadFeedItems()]);
+    const xml = googleFeedXml(items, ctx, { countries: shippingCountries(params.get("country"), ctx.currency), freeThreshold: STORE_POLICY.shipping.freeThreshold });
+    return new Response(xml, { headers: feedHeaders("application/xml; charset=utf-8") });
   } catch (error) {
     console.error("Error generating Google feed:", error);
-    return NextResponse.json({ error: "Failed to generate feed" }, { status: 500 });
+    return Response.json({ error: "Failed to generate feed" }, { status: 503, headers: { "Retry-After": "300" } });
   }
-}
-
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }

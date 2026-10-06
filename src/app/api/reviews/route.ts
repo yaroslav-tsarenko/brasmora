@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, requireAdmin } from "@/lib/auth";
 import { z } from "zod";
 
 const reviewSchema = z.object({
@@ -15,9 +15,14 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get("productId");
     const pending = searchParams.get("pending") === "true";
 
+    if (pending) {
+      const admin = await requireAdmin();
+      if (admin instanceof NextResponse) return admin;
+    }
+
     const where = {
       ...(productId ? { productId } : {}),
-      ...(pending ? { isApproved: false } : {}),
+      isApproved: !pending,
     };
 
     const reviews = await prisma.review.findMany({
@@ -63,6 +68,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id, isApproved } = await request.json();
 

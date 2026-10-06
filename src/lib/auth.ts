@@ -1,12 +1,14 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, createToken } from "@/lib/token";
 
 export { verifyToken };
 
 const SESSION_COOKIE = "session_token";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+const ADMIN_ROLES = new Set(["ADMIN", "SUPER_ADMIN"]);
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
@@ -54,4 +56,22 @@ export function getTokenFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get("cookie") || "";
   const match = cookieHeader.match(/session_token=([^;]+)/);
   return match ? match[1] : null;
+}
+
+export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSessionUser>>>;
+
+export function isAdminRole(role: string | null | undefined) {
+  return Boolean(role && ADMIN_ROLES.has(role));
+}
+
+export async function getAdminUser(): Promise<SessionUser | null> {
+  const user = await getSessionUser();
+  return user && isAdminRole(user.role) ? user : null;
+}
+
+export async function requireAdmin(): Promise<SessionUser | NextResponse> {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ code: "UNAUTHORISED" }, { status: 401 });
+  if (!isAdminRole(user.role)) return NextResponse.json({ code: "FORBIDDEN" }, { status: 403 });
+  return user;
 }

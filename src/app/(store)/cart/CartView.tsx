@@ -40,7 +40,7 @@ export function CartView() {
 
   return (
     <div className="mx-auto max-w-container px-gutter pb-28 lg:pb-24">
-      <Breadcrumbs items={[{ label: nav("home"), href: "/" }, { label: t("title") }]} />
+      <Breadcrumbs items={[{ label: nav("home"), href: "/" }, { label: t("title") }]} withJsonLd={false} />
       <div className="flex flex-wrap items-center gap-4 pb-8 pt-2">
         <h1 className="m-0 text-step-4 leading-[1.05] text-ink">{t("title")}</h1>
         {isHydrated && count > 0 ? (

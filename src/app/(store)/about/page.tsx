@@ -9,17 +9,13 @@ import { SectionLink } from "@/components/home/Furniture";
 import { NAV_CATEGORIES } from "@/config/navigation";
 import { BRAND } from "@/lib/brand";
 import { POLICY_FACTS } from "@/lib/policy-facts";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("about");
   const title = t("metaTitle", { brand: BRAND.name });
   const description = t("metaDescription", { brand: BRAND.name, dispatchFrom: POLICY_FACTS.dispatchFrom });
-  return {
-    title: { absolute: title },
-    description,
-    alternates: { canonical: "/about" },
-    openGraph: { title, description, url: "/about" },
-  };
+  return pageMetadata({ title, description, path: "/about", absoluteTitle: true });
 }
 
 const LISTING_KEYS = ["new", "photo", "stock", "prices"] as const;

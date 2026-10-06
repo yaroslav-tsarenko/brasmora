@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils/slugify";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
@@ -9,10 +10,11 @@ export async function GET(
   try {
     const { id } = await params;
     const category = await prisma.category.findFirst({
-      where: { OR: [{ id }, { slug: id }] },
+      where: { OR: [{ id }, { slug: id }], isActive: true },
       include: {
-        children: { orderBy: { sortOrder: "asc" } },
+        children: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
         products: {
+          where: { product: { status: "ACTIVE" } },
           include: { product: { omit: { metadata: true, costPrice: true }, include: { images: { take: 1 } } } },
         },
       },
@@ -33,6 +35,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -58,6 +62,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id } = await params;
     await prisma.category.delete({ where: { id } });

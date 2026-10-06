@@ -73,6 +73,10 @@ cp .env.example .env
 | `NEXT_PUBLIC_SITE_URL` | Public site URL | Yes |
 | `RESEND_API_KEY` | Resend API key for emails | No |
 | `RESEND_FROM_EMAIL` | Sender email address | No |
+| `PAYBYLINK_BASE_URL` | OPPWA host (`https://eu-test.oppwa.com` sandbox, `https://eu-prod.oppwa.com` live) | Yes, for checkout |
+| `PAYBYLINK_ENTITY_ID` | OPPWA entity id | Yes, for checkout |
+| `PAYBYLINK_AUTH_TOKEN` | OPPWA bearer token | Yes, for checkout |
+| `PAYBYLINK_WEBHOOK_SECRET` | 64-character hex decryption key of the OPPWA webhook | Yes, for the payment webhook |
 
 ### Database Setup
 
@@ -159,6 +163,18 @@ The API provides endpoints for:
 - **Import** — CSV/Excel product import with preview
 - **Analytics** — KPIs and revenue data
 - **Upload** — Image upload
+- **Payments** — PayByLink server-to-server notifications
+
+Admin endpoints (product, category, settings, homepage, import, upload, orders, customers, users, analytics and review moderation) require a session whose user role is `ADMIN` or `SUPER_ADMIN`; they answer `401` without a session and `403` for other roles. Contact, newsletter, login, registration and password-reset requests are rate limited per client IP and answer `429` with a `Retry-After` header.
+
+### Payment webhook
+
+Configure the webhook in the OPPWA (PayByLink) back office:
+
+- URL: `https://<your-domain>/api/payments/webhook` (POST, notification type Payments)
+- Decryption key: copy it into `PAYBYLINK_WEBHOOK_SECRET`
+
+Notifications are AES-256-GCM encrypted; requests that do not decrypt with the key are rejected with `401`. The notification body is only used to find the order (`merchantTransactionId` is the order number) and the checkout id (`ndc`). The payment status, amount and currency are always re-queried from OPPWA and the order is settled through the same idempotent function as `/api/orders/verify` (the shopper return page), so a notification and a returning shopper can arrive in any order without double fulfilment. When OPPWA cannot be reached the endpoint answers `503` so the notification is retried.
 
 ## Deployment
 

@@ -126,7 +126,7 @@ const sections: PolicySection[] = [
     title: "International transfers",
     body: (
       <p>
-        Your order is packed and dispatched from Spain, so delivery details are processed in the European Union. The UK and the EU recognise
+        Your order is packed and dispatched from {STORE_POLICY.shipping.dispatchCountry}, so delivery details are processed in the European Union. The UK and the EU recognise
         each other&rsquo;s data protection as adequate. Where a service provider processes data outside the UK or the European Economic Area, we
         use an adequacy decision or standard contractual clauses (with the UK International Data Transfer Addendum for UK data).
       </p>

@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") || "";
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const requested = Number.parseInt(searchParams.get("limit") ?? "", 10);
+    const limit = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 20) : 10;
 
     if (!query || query.length < 2 || mentionsSupplier(query)) {
       return NextResponse.json([]);

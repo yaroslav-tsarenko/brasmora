@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { slugify } from "@/lib/utils/slugify";
 import { importRowSchema } from "@/lib/validators/import-row";
 
@@ -74,18 +74,18 @@ async function findOrCreateCategoryChain(
 }
 
 export async function POST(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
-    const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    const { rows, mode } = await request.json().catch(() => ({}));
+    if (!Array.isArray(rows)) {
+      return NextResponse.json({ error: "rows must be an array" }, { status: 400 });
     }
-
-    const { rows, mode } = await request.json();
 
     const job = await prisma.importJob.create({
       data: {
         fileName: "import",
-        userId: user.id,
+        userId: admin.id,
         totalRows: rows.length,
         status: "PROCESSING",
       },

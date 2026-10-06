@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { POLICY_FACTS } from "@/lib/policy-facts";
+import { requireAdmin } from "@/lib/auth";
 
 const PAINT = "#3B2620";
 const RETIRED_SECTION_SLUGS = ["best-deals", "popular", "new-arrivals", "electronics", "recommended", "home-essentials", "all-products"];
@@ -12,6 +13,8 @@ async function removeStale<T extends { id: string }>(rows: T[], keep: Set<string
 }
 
 export async function POST() {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const categories = await prisma.category.findMany({
       where: { isActive: true, parentId: null },

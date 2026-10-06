@@ -112,7 +112,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const limitNotice = quantity < wanted ? (orderRoom < perItem ? "orderLimit" : "itemLimit") : null;
       if (quantity > (existing?.quantity ?? 0)) {
         const updatedItems = existing
-          ? prev.map((item) => (item.id === id ? { ...item, quantity } : item))
+          ? prev.map((item) => (item.id === id ? { ...item, quantity, maxQuantity: newItem.maxQuantity } : item))
           : [...prev, { ...newItem, id, quantity }];
         commit(updatedItems);
         const added: CartItem = { ...newItem, id, quantity: quantity - (existing?.quantity ?? 0) };

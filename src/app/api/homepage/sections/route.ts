@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const sections = await prisma.homepageSection.findMany({
       orderBy: { sortOrder: "asc" },
@@ -15,6 +18,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const body = await request.json();
 

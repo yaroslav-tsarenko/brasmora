@@ -5,10 +5,11 @@ import { ArrowRight } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { POLICY_SLUGS, policyHref } from "@/components/layout/PolicyLayout/policies";
 import { POLICY_FACTS as F } from "@/lib/policy-facts";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("policies");
-  return { title: t("indexTitle"), description: t("indexMetaDescription", { brand: F.brand }), alternates: { canonical: "/policies" } };
+  return pageMetadata({ title: t("indexTitle"), description: t("indexMetaDescription", { brand: F.brand }), path: "/policies" });
 }
 
 export default async function PoliciesIndexPage() {

@@ -8,7 +8,7 @@ import { Wordmark } from "@/components/layout/BrandMark";
 import { Plate } from "@/components/ui/Plate";
 import { useCart } from "@/providers/CartProvider";
 import { useAuth } from "@/providers/AuthProvider";
-import { useCategoryTree } from "@/lib/hooks/useCategoryTree";
+import { catalogSlugFromPath, findRootSlug, useCategoryTree } from "@/lib/hooks/useCategoryTree";
 import { CORNICE_LINKS, navCategory } from "@/config/navigation";
 import { SHIPPING } from "@/config/shipping";
 import { cn } from "@/lib/utils/cn";
@@ -25,7 +25,7 @@ type HeaderState = "top" | "compact" | "hidden";
 const corniceLink = cn(
   "relative inline-flex h-full items-center whitespace-nowrap text-ui-md font-medium text-on-paint",
   "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-[calc(50%-17px)] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brass-on-paint after:transition-transform after:duration-[160ms] after:ease-[var(--ease-furniture)]",
-  "hover-device:hover:after:scale-x-100 aria-[current=page]:after:scale-x-100 aria-expanded:after:scale-x-100",
+  "hover-device:hover:after:scale-x-100 aria-[current=page]:after:scale-x-100 aria-[current=true]:after:scale-x-100 aria-expanded:after:scale-x-100",
 );
 
 const corniceAction = "relative inline-flex h-11 cursor-pointer items-center gap-2 whitespace-nowrap text-ui-md font-medium text-on-paint hover-device:hover:underline hover-device:hover:decoration-1 hover-device:hover:underline-offset-[6px]";
@@ -92,6 +92,9 @@ function StoreHeader() {
   }, [megaOpen, closeMega]);
 
   const compact = state !== "top";
+  const catalogSlug = catalogSlugFromPath(pathname);
+  const activeRoot = findRootSlug(categories, catalogSlug) ?? catalogSlug;
+  const triggerActive = pathname === "/catalog" || (activeRoot !== null && !CORNICE_LINKS.includes(activeRoot)) ? "all" : activeRoot ? "link" : undefined;
   const isAdmin = Boolean(user && (role === "ADMIN" || role === "SUPER_ADMIN"));
 
   const bagPlate =
@@ -163,9 +166,9 @@ function StoreHeader() {
               {CORNICE_LINKS.map((slug) => {
                 const cat = navCategory(slug);
                 const href = `/catalog/${slug}`;
-                const current = pathname === href || pathname.startsWith(`${href}/`);
+                const current = catalogSlug === slug ? "page" : activeRoot === slug ? "true" : undefined;
                 return (
-                  <Link key={slug} href={href} aria-current={current ? "page" : undefined} className={cn(corniceLink, "hidden xl:inline-flex")}>
+                  <Link key={slug} href={href} aria-current={current} className={cn(corniceLink, "hidden xl:inline-flex")}>
                     {cat?.short ?? slug}
                   </Link>
                 );
@@ -174,6 +177,7 @@ function StoreHeader() {
                 ref={megaTrigger}
                 type="button"
                 data-mega-trigger=""
+                data-active={triggerActive}
                 aria-expanded={megaOpen}
                 aria-controls={megaId}
                 onClick={() => {
@@ -186,7 +190,7 @@ function StoreHeader() {
                 onPointerLeave={(e) => {
                   if (e.pointerType === "mouse" && !megaOpen) window.clearTimeout(megaTimer.current);
                 }}
-                className={cn(corniceLink, "cursor-pointer gap-1.5")}
+                className={cn(corniceLink, "cursor-pointer gap-1.5 data-[active=all]:after:scale-x-100 max-xl:data-[active=link]:after:scale-x-100")}
               >
                 <span className="xl:hidden">Shop</span>
                 <span className="hidden xl:inline">All categories</span>
@@ -221,6 +225,8 @@ function StoreHeader() {
               id={megaId}
               open={megaOpen}
               categories={categories}
+              activeSlug={catalogSlug}
+              activeRoot={activeRoot}
               onClose={(restore) => closeMega(0, restore)}
               onPointerEnter={() => window.clearTimeout(megaTimer.current)}
               onPointerLeave={() => closeMega(250)}
@@ -229,7 +235,7 @@ function StoreHeader() {
         </div>
       </header>
 
-      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} categories={categories} />
+      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} categories={categories} activeSlug={catalogSlug} activeRoot={activeRoot} />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} categories={categories} />
       <CartSheet />
     </>

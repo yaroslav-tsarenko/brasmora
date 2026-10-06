@@ -52,7 +52,6 @@
   --color-warning: #D08A55;
   --color-danger: #E07A65;
   --color-accent-light: rgba(111, 162, 141, 0.16);
-  --gradient-primary: #6FA28D;
   --shadow-accent: 0 8px 30px rgba(46, 94, 78, 0.3);
 }
 
@@ -92,7 +91,6 @@
   --color-warning: #9A6B15;
   --color-danger: #A8402F;
   --color-accent-light: rgba(46, 94, 78, 0.08);
-  --gradient-primary: #2E5E4E;
   --shadow-accent: 0 8px 30px rgba(46, 94, 78, 0.22);
 }
 

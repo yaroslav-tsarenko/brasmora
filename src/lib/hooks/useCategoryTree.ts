@@ -39,3 +39,17 @@ export function useCategoryTree(enabled = true): CategoryNode[] {
 export function findCategory(categories: CategoryNode[], slug: string): CategoryNode | undefined {
   return categories.find((c) => c.slug === slug);
 }
+
+function containsSlug(node: CategoryNode, slug: string): boolean {
+  return node.slug === slug || (node.children ?? []).some((child) => containsSlug(child, slug));
+}
+
+export function findRootSlug(categories: CategoryNode[], slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  return categories.find((root) => containsSlug(root, slug))?.slug ?? null;
+}
+
+export function catalogSlugFromPath(pathname: string | null | undefined): string | null {
+  const match = /^\/catalog\/([^/?#]+)/.exec(pathname ?? "");
+  return match ? decodeURIComponent(match[1]) : null;
+}

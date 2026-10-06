@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PolicyLayout } from "@/components/layout/PolicyLayout/PolicyLayout";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -21,11 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const page = await getPage(slug);
   if (!page) return {};
   const text = plainText(page.content);
-  return {
-    title: page.title,
-    description: text.length > 155 ? `${text.slice(0, 152).replace(/\s+\S*$/, "")}…` : text,
-    alternates: { canonical: `/pages/${page.slug}` },
-  };
+  return pageMetadata({ title: page.title, description: text || page.title, path: `/pages/${page.slug}`, type: "article" });
 }
 
 export default async function DynamicPage({ params }: PageProps) {

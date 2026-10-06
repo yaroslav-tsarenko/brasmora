@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { productSchema } from "@/lib/validators/product";
 import { slugify } from "@/lib/utils/slugify";
+import { getAdminUser, requireAdmin } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
@@ -9,10 +10,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const admin = await getAdminUser();
 
     const product = await prisma.product.findFirst({
-      where: { OR: [{ id }, { slug: id }] },
-      omit: { metadata: true },
+      where: admin ? { OR: [{ id }, { slug: id }] } : { OR: [{ id }, { slug: id }], status: "ACTIVE" },
+      omit: admin ? { metadata: true } : { metadata: true, costPrice: true },
       include: {
         images: { orderBy: { sortOrder: "asc" } },
         categories: { include: { category: true } },
@@ -29,13 +31,7 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json(product, {
-      headers: {
-        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=86400",
-        "CDN-Cache-Control": "public, s-maxage=300",
-        "Vercel-CDN-Cache-Control": "public, s-maxage=300",
-      },
-    });
+    return NextResponse.json(product, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 });
@@ -46,12 +42,15 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id } = await params;
     const body = await request.json();
     const validated = productSchema.partial().parse(body);
 
-    const updateData: Record<string, unknown> = { ...validated };
+    const provided = body && typeof body === "object" ? body : {};
+    const updateData: Record<string, unknown> = Object.fromEntries(Object.entries(validated).filter(([key]) => key in provided));
     if (validated.name) {
       updateData.slug = slugify(validated.name);
     }
@@ -89,6 +88,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id } = await params;
     await prisma.product.delete({ where: { id } });

@@ -8,6 +8,10 @@ export const localeLabels: Record<Locale, { native: string; short: string }> = {
   en: { native: "English", short: "EN" },
 };
 
+export const localeTags: Record<Locale, { html: string; og: string }> = {
+  en: { html: "en-GB", og: "en_GB" },
+};
+
 export const LOCALE_STORAGE_KEY = "brasmora.locale";
 
 export const LOCALE_COOKIE = "NEXT_LOCALE";

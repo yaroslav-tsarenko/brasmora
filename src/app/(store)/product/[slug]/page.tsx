@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { BRAND } from "@/lib/brand";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { publicBrand } from "@/lib/utils/supplier";
 import { clampText, extractLabelledSpecs, htmlToText, sanitizeHtml } from "@/lib/utils/sanitize-html";
 import { careFor } from "@/config/care";
@@ -14,7 +14,7 @@ import { ProductInfo } from "@/components/product/ProductInfo/ProductInfo";
 import { ProductTabs, type SpecRow } from "@/components/product/ProductTabs/ProductTabs";
 import { ProductReviews } from "@/components/product/ProductReviews/ProductReviews";
 import { RelatedProducts } from "@/components/product/RelatedProducts/RelatedProducts";
-import { absoluteUrl, productJsonLd, validGtin13 } from "@/components/product/product-structured-data";
+import { productJsonLd, validGtin13 } from "@/components/product/product-structured-data";
 import { getCategoryTree, loadShelfProducts } from "@/components/catalog/catalog-query";
 import type { ProductVariantOption } from "@/components/product/VariantSelector/VariantSelector";
 
@@ -109,19 +109,13 @@ function formatWeight(kg: number): string {
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
-  if (!product) return { title: "Product not found", robots: { index: false } };
-  const title = product.metaTitle || product.name;
-  const description = metaDescription(product);
-  const image = product.images[0];
-  const images = image ? [{ url: absoluteUrl(image.url), alt: image.alt || product.name }] : undefined;
-  const canonical = `/product/${product.slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical },
-    openGraph: { type: "website", siteName: BRAND.name, url: canonical, title, description, images },
-    twitter: { card: image ? "summary_large_image" : "summary", title, description, images: images?.map((i) => i.url) },
-  };
+  if (!product) return { title: "Product not found", robots: { index: false, follow: true } };
+  return pageMetadata({
+    title: product.metaTitle || product.name,
+    description: metaDescription(product),
+    path: `/product/${product.slug}`,
+    images: false,
+  });
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {

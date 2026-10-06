@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { uploadToR2, isR2Configured } from "@/lib/r2";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
-const MAX_SIZE = 4 * 1024 * 1024; // Vercel serverless body limit is ~4.5MB
+const MAX_SIZE = 4 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
-    const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
     if (!isR2Configured()) {
       return NextResponse.json(
         { error: "R2 storage is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME." },
@@ -34,7 +31,8 @@ export async function POST(request: NextRequest) {
     }
 
     const file = formData.get("file") as File;
-    const folder = (formData.get("folder") as string) || "products";
+    const requestedFolder = formData.get("folder");
+    const folder = typeof requestedFolder === "string" && /^[a-z0-9-]{1,40}$/.test(requestedFolder) ? requestedFolder : "products";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });

@@ -5,6 +5,7 @@ import { CatalogBrowser } from "@/components/catalog/CatalogBrowser";
 import { categoryCounts, getCategoryTree, queryCatalog } from "@/components/catalog/catalog-query";
 import { hasActiveFilters, parseCatalogParams, type RawSearchParams, type SortKey } from "@/components/catalog/catalog-url";
 import { SearchForm, SearchNoResults } from "@/components/search/SearchResults/SearchResults";
+import { noindexMetadata } from "@/lib/seo/metadata";
 
 interface SearchPageProps {
   searchParams: Promise<RawSearchParams>;
@@ -20,12 +21,7 @@ function readQuery(raw: RawSearchParams): string {
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
   const t = await getTranslations("catalog");
   const query = readQuery(await searchParams);
-  return {
-    title: query ? t("metaSearchQuery", { query }) : t("searchTitle"),
-    description: t("metaSearchDescription"),
-    alternates: { canonical: "/search" },
-    robots: { index: false, follow: true },
-  };
+  return noindexMetadata(query ? t("metaSearchQuery", { query }) : t("searchTitle"), t("metaSearchDescription"), "/search");
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {

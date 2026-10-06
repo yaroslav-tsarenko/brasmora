@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import {
-  sendOrderShippedEmail,
-  sendOrderStatusEmail,
-} from "@/lib/email";
+import { sendOrderShippedEmail, sendOrderStatusEmail } from "@/lib/email";
+import { requireAdmin } from "@/lib/auth";
 
 const statusSchema = z.object({
   status: z.enum([
@@ -17,6 +15,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { id } = await params;
     const body = await request.json();

@@ -1,44 +1,15 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { SITE_URL } from "@/lib/brand";
+import type { NextRequest } from "next/server";
+import { feedContext, feedHeaders, loadFeedItems } from "@/lib/feeds/catalog";
+import { metaFeedCsv } from "@/lib/feeds/format";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
   try {
-    const products = await prisma.product.findMany({
-      where: { status: "ACTIVE" },
-      omit: { metadata: true, costPrice: true },
-      include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
-    });
-
-
-    const headers = [
-      "id", "title", "description", "availability", "condition",
-      "price", "link", "image_link", "brand", "gtin",
-    ];
-
-    const rows = products.map((product) => [
-      product.id,
-      product.name,
-      (product.description || product.name).replace(/,/g, " "),
-      product.quantity > 0 ? "in stock" : "out of stock",
-      product.condition,
-      `${Number(product.price).toFixed(2)} EUR`,
-      `${SITE_URL}/product/${product.slug}`,
-      product.images[0]?.url || "",
-      product.brand || "",
-      product.gtin || "",
-    ]);
-
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-
-    return new NextResponse(csv, {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": "attachment; filename=facebook-feed.csv",
-      },
-    });
+    const [ctx, items] = await Promise.all([feedContext(request.nextUrl.searchParams.get("currency")), loadFeedItems()]);
+    return new Response(metaFeedCsv(items, ctx), { headers: feedHeaders("text/csv; charset=utf-8", undefined, `meta-catalogue-${ctx.currency.toLowerCase()}.csv`) });
   } catch (error) {
-    console.error("Error generating Facebook feed:", error);
-    return NextResponse.json({ error: "Failed to generate feed" }, { status: 500 });
+    console.error("Error generating Meta feed:", error);
+    return Response.json({ error: "Failed to generate feed" }, { status: 503, headers: { "Retry-After": "300" } });
   }
 }

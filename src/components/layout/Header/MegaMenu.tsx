@@ -34,13 +34,16 @@ export interface MegaMenuProps {
   id: string;
   open: boolean;
   categories: CategoryNode[];
+  activeSlug?: string | null;
+  activeRoot?: string | null;
   onClose: (restoreFocus?: boolean) => void;
   onPointerEnter?: () => void;
   onPointerLeave?: () => void;
 }
 
-export function MegaMenu({ id, open, categories, onClose, onPointerEnter, onPointerLeave }: MegaMenuProps) {
-  const [hovered, setHovered] = useState<string>("cookware");
+export function MegaMenu({ id, open, categories, activeSlug = null, activeRoot = null, onClose, onPointerEnter, onPointerLeave }: MegaMenuProps) {
+  const [pointed, setPointed] = useState<string | null>(null);
+  const hovered = pointed ?? activeRoot ?? "cookware";
   const featured = useFeaturedProduct(open ? hovered : null);
   const hoveredName = navCategory(hovered)?.name ?? findCategory(categories, hovered)?.name ?? "";
 
@@ -92,12 +95,13 @@ export function MegaMenu({ id, open, categories, onClose, onPointerEnter, onPoin
                 const node = findCategory(categories, slug);
                 const label = navCategory(slug)?.name ?? node?.name ?? slug;
                 return (
-                  <li key={slug} onPointerEnter={() => setHovered(slug)}>
+                  <li key={slug} onPointerEnter={() => setPointed(slug)}>
                     <Link
                       href={`/catalog/${slug}`}
-                      onFocus={() => setHovered(slug)}
+                      aria-current={activeSlug === slug ? "page" : activeRoot === slug ? "true" : undefined}
+                      onFocus={() => setPointed(slug)}
                       onClick={() => onClose(false)}
-                      className="flex items-baseline justify-between gap-3 text-step-0 font-semibold text-ink hover-device:hover:underline hover-device:hover:underline-offset-4"
+                      className="flex items-baseline justify-between gap-3 text-step-0 font-semibold text-ink underline-offset-4 hover-device:hover:underline aria-[current]:underline aria-[current]:decoration-brass aria-[current]:decoration-2"
                     >
                       <span>{label}</span>
                       {node ? <span className="tabular meta font-normal text-ink-subtle">{subtreeCount(node)}</span> : null}
@@ -108,9 +112,10 @@ export function MegaMenu({ id, open, categories, onClose, onPointerEnter, onPoin
                           <li key={child.id}>
                             <Link
                               href={`/catalog/${child.slug}`}
-                              onFocus={() => setHovered(slug)}
+                              aria-current={activeSlug === child.slug ? "page" : undefined}
+                              onFocus={() => setPointed(slug)}
                               onClick={() => onClose(false)}
-                              className="flex items-baseline justify-between gap-3 text-ui-sm text-ink-muted hover-device:hover:text-ink"
+                              className="flex items-baseline justify-between gap-3 text-ui-sm text-ink-muted hover-device:hover:text-ink aria-[current=page]:font-semibold aria-[current=page]:text-ink"
                             >
                               <span className="min-w-0">{child.name}</span>
                               <span className="tabular meta text-ink-subtle">{subtreeCount(child)}</span>

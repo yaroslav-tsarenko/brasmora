@@ -1,41 +1,48 @@
 import type { Metadata, Viewport } from "next";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { preload } from "react-dom";
 import "@fontsource-variable/commissioner/wght.css";
 import "./fonts.css";
 import "@/styles/globals.css";
 import { BRAND, SITE_URL } from "@/lib/brand";
+import { ThemeScript } from "@/components/layout/ThemeScript/ThemeScript";
+import { defaultLocale, isLocale, localeTags } from "@/i18n/config";
+import { DEFAULT_OG_IMAGE, ogLocale } from "@/lib/seo/metadata";
+import { absoluteUrl } from "@/lib/seo/url";
 
-const SITE_DESCRIPTION = "Cookware, bakeware, tableware, glassware and bar tools, delivered to the UK and EU.";
-
-export const metadata: Metadata = {
-  title: {
-    default: `${BRAND.name} — ${BRAND.tagline}`,
-    template: `%s | ${BRAND.name}`,
-  },
-  description: SITE_DESCRIPTION,
-  metadataBase: new URL(SITE_URL),
-  applicationName: BRAND.name,
-  manifest: "/manifest.json",
-  icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-    shortcut: ["/favicon.ico"],
-  },
-  openGraph: {
-    type: "website",
-    siteName: BRAND.name,
-    title: `${BRAND.name} — ${BRAND.tagline}`,
-    description: SITE_DESCRIPTION,
-    locale: "en_GB",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations({ locale: defaultLocale, namespace: "seo" });
+  const title = `${BRAND.name} — ${BRAND.tagline}`;
+  const description = t("siteDescription");
+  return {
+    title: { default: title, template: `%s | ${BRAND.name}` },
+    description,
+    metadataBase: new URL(SITE_URL),
+    applicationName: BRAND.name,
+    category: "shopping",
+    manifest: "/manifest.json",
+    formatDetection: { telephone: false, email: false, address: false },
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/favicon.svg", type: "image/svg+xml" },
+        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    },
+    openGraph: {
+      type: "website",
+      siteName: BRAND.name,
+      title,
+      description,
+      locale: ogLocale(defaultLocale),
+      url: SITE_URL,
+      images: [{ ...DEFAULT_OG_IMAGE, url: absoluteUrl(DEFAULT_OG_IMAGE.url) }],
+    },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -43,8 +50,6 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#120D0B" },
   ],
 };
-
-const THEME_INIT = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}var d=document.documentElement;d.setAttribute("data-theme",t);d.classList.toggle("dark",t==="dark")}catch(e){}})();`;
 
 export default async function RootLayout({
   children,
@@ -56,12 +61,12 @@ export default async function RootLayout({
 
   return (
     <html
-      lang={locale}
+      lang={localeTags[isLocale(locale) ? locale : defaultLocale].html}
       suppressHydrationWarning
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        <ThemeScript />
         {children}
       </body>
     </html>

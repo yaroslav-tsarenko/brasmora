@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { BRAND } from "@/lib/brand";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { Plate } from "@/components/ui/Plate";
 import { CatalogBrowser } from "@/components/catalog/CatalogBrowser";
@@ -19,18 +19,17 @@ export async function generateMetadata({ searchParams }: CatalogPageProps): Prom
   const tree = await getCategoryTree();
   const counts = await categoryCounts(tree);
   const total = tree.roots.reduce((sum, c) => sum + (counts.get(c.id) ?? 0), 0);
-  const title = params.page > 1 ? t("titleWithPage", { title: t("allCategoriesTitle"), page: params.page }) : t("allCategoriesTitle");
+  const seo = await getTranslations("seo");
+  const title = params.page > 1 ? t("titleWithPage", { title: seo("catalogTitle"), page: params.page }) : seo("catalogTitle");
   const description = t("metaCatalogDescription", { count: total });
-  const canonical = params.page > 1 && !hasActiveFilters(params) ? `/catalog?page=${params.page}` : "/catalog";
-  const art = tree.roots.map((c) => tree.uniqueArt(c)).find(Boolean);
-  return {
+  const filtered = hasActiveFilters(params);
+  return pageMetadata({
     title,
     description,
-    alternates: { canonical },
-    robots: hasActiveFilters(params) ? { index: false, follow: true } : undefined,
-    openGraph: { type: "website", siteName: BRAND.name, url: canonical, title, description, images: art ? [{ url: art }] : undefined },
-    twitter: { card: art ? "summary_large_image" : "summary", title, description, images: art ? [art] : undefined },
-  };
+    path: params.page > 1 ? `/catalog?page=${params.page}` : "/catalog",
+    canonical: !filtered,
+    index: !filtered,
+  });
 }
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {

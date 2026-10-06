@@ -11,6 +11,7 @@ import { POLICY_FACTS } from "@/lib/policy-facts";
 import { cn } from "@/lib/utils/cn";
 import { POLICY_SLUGS, policyHref, type PolicySlug } from "./policies";
 import { PolicyJump } from "./PolicyJump";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 export interface PolicySection {
   id: string;
@@ -48,7 +49,7 @@ const sideLinkCls = "relative block py-2 text-ui-sm text-ink-muted transition-co
 export function policyMetadata(slug: PolicySlug, description: string) {
   return async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations("policies");
-    return { title: t(`items.${slug}.title`), description, alternates: { canonical: policyHref(slug) } };
+    return pageMetadata({ title: t(`items.${slug}.title`), description, path: policyHref(slug), type: "article" });
   };
 }
 

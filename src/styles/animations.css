@@ -80,6 +80,28 @@
   }
 }
 
+@keyframes door-close {
+  from {
+    opacity: 1;
+    transform: perspective(1600px) translateX(0) rotateY(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: perspective(1600px) translateX(24px) rotateY(-12deg);
+  }
+}
+
+@keyframes door-close-left {
+  from {
+    opacity: 1;
+    transform: perspective(1600px) translateX(0) rotateY(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: perspective(1600px) translateX(-24px) rotateY(12deg);
+  }
+}
+
 @keyframes shelf-loader {
   0%,
   100% {
@@ -142,5 +164,21 @@
   transform-origin: left center;
   @media (prefers-reduced-motion: reduce) {
     animation: fade-in var(--dur-reduced) linear both;
+  }
+}
+
+@utility animate-door-close {
+  animation: door-close var(--dur-panel-close) var(--ease-furniture) both;
+  transform-origin: right center;
+  @media (prefers-reduced-motion: reduce) {
+    animation: fade-in var(--dur-reduced) linear reverse both;
+  }
+}
+
+@utility animate-door-close-left {
+  animation: door-close-left var(--dur-panel-close) var(--ease-furniture) both;
+  transform-origin: left center;
+  @media (prefers-reduced-motion: reduce) {
+    animation: fade-in var(--dur-reduced) linear reverse both;
   }
 }

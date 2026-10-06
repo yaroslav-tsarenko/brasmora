@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Cubby } from "@/components/product/ShelfTile/ShelfTile";
@@ -12,7 +13,7 @@ export async function ReducedBand({ products }: { products: HomeProduct[] }) {
   const t = await getTranslations("home.reduced");
 
   return (
-    <section aria-labelledby="reduced-title" className="on-paint bg-paint pb-24 pt-20 text-on-paint">
+    <section aria-labelledby="reduced-title" data-reveal="shelf" className="on-paint bg-paint pb-24 pt-20 text-on-paint">
       <div className="mx-auto max-w-container px-gutter">
         <div className="grid gap-4 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-7">
@@ -29,8 +30,8 @@ export async function ReducedBand({ products }: { products: HomeProduct[] }) {
         </div>
 
         <ul className="m-0 mt-10 grid list-none grid-cols-2 gap-x-3 gap-y-10 p-0 sm:gap-x-6 lg:grid-cols-4">
-          {products.map((product) => (
-            <li key={product.id} className="min-w-0">
+          {products.map((product, index) => (
+            <li key={product.id} style={{ "--i": index % 4 } as CSSProperties} className="min-w-0">
               <article className="group relative flex flex-col">
                 <Cubby src={product.images[0]?.url} alt={product.images[0]?.alt || product.name} lift sizes="(min-width: 1024px) 300px, 50vw" />
                 <div className="mt-3 flex">

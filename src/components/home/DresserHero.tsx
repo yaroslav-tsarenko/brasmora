@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Cubby } from "@/components/product/ShelfTile/ShelfTile";
@@ -69,7 +70,7 @@ export async function DresserHero({ hero }: { hero: HomeHero }) {
       className="relative overflow-x-clip bg-surface lg:min-h-[calc(100svh-var(--header-height)-var(--utility-height))]"
     >
       <span aria-hidden="true" data-depth="0" className="absolute inset-0 bg-surface" />
-      <div className="relative mx-auto grid max-w-container grid-cols-1 gap-x-6 lg:grid-rows-[auto_1fr] px-gutter pt-6 lg:grid-cols-12 lg:pt-10">
+      <div data-scene-stage="" className="relative mx-auto grid max-w-container grid-cols-1 gap-x-6 lg:grid-rows-[auto_1fr] px-gutter pt-6 lg:grid-cols-12 lg:pt-10">
         <div data-dresser="" className="@container/dresser relative [--door-open:105deg] lg:col-span-8 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:grid lg:grid-rows-subgrid">
           <div data-depth="3" data-cornice="" className="relative -mx-2 bg-paint px-4 pb-3 pt-4 text-on-paint sm:-mx-3 sm:px-6 lg:px-7 lg:pb-4 lg:pt-6">
             <p aria-hidden="true" className="m-0 whitespace-nowrap font-display text-[calc((100cqw-2rem)/4.6)] leading-[0.9] tracking-[-0.015em]">
@@ -99,7 +100,7 @@ export async function DresserHero({ hero }: { hero: HomeHero }) {
             {hero.cupboards.length > 0 ? (
               <div data-cupboard="" className="relative grid grid-cols-[1fr_3.2fr_1fr] border-t-[1.5px] border-shelf">
                 <span aria-hidden="true" className="border-r-[1.5px] border-shelf bg-surface-1" />
-                <div className="relative [perspective:1400px]">
+                <div data-cupboard-view="" className="relative [perspective:1400px]">
                   <div data-depth="1" className="grid grid-cols-2 bg-surface-2">
                     {hero.cupboards.map((cupboard, ci) => (
                       <div key={cupboard.category.slug} className={cn("flex flex-col justify-end px-[6%] pt-2", ci > 0 && "border-l-[1.5px] border-shelf")}>
@@ -108,7 +109,7 @@ export async function DresserHero({ hero }: { hero: HomeHero }) {
                         </Link>
                         <ul aria-label={t("cupboardLabel", { category: cupboard.category.name })} className="m-0 flex list-none items-end gap-2 p-0">
                           {cupboard.products.map((product, pi) => (
-                            <li key={product.id} className={cn("min-w-0 flex-1 basis-0", pi > 0 && "hidden sm:block")}>
+                            <li key={product.id} data-settle="" style={{ "--i": ci * cupboard.products.length + pi } as CSSProperties} className={cn("min-w-0 flex-1 basis-0", pi > 0 && "hidden sm:block")}>
                               <HeroPackshot product={product} />
                             </li>
                           ))}
@@ -118,6 +119,7 @@ export async function DresserHero({ hero }: { hero: HomeHero }) {
                       </div>
                     ))}
                   </div>
+                  <span aria-hidden="true" data-door-light="" className="pointer-events-none absolute inset-y-0 left-1/2 z-[2] w-[16%] -translate-x-1/2 bg-stage opacity-0" />
                   {hero.cupboards.map((cupboard, ci) => (
                     <Door key={cupboard.category.slug} side={ci === 0 ? "left" : "right"} label={cupboard.category.name} />
                   ))}

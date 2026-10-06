@@ -4,7 +4,7 @@ import os from "os";
 import path from "path";
 import pg from "pg";
 import { catalogConfig } from "../src/config/catalog";
-import { hasR2PublicUrl, headR2Object, isR2Configured, putR2Object, r2PublicUrl } from "../src/lib/r2";
+import { getR2Object, hasR2PublicUrl, headR2Object, isR2Configured, putR2Object, r2PublicUrl } from "../src/lib/r2";
 import { loadSource } from "./lib/bigbuy-source";
 import { syncImages, type ImageStore } from "./lib/catalog-images";
 import { buildCategoryNodes, buildPreview, finalizeTree, selectCatalog, validateConfig, type CategoryNode, type SelectedProduct } from "./lib/catalog-select";
@@ -12,6 +12,7 @@ import { buildCategoryNodes, buildPreview, finalizeTree, selectCatalog, validate
 interface Cli {
   dryRun: boolean;
   skipImages: boolean;
+  skipVariants: boolean;
   refresh: boolean;
   fixturesDir: string | null;
   limit: number | undefined;
@@ -26,12 +27,12 @@ function parseArgs(argv: string[]): Cli {
     const eq = argv.find((a) => a.startsWith(`${flag}=`));
     return eq ? eq.slice(flag.length + 1) : null;
   };
-  const known = ["--dry-run", "--skip-images", "--refresh", "--fixtures", "--limit", "--preview", "--concurrency", "--help"];
+  const known = ["--dry-run", "--skip-images", "--skip-variants", "--refresh", "--fixtures", "--limit", "--preview", "--concurrency", "--help"];
   for (const a of argv) {
     if (a.startsWith("--") && !known.includes(a.split("=")[0])) throw new Error(`unknown flag ${a}`);
   }
   if (argv.includes("--help")) {
-    console.log(`usage: tsx scripts/import-bigbuy.ts [--dry-run] [--skip-images] [--refresh] [--fixtures <dir>] [--limit <n>] [--preview <file>] [--concurrency <n>]`);
+    console.log(`usage: tsx scripts/import-bigbuy.ts [--dry-run] [--skip-images] [--skip-variants] [--refresh] [--fixtures <dir>] [--limit <n>] [--preview <file>] [--concurrency <n>]`);
     process.exit(0);
   }
   const fixtures = value("--fixtures") || process.env.BIGBUY_FIXTURES_DIR || null;
@@ -39,6 +40,7 @@ function parseArgs(argv: string[]): Cli {
   return {
     dryRun: argv.includes("--dry-run"),
     skipImages: argv.includes("--skip-images"),
+    skipVariants: argv.includes("--skip-variants"),
     refresh: argv.includes("--refresh"),
     fixturesDir: fixtures ? path.resolve(fixtures) : null,
     limit: limitRaw ? Number(limitRaw) : undefined,
@@ -96,6 +98,7 @@ function r2Store(): ImageStore {
     head: (key) => headR2Object(key),
     put: (key, body, contentType, metadata) => putR2Object(key, body, contentType, { metadata, cacheControl: "public, max-age=2592000" }),
     publicUrl: (key) => r2PublicUrl(key),
+    get: (key) => getR2Object(key),
   };
 }
 
@@ -298,7 +301,8 @@ async function main() {
     for (const p of products) imageUrls.set(p.sku, p.images.map((i) => i.sourceUrl));
     imageStats = "skipped (remote URLs kept)";
   } else {
-    console.log(`[4/5] Self-hosting images on R2 (concurrency ${cli.concurrency})...`);
+    const variants = cli.skipVariants ? null : catalogConfig.images.variants;
+    console.log(`[4/5] Self-hosting images on R2 (concurrency ${cli.concurrency}, ${variants ? `WebP variants ${variants.widths.join("/")} q${variants.quality}` : "variants skipped"})...`);
     const sync = await syncImages(products, r2Store(), {
       prefix: catalogConfig.images.keyPrefix,
       concurrency: cli.concurrency,
@@ -306,6 +310,7 @@ async function main() {
       maxBytes: catalogConfig.images.maxBytes,
       manifestPath: MANIFEST_PATH,
       log: (line) => console.log(line),
+      variants,
     });
     const skuBySlug = new Map(products.map((p) => [p.slug, p.sku]));
     for (const [slug, urls] of sync.urls) imageUrls.set(skuBySlug.get(slug)!, urls);
@@ -321,8 +326,14 @@ async function main() {
       products = tree.kept;
       categories = buildCategoryNodes(products, catalogConfig, tree.demoted);
     }
-    imageStats = `uploaded ${sync.uploaded}, manifest hits ${sync.fromManifest}, already in bucket ${sync.alreadyInBucket}, failed ${sync.failed}`;
+    for (const f of sync.variantFailures.slice(0, 10)) console.log(`  ! variants ${f.slug} #${f.index}: ${f.error} (original kept)`);
+    imageStats = `uploaded ${sync.uploaded}, manifest hits ${sync.fromManifest}, already in bucket ${sync.alreadyInBucket}, failed ${sync.failed}, variant sets ${sync.variantsGenerated}, variant failures ${sync.variantsFailed}`;
     console.log(`  ${imageStats}`);
+    if (sync.bytes.images) {
+      const kb = (n: number) => `${(n / 1024).toFixed(0)}KB`;
+      const widths = Object.entries(sync.bytes.byWidth).map(([w, v]) => `w${w} ${kb(v.bytes / v.count)}`).join(", ");
+      console.log(`  avg original ${kb(sync.bytes.originals / sync.bytes.images)} → ${widths}`);
+    }
   }
 
   console.log("[5/5] Writing to Postgres (single transaction)...");

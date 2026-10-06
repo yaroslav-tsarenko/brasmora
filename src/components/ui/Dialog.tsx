@@ -171,9 +171,9 @@ export interface SheetProps {
 export function Sheet({ open, onClose, side, label, labelledBy, children, className, initialFocus, motion }: SheetProps) {
   const sideClass =
     side === "right"
-      ? "ml-auto mr-0 h-dvh max-h-none w-full max-w-[440px] shadow-panel data-[phase=open]:animate-door-open data-[phase=closing]:translate-x-6 data-[phase=closing]:opacity-0"
+      ? "ml-auto mr-0 h-dvh max-h-none w-full max-w-[440px] shadow-panel data-[phase=open]:animate-door-open data-[phase=closing]:animate-door-close"
       : side === "left"
-        ? "ml-0 mr-auto h-dvh max-h-none w-[min(100%,400px)] max-w-none shadow-panel-left data-[phase=open]:animate-door-open-left data-[phase=closing]:-translate-x-6 data-[phase=closing]:opacity-0"
+        ? "ml-0 mr-auto h-dvh max-h-none w-[min(100%,400px)] max-w-none shadow-panel-left data-[phase=open]:animate-door-open-left data-[phase=closing]:animate-door-close-left"
         : "mt-0 mb-auto w-full max-w-none max-h-[80vh] shadow-lg data-[phase=open]:animate-drawer-out data-[phase=closing]:-translate-y-2 data-[phase=closing]:opacity-0";
   return (
     <DialogShell

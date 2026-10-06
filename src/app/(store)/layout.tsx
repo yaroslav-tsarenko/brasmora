@@ -9,6 +9,7 @@ import { ToastProvider } from "@/providers/ToastProvider";
 import { Header } from "@/components/layout/Header/Header";
 import { Footer } from "@/components/layout/Footer/Footer";
 import { CookieConsent } from "@/components/consent/CookieConsent";
+import { MotionRoot } from "@/components/motion/MotionRoot";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -34,6 +35,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 </div>
                 <CookieConsent />
                 <ToastProvider />
+                <MotionRoot />
               </WishlistProvider>
             </CartProvider>
           </CurrencyProvider>

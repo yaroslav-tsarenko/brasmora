@@ -1,12 +1,21 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
 import { reliableFetch } from "../../src/lib/utils/reliable-fetch";
+import { encodeVariantWidths, parseVariantWidths, variantPath, variantWidthsFor, withVariantMarker } from "../../src/lib/image-loader";
 
 export interface ImageStore {
   head(key: string): Promise<{ exists: boolean; metadata: Record<string, string> }>;
   put(key: string, body: Buffer, contentType: string, metadata: Record<string, string>): Promise<string>;
   publicUrl(key: string): string;
+  get?(key: string): Promise<Buffer | null>;
+}
+
+export interface VariantOptions {
+  widths: readonly number[];
+  quality: number;
+  effort: number;
 }
 
 export interface ImageSyncInput {
@@ -22,6 +31,7 @@ export interface ImageSyncOptions {
   manifestPath: string;
   log: (line: string) => void;
   fetchImage?: (url: string, timeoutMs: number) => Promise<Buffer>;
+  variants?: VariantOptions | null;
 }
 
 export interface ImageSyncResult {
@@ -31,6 +41,10 @@ export interface ImageSyncResult {
   alreadyInBucket: number;
   failed: number;
   failures: Array<{ slug: string; index: number; error: string }>;
+  variantsGenerated: number;
+  variantsFailed: number;
+  variantFailures: Array<{ slug: string; index: number; error: string }>;
+  bytes: { originals: number; images: number; byWidth: Record<number, { bytes: number; count: number }> };
 }
 
 interface ManifestEntry {
@@ -38,6 +52,9 @@ interface ManifestEntry {
   bytes: number;
   contentType: string;
   at: string;
+  width?: number;
+  variants?: number[];
+  variantSig?: string;
 }
 
 interface Manifest {
@@ -76,6 +93,28 @@ export function sniffImageType(buf: Buffer): string | null {
   if (buf.toString("ascii", 0, 3) === "GIF") return "image/gif";
   if (buf.toString("ascii", 4, 12) === "ftypavif") return "image/avif";
   return null;
+}
+
+export function variantSignature(opts: VariantOptions): string {
+  return `${encodeVariantWidths([...opts.widths].sort((a, b) => a - b))}@q${opts.quality}`;
+}
+
+function sourceWidth(meta: sharp.Metadata): number {
+  if (meta.autoOrient?.width) return meta.autoOrient.width;
+  return (meta.orientation ?? 1) >= 5 ? meta.height ?? 0 : meta.width ?? 0;
+}
+
+export async function renderVariants(body: Buffer, opts: VariantOptions): Promise<{ width: number; variants: Array<{ width: number; body: Buffer }> }> {
+  const base = sharp(body, { failOn: "error" }).rotate();
+  const width = sourceWidth(await sharp(body).metadata());
+  const widths = variantWidthsFor(width, opts.widths);
+  if (!widths.length) throw new Error("unreadable image dimensions");
+  const variants: Array<{ width: number; body: Buffer }> = [];
+  for (const w of widths) {
+    const out = await base.clone().resize({ width: w, withoutEnlargement: true }).webp({ quality: opts.quality, effort: opts.effort }).toBuffer();
+    variants.push({ width: w, body: out });
+  }
+  return { width, variants };
 }
 
 export function loadManifest(file: string): Manifest {
@@ -120,7 +159,19 @@ export async function syncImages(products: ImageSyncInput[], store: ImageStore, 
   const jobs = products.flatMap((p) => p.images.map((img, i) => ({ slug: p.slug, index: i + 1, sourceUrl: img.sourceUrl })));
   const resultUrls = new Map<string, Array<string | null>>();
   for (const p of products) resultUrls.set(p.slug, new Array(p.images.length).fill(null));
-  const result: ImageSyncResult = { urls: new Map(), uploaded: 0, fromManifest: 0, alreadyInBucket: 0, failed: 0, failures: [] };
+  const result: ImageSyncResult = {
+    urls: new Map(),
+    uploaded: 0,
+    fromManifest: 0,
+    alreadyInBucket: 0,
+    failed: 0,
+    failures: [],
+    variantsGenerated: 0,
+    variantsFailed: 0,
+    variantFailures: [],
+    bytes: { originals: 0, images: 0, byWidth: {} },
+  };
+  const sig = opts.variants ? variantSignature(opts.variants) : null;
 
   let done = 0;
   let sinceSave = 0;
@@ -129,34 +180,82 @@ export async function syncImages(products: ImageSyncInput[], store: ImageStore, 
 
   const report = () => {
     const rate = done / Math.max(1, (Date.now() - startedAt) / 1000);
-    process.stdout.write(`\r  images: ${done}/${jobs.length}  uploaded ${result.uploaded}, cached ${result.fromManifest + result.alreadyInBucket}, failed ${result.failed}  (${rate.toFixed(1)}/s)   `);
+    process.stdout.write(`\r  images: ${done}/${jobs.length}  uploaded ${result.uploaded}, variants ${result.variantsGenerated}, cached ${result.fromManifest + result.alreadyInBucket}, failed ${result.failed}  (${rate.toFixed(1)}/s)   `);
   };
+
+  const urlFor = (key: string, widths: number[] | undefined) => (widths?.length ? withVariantMarker(store.publicUrl(key), widths) : store.publicUrl(key));
+
+  async function makeVariants(job: { slug: string; index: number }, key: string, hash: string, body: Buffer): Promise<{ width: number; widths: number[] } | null> {
+    if (!opts.variants) return null;
+    try {
+      const rendered = await renderVariants(body, opts.variants);
+      for (const v of rendered.variants) {
+        await store.put(variantPath(key, v.width), v.body, "image/webp", { "src-hash": hash });
+        const slot = (result.bytes.byWidth[v.width] ??= { bytes: 0, count: 0 });
+        slot.bytes += v.body.length;
+        slot.count++;
+      }
+      result.bytes.originals += body.length;
+      result.bytes.images++;
+      result.variantsGenerated++;
+      return { width: rendered.width, widths: rendered.variants.map((v) => v.width) };
+    } catch (err) {
+      result.variantsFailed++;
+      if (result.variantFailures.length < 200) result.variantFailures.push({ slug: job.slug, index: job.index, error: (err as Error).message.slice(0, 200) });
+      return null;
+    }
+  }
 
   async function handle(job: { slug: string; index: number; sourceUrl: string }) {
     const key = imageKey(opts.prefix, job.slug, job.index, job.sourceUrl);
     const hash = sourceHash(job.sourceUrl);
+    const slot = resultUrls.get(job.slug)!;
     const known = manifest.entries[key];
-    if (known && known.srcHash === hash) {
-      resultUrls.get(job.slug)![job.index - 1] = store.publicUrl(key);
+    if (known && known.srcHash === hash && (!sig || known.variantSig === sig)) {
+      slot[job.index - 1] = urlFor(key, known.variants);
       result.fromManifest++;
       return;
     }
     const head = await store.head(key);
-    if (head.exists && head.metadata["src-hash"] === hash) {
-      manifest.entries[key] = { srcHash: hash, bytes: 0, contentType: "", at: new Date().toISOString() };
-      resultUrls.get(job.slug)![job.index - 1] = store.publicUrl(key);
-      result.alreadyInBucket++;
-      return;
+    const inBucket = head.exists && head.metadata["src-hash"] === hash;
+    if (inBucket) {
+      const headSig = head.metadata["variant-sig"];
+      const headWidths = parseVariantWidths(head.metadata["variant-widths"]) ?? undefined;
+      if (!sig || (headSig === sig && headWidths)) {
+        manifest.entries[key] = {
+          srcHash: hash,
+          bytes: known?.srcHash === hash ? known.bytes : 0,
+          contentType: known?.srcHash === hash ? known.contentType : "",
+          at: new Date().toISOString(),
+          ...(headWidths ? { variants: headWidths, variantSig: headSig } : {}),
+        };
+        slot[job.index - 1] = urlFor(key, headWidths);
+        result.alreadyInBucket++;
+        return;
+      }
     }
-    const body = await fetchImage(job.sourceUrl, opts.timeoutMs);
+    let body: Buffer | null = inBucket && store.get ? await store.get(key).catch(() => null) : null;
+    if (!body) body = await fetchImage(job.sourceUrl, opts.timeoutMs);
     if (body.length < 1024) throw new Error(`image too small (${body.length} bytes)`);
     if (body.length > opts.maxBytes) throw new Error(`image too large (${(body.length / 1024 / 1024).toFixed(1)}MB)`);
     const contentType = sniffImageType(body);
     if (!contentType || !EXT_BY_MIME[contentType]) throw new Error("payload is not a supported image");
-    const url = await store.put(key, body, contentType, { "src-hash": hash });
-    manifest.entries[key] = { srcHash: hash, bytes: body.length, contentType, at: new Date().toISOString() };
-    resultUrls.get(job.slug)![job.index - 1] = url;
-    result.uploaded++;
+    const made = await makeVariants(job, key, hash, body);
+    const metadata: Record<string, string> = { "src-hash": hash };
+    if (made && sig) {
+      metadata["variant-sig"] = sig;
+      metadata["variant-widths"] = encodeVariantWidths(made.widths);
+    }
+    if (!inBucket || made) await store.put(key, body, contentType, metadata);
+    manifest.entries[key] = {
+      srcHash: hash,
+      bytes: body.length,
+      contentType,
+      at: new Date().toISOString(),
+      ...(made && sig ? { width: made.width, variants: made.widths, variantSig: sig } : {}),
+    };
+    slot[job.index - 1] = urlFor(key, made?.widths);
+    if (!inBucket) result.uploaded++;
   }
 
   async function worker() {

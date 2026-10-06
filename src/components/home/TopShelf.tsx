@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { getTranslations } from "next-intl/server";
 import { ShelfTile } from "@/components/product/ShelfTile/ShelfTile";
 import { Plate } from "@/components/ui/Plate";
@@ -9,7 +10,7 @@ export async function TopShelf({ ranked, products }: { ranked: boolean; products
   const [featured, ...rest] = products;
 
   return (
-    <section aria-labelledby="top-shelf-title" data-shelf-section="top" className="pb-20 pt-16">
+    <section aria-labelledby="top-shelf-title" data-shelf-section="top" data-reveal="shelf" className="pb-20 pt-16">
       <div className="mx-auto max-w-container px-gutter">
         <div className="[overflow-x:clip] @container/top">
           <div className="grid grid-cols-1 [--shelf-col-gap:24px] lg:grid-cols-[5fr_7fr] lg:grid-rows-[calc((100cqw-24px)*5/12*1.25-((100cqw-24px)*7/12-72px)/4)_auto] lg:gap-x-[var(--shelf-col-gap)] lg:[&_.shelf-continuous_[data-shelf]]:-mx-[calc(var(--shelf-col-gap)/2)]">
@@ -29,8 +30,8 @@ export async function TopShelf({ ranked, products }: { ranked: boolean; products
             />
             {rest.length > 0 ? (
               <ul className="m-0 mt-12 grid list-none grid-cols-2 gap-x-[var(--shelf-col-gap)] gap-y-10 p-0 [--shelf-col-gap:12px] sm:[--shelf-col-gap:24px] lg:col-start-2 lg:row-start-2 lg:mt-0 lg:grid-cols-4 [&_.shelf-continuous_[data-shelf]]:-mx-[calc(var(--shelf-col-gap)/2)]">
-                {rest.map((product) => (
-                  <li key={product.id} className="min-w-0">
+                {rest.map((product, index) => (
+                  <li key={product.id} style={{ "--i": (index % 4) + 1 } as CSSProperties} className="min-w-0">
                     <ShelfTile product={product} headingLevel={3} sizes="(min-width: 1024px) 180px, 50vw" />
                   </li>
                 ))}

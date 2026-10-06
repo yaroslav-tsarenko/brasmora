@@ -1,3 +1,4 @@
+import { Fragment, type CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -48,7 +49,7 @@ export default async function AboutPage() {
   ];
 
   return (
-    <div data-page="about">
+    <div data-page="about" data-landing="about">
       <div className="mx-auto max-w-container px-gutter">
         <Breadcrumbs items={[{ label: t("breadcrumbHome"), href: "/" }, { label: t("breadcrumb") }]} />
       </div>
@@ -56,7 +57,16 @@ export default async function AboutPage() {
       <section aria-labelledby="about-title" data-scene="elevation" className="mx-auto grid max-w-container items-end gap-x-6 gap-y-10 px-gutter pb-20 pt-6 lg:grid-cols-12 lg:pb-24 lg:pt-10">
         <div className="lg:col-span-6 lg:pb-16">
           <h1 id="about-title" data-anim="words" className="m-0 text-step-5 leading-[1.02]">
-            {t("hero.title")}
+            {t("hero.title")
+              .split(" ")
+              .map((word, index, words) => (
+                <Fragment key={`${word}-${index}`}>
+                  <span data-word="" style={{ "--i": index } as CSSProperties} className="inline-block">
+                    {word}
+                  </span>
+                  {index < words.length - 1 ? " " : null}
+                </Fragment>
+              ))}
           </h1>
           <p className="m-0 mt-6 measure text-step-1 leading-[1.5] text-ink-muted">
             {t("hero.lead", { brand: BRAND.name, countries: f.deliveryCountries })}
@@ -125,8 +135,8 @@ export default async function AboutPage() {
             {t("ordering.title")}
           </h2>
           <ol className="m-0 mt-8 list-none border-t border-line p-0">
-            {rows.map((row) => (
-              <li key={row.key} className="grid gap-x-6 gap-y-3 border-b border-line py-6 lg:grid-cols-12">
+            {rows.map((row, index) => (
+              <li key={row.key} data-row="" style={{ "--i": index } as CSSProperties} className="grid gap-x-6 gap-y-3 border-b border-line py-6 lg:grid-cols-12">
                 <h3 className="m-0 text-step-2 leading-[1.2] tracking-normal lg:col-span-3">{row.label}</h3>
                 <div className="flex flex-col gap-4 lg:col-span-8 lg:col-start-5">
                   {row.lines.map((line) => (

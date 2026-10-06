@@ -34,7 +34,7 @@ export default async function HomePage() {
   const data = await getHomeData();
 
   return (
-    <>
+    <div data-landing="home">
       <JsonLd data={organizationJsonLd()} />
       <JsonLd data={websiteJsonLd()} />
       <DresserHero hero={data.hero} />
@@ -46,6 +46,6 @@ export default async function HomePage() {
       <NewOnShelf products={data.newest} />
       <CareCupboard />
       <NewsletterPlaque />
-    </>
+    </div>
   );
 }

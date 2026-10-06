@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils/cn";
 
 const FRAME = [
@@ -68,6 +69,8 @@ const GROUPS: { name: string; paths: string[] }[] = [
   { name: "drawers", paths: DRAWERS },
 ];
 
+const OFFSETS = GROUPS.map((_, g) => GROUPS.slice(0, g).reduce((sum, group) => sum + group.paths.length, 0));
+
 export function ElevationDrawing({ className }: { className?: string }) {
   return (
     <svg
@@ -81,10 +84,10 @@ export function ElevationDrawing({ className }: { className?: string }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {GROUPS.map((group) => (
+      {GROUPS.map((group, g) => (
         <g key={group.name} data-draw-group={group.name}>
-          {group.paths.map((d) => (
-            <path key={d} d={d} data-stroke="" vectorEffect="non-scaling-stroke" />
+          {group.paths.map((d, p) => (
+            <path key={d} d={d} data-stroke="" pathLength={1} style={{ "--i": OFFSETS[g] + p } as CSSProperties} vectorEffect="non-scaling-stroke" />
           ))}
         </g>
       ))}

@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { IMAGE_VARIANT_PARAM, parseVariantWidths, stripVariantMarker, variantPath } from "./image-loader";
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || "";
@@ -80,25 +81,37 @@ export async function uploadToR2(
   return getPublicUrl(key);
 }
 
+export function r2KeyFromUrl(url: string): string {
+  const clean = stripVariantMarker(url);
+  const base = R2_PUBLIC_URL.replace(/\/$/, "");
+  if (base && clean.startsWith(`${base}/`)) return clean.slice(base.length + 1);
+  if (clean.startsWith(`${R2_ENDPOINT}/${R2_BUCKET_NAME}/`)) return clean.slice(`${R2_ENDPOINT}/${R2_BUCKET_NAME}/`.length);
+  return clean;
+}
+
+function variantKeysFromUrl(url: string, key: string): string[] {
+  try {
+    const widths = parseVariantWidths(new URL(url).searchParams.get(IMAGE_VARIANT_PARAM));
+    return widths ? widths.map((w) => variantPath(key, w)) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function deleteFromR2(url: string): Promise<void> {
   if (!isR2Configured()) return;
 
-  let key = url;
-  if (R2_PUBLIC_URL && url.startsWith(R2_PUBLIC_URL)) {
-    key = url.replace(`${R2_PUBLIC_URL.replace(/\/$/, "")}/`, "");
-  }
-  if (url.startsWith(R2_ENDPOINT)) {
-    key = url.replace(`${R2_ENDPOINT}/${R2_BUCKET_NAME}/`, "");
-  }
-
+  const key = r2KeyFromUrl(url);
   const client = getR2Client();
 
-  await client.send(
-    new DeleteObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: key,
-    }),
-  );
+  for (const k of [key, ...variantKeysFromUrl(url, key)]) {
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: k,
+      }),
+    );
+  }
 }
 
 let sharedClient: S3Client | null = null;
@@ -122,6 +135,19 @@ export async function headR2Object(key: string): Promise<{ exists: boolean; meta
     if (e.name === "NotFound" || e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) {
       return { exists: false, metadata: {}, size: null };
     }
+    throw err;
+  }
+}
+
+export async function getR2Object(key: string): Promise<Buffer | null> {
+  if (!isR2Configured()) throw new Error("R2 storage is not configured");
+  try {
+    const res = await getSharedR2Client().send(new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }));
+    if (!res.Body) return null;
+    return Buffer.from(await res.Body.transformToByteArray());
+  } catch (err) {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+    if (e.name === "NotFound" || e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) return null;
     throw err;
   }
 }

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Cubby } from "@/components/product/ShelfTile/ShelfTile";
@@ -22,10 +23,11 @@ export async function DrawerChest({ drawers, totalProducts }: { drawers: HomeDra
         </div>
 
         <ul className="m-0 mt-10 grid list-none grid-cols-1 gap-[1.5px] border-[1.5px] border-shelf bg-shelf p-0 sm:grid-cols-2 lg:grid-cols-5">
-          {drawers.map((drawer) => (
+          {drawers.map((drawer, index) => (
             <li
               key={drawer.slug}
               data-drawer-slot=""
+              style={{ "--i": index } as CSSProperties}
               className="min-w-0 bg-raised"
             >
               <Link
@@ -55,13 +57,15 @@ export async function DrawerChest({ drawers, totalProducts }: { drawers: HomeDra
                     data-depth="1"
                     className="hidden flex-1 bg-surface-2 px-3 pt-3 sm:block"
                   >
-                    <span className="grid grid-cols-3 gap-1.5">
-                      {drawer.products.map((p) => (
-                        <Cubby key={p.id} src={p.images[0]?.url} alt="" size="compact" shelf={false} sizes="96px" />
-                      ))}
+                    <span data-drawer-tray="" className="block">
+                      <span className="grid grid-cols-3 gap-1.5">
+                        {drawer.products.map((p) => (
+                          <Cubby key={p.id} src={p.images[0]?.url} alt="" size="compact" shelf={false} sizes="96px" />
+                        ))}
+                      </span>
+                      <span className="shelf-rule -mx-3 mt-0" />
+                      <span className="block h-2" />
                     </span>
-                    <span className="shelf-rule -mx-3 mt-0" />
-                    <span className="block h-2" />
                   </span>
                 ) : null}
               </Link>

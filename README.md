@@ -176,6 +176,48 @@ Configure the webhook in the OPPWA (PayByLink) back office:
 
 Notifications are AES-256-GCM encrypted; requests that do not decrypt with the key are rejected with `401`. The notification body is only used to find the order (`merchantTransactionId` is the order number) and the checkout id (`ndc`). The payment status, amount and currency are always re-queried from OPPWA and the order is settled through the same idempotent function as `/api/orders/verify` (the shopper return page), so a notification and a returning shopper can arrive in any order without double fulfilment. When OPPWA cannot be reached the endpoint answers `503` so the notification is retried.
 
+## Product images
+
+Product photos are served straight from Cloudflare R2 in sizes made at import time. Vercel image optimisation is switched off (`images.loader: "custom"` in `next.config.ts`), so it uses none of Vercel's image quota.
+
+**At import.** `npm run catalog:import` copies each product image to R2 as `brasmora/products/<slug>/<n>.<ext>`, unchanged, and keeps it as the fallback. It also uses sharp to make WebP copies named `brasmora/products/<slug>/<n>-w<width>.webp`:
+
+- **Widths:** 320, 480, 640, 960 and 1280.
+- **No upscaling:** a photo narrower than 1280px gets one more copy at its own width. An 800px photo becomes 320, 480, 640 and 800.
+- **Settings:** quality 78. Photos are rotated to their EXIF orientation and keep their aspect ratio.
+
+The widths and quality are set in `catalogConfig.images.variants` (`src/config/catalog.ts`). The width list is `IMAGE_VARIANT_WIDTHS` in `src/lib/image-loader.ts`.
+
+**How the site finds the copies.** `ProductImage.url` stays the original URL plus a `vw` query parameter that lists the widths uploaded for that photo, for example:
+
+```
+https://img.example.com/brasmora/products/cast-iron-casserole-24/1.jpg?vw=320-480-640-960-1280
+```
+
+R2 ignores the query string, so the URL still opens the original photo. That keeps feeds, the sitemap, JSON-LD, emails and the OG image routes working unchanged. The schema does not change.
+
+**How pages pick a size.** `src/lib/image-loader.ts` is the `next/image` loader:
+
+- A URL with a valid `vw` gets the smallest copy at least as wide as the requested width, or the largest copy if none is wide enough.
+- Every other `src` is returned unchanged: local files (`/_dev`, `/payments`, SVGs, `/_next/static`), URLs without `vw` and other remote URLs.
+- `deviceSizes` match the widths above, so each `srcset` entry points to a real file.
+
+The marker is written only after every copy for that photo has been uploaded, so an image without it simply loads the original.
+
+**Running the import**
+
+| Command | Effect |
+|---|---|
+| `npm run catalog:import` | Uploads new or changed photos with their WebP copies. Photos already in R2 without copies are read back from the bucket (not the supplier), get their copies, and are re-saved with the marker. |
+| `npm run catalog:import -- --skip-variants` | Quick run: originals only. Photos that already have copies keep their marker; new photos load the original. |
+| `npm run catalog:import -- --skip-images` | Local testing only. Keeps the remote source URLs. |
+
+Runs are idempotent and can be resumed. `data/r2-image-manifest.json` records each photo's source hash, widths and settings. The original object in R2 also stores `variant-sig` and `variant-widths` metadata, so a run with no manifest skips finished photos. Changing the widths or quality regenerates every copy on the next run; copies at widths no longer listed stay in the bucket.
+
+A photo that sharp cannot decode keeps its original, with no marker, and is retried on the next run. Deleting an image in the admin also deletes its WebP copies.
+
+**`sizes`.** Pass a `sizes` prop to every `next/image` or `Cubby` that does not fill the screen width; without it the browser assumes `100vw`.
+
 ## Deployment
 
 Deploy to Vercel:

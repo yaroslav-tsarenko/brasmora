@@ -1,3 +1,5 @@
+import { IMAGE_VARIANT_WIDTHS } from "../lib/image-loader";
+
 export type Matcher = string | RegExp;
 
 export type MatchScope = "taxonomy" | "category" | "name" | "description" | "brand";
@@ -84,6 +86,11 @@ export interface CatalogConfig {
     concurrency: number;
     timeoutMs: number;
     maxBytes: number;
+    variants: {
+      widths: readonly number[];
+      quality: number;
+      effort: number;
+    };
   };
   brands: {
     showcaseLimit: number;
@@ -704,6 +711,11 @@ export const catalogConfig: CatalogConfig = {
     concurrency: 6,
     timeoutMs: 30000,
     maxBytes: 15 * 1024 * 1024,
+    variants: {
+      widths: IMAGE_VARIANT_WIDTHS,
+      quality: 78,
+      effort: 4,
+    },
   },
   brands: {
     showcaseLimit: 24,

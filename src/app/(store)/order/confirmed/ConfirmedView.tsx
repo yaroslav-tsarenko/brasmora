@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -24,8 +24,19 @@ const MAX_ATTEMPTS = 10;
 const INTERVAL_MS = 3000;
 
 function Doors({ number }: { number: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const key = `brasmora-doors-${number}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, "1");
+    } catch {
+      return;
+    }
+    ref.current?.setAttribute("data-play", "");
+  }, [number]);
   return (
-    <div data-scene="doors-close" className="relative mx-auto w-full max-w-[320px]" aria-hidden="true">
+    <div ref={ref} data-scene="doors-close" className="relative mx-auto w-full max-w-[320px]" aria-hidden="true">
       <div className="grid grid-cols-2 border-x border-t border-shelf">
         <div data-door="left" className="relative h-20 border-r border-shelf bg-raised">
           <span className="bevel-xs absolute right-3 top-1/2 size-2.5 -translate-y-1/2 before:bg-shelf" />

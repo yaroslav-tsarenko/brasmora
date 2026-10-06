@@ -10,6 +10,7 @@ import { openCookieSettings } from "@/lib/consent";
 import { Accordion, AccordionItem } from "@/components/ui/Accordion";
 import { PaymentLogos } from "@/components/shared/PaymentLogos/PaymentLogos";
 import { cn } from "@/lib/utils/cn";
+import { useAuth } from "@/providers/AuthProvider";
 
 const linkCls = "text-ui-sm text-on-paint underline-offset-4 decoration-1 hover-device:hover:underline";
 const titleCls = "eyebrow mb-5 text-on-paint-muted";
@@ -35,11 +36,12 @@ function ShopLinks() {
 }
 
 function HelpLinks() {
+  const { user } = useAuth();
   return (
     <ul className="m-0 flex list-none flex-col gap-3 p-0">
       {HELP_LINKS.map((link) => (
-        <li key={link.href}>
-          <Link href={link.href} className={linkCls}>
+        <li key={link.label}>
+          <Link href={user && link.signedInHref ? link.signedInHref : link.href} className={linkCls}>
             {link.label}
           </Link>
         </li>

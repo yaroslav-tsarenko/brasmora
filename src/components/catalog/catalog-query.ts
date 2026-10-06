@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { mentionsSupplier, publicBrand } from "@/lib/utils/supplier";
+import { isNewArrival, newArrivalCutoff } from "@/lib/new-arrivals";
 import type { ShelfProduct } from "@/components/product/ShelfTile/ShelfTile";
 import { CATALOG_PAGE_SIZE, buildCatalogHref, type CatalogFacets, type CatalogParams, type CategoryOption, type SortKey } from "./catalog-url";
 
@@ -181,22 +182,25 @@ function leafCategory(categories: { category: { name: string; slug: string; pare
 
 export async function loadShelfProducts(ids: string[]): Promise<ShelfProduct[]> {
   if (ids.length === 0) return [];
-  const records = await prisma.product.findMany({
-    where: { id: { in: ids } },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      sku: true,
-      price: true,
-      comparePrice: true,
-      quantity: true,
-      trackInventory: true,
-      createdAt: true,
-      images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true, alt: true } },
-      categories: { select: { category: { select: { name: true, slug: true, parentId: true } } } },
-    },
-  });
+  const [records, newSince] = await Promise.all([
+    prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sku: true,
+        price: true,
+        comparePrice: true,
+        quantity: true,
+        trackInventory: true,
+        createdAt: true,
+        images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true, alt: true } },
+        categories: { select: { category: { select: { name: true, slug: true, parentId: true } } } },
+      },
+    }),
+    newArrivalCutoff(),
+  ]);
   const byId = new Map(records.map((r) => [r.id, r]));
   return ids
     .map((id) => byId.get(id))
@@ -214,6 +218,7 @@ export async function loadShelfProducts(ids: string[]): Promise<ShelfProduct[]> 
         images: r.images.map((img) => ({ url: img.url, alt: img.alt })),
         category: leaf?.name ?? null,
         createdAt: r.createdAt.toISOString(),
+        isNew: isNewArrival(r.createdAt, newSince),
       };
     });
 }

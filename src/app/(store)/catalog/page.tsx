@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { pageMetadata } from "@/lib/seo/metadata";
+import { pageMetadata, pagedDescription } from "@/lib/seo/metadata";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { Plate } from "@/components/ui/Plate";
 import { CatalogBrowser } from "@/components/catalog/CatalogBrowser";
@@ -21,7 +21,7 @@ export async function generateMetadata({ searchParams }: CatalogPageProps): Prom
   const total = tree.roots.reduce((sum, c) => sum + (counts.get(c.id) ?? 0), 0);
   const seo = await getTranslations("seo");
   const title = params.page > 1 ? t("titleWithPage", { title: seo("catalogTitle"), page: params.page }) : seo("catalogTitle");
-  const description = t("metaCatalogDescription", { count: total });
+  const description = pagedDescription(t("metaCatalogDescription", { count: total }), params.page, (text, page) => t("descriptionWithPage", { description: text, page }));
   const filtered = hasActiveFilters(params);
   return pageMetadata({
     title,

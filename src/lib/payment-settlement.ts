@@ -97,6 +97,7 @@ async function fulfil(order: LoadedOrder) {
     billingAddress: (order.billingAddress ?? null) as StoredAddress | null,
     paymentMethod: order.paymentMethod,
     createdAt: order.createdAt,
+    paidAt: order.paidAt,
   };
   scheduleEmail(`order confirmation ${order.orderNumber}`, () => sendOrderConfirmationEmail(emailPayload));
   scheduleEmail(`order invoice ${order.orderNumber}`, () => sendOrderInvoiceEmail(emailPayload));

@@ -26,6 +26,7 @@ export interface ShelfProduct {
   categories?: { category: { name: string; slug?: string } }[];
   category?: string | null;
   createdAt?: string | Date | null;
+  isNew?: boolean;
 }
 
 type CubbySize = "tile" | "featured" | "compact" | "toast" | "thumb";
@@ -117,18 +118,13 @@ function toNumber(value: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const NEW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-
 export function tilePlate(product: ShelfProduct): { variant: "brass" | "neutral"; label: string } | null {
   const price = toNumber(product.price) ?? 0;
   const compare = toNumber(product.comparePrice);
   if (product.quantity !== undefined && product.quantity <= 0) return { variant: "neutral", label: "Sold out" };
   const pct = discountPercent(price, compare);
   if (pct > 0) return { variant: "brass", label: `Reduced −${pct}%` };
-  if (product.createdAt) {
-    const created = new Date(product.createdAt).getTime();
-    if (Number.isFinite(created) && Date.now() - created < NEW_WINDOW_MS) return { variant: "brass", label: "New" };
-  }
+  if (product.isNew) return { variant: "brass", label: "New" };
   const category = product.category ?? product.categories?.[0]?.category?.name;
   return category ? { variant: "brass", label: category } : null;
 }

@@ -107,10 +107,7 @@ const sections: PolicySection[] = [
     title: "Late, lost or damaged parcels",
     body: (
       <>
-        <p>
-          If your order has not arrived {F.deliveryDeadlineDays} days after you placed it, contact us. We trace it with the carrier and send a
-          replacement or refund you in full if it is lost.
-        </p>
+        <p>{F.lateDeliveryNote}</p>
         <p>
           If a parcel arrives damaged, keep the packaging and email us photographs with your order number. Damaged items are replaced or
           refunded at no cost to you. See <Link href="/policies/returns">Returns and refunds</Link>.

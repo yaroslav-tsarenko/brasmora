@@ -12,12 +12,11 @@ const purposes: { purpose: string; data: string; basis: string }[] = [
   { purpose: "Taking, packing and delivering your order", data: "Name, email, phone, delivery and billing address, items ordered", basis: "Contract" },
   { purpose: "Running your account", data: "Name, email, phone, date of birth, address, password (stored as a hash), order history, saved items", basis: "Contract" },
   { purpose: `Checking you are ${F.minAge} or over`, data: "Date of birth", basis: "Contract and legitimate interests" },
-  { purpose: "Answering messages and complaints", data: "Name, email, order number, the content of your message", basis: "Contract and legitimate interests" },
+  { purpose: "Answering messages and complaints", data: "Name, email, order number, the content of your message, the IP address it was sent from", basis: "Contract and legitimate interests" },
   { purpose: "Refunds, chargebacks and fraud prevention", data: "Order details, payment result and transaction reference, IP address", basis: "Legal obligation and legitimate interests" },
   { purpose: "Not selling to restricted countries and territories", data: "Delivery and billing country, address", basis: "Legal obligation" },
   { purpose: "Accounting and tax records", data: "Order and refund records", basis: "Legal obligation" },
   { purpose: "Newsletter, only if you sign up", data: "Email address", basis: "Consent" },
-  { purpose: "Publishing a product review you submit", data: "Your name as shown on the review, rating and text", basis: "Consent" },
   { purpose: "Keeping the website secure and working", data: "IP address, browser and device type, pages requested, error logs", basis: "Legitimate interests" },
 ];
 
@@ -45,8 +44,8 @@ const sections: PolicySection[] = [
         <ul>
           <li><strong>Account details:</strong> first and last name, email, phone number, date of birth, street, city, postcode and country, and your password, which we store only as a one-way hash.</li>
           <li><strong>Order details:</strong> the items you buy, delivery and billing addresses, contact details, the delivery method, and the payment result and transaction reference sent to us by our payment provider.</li>
-          <li><strong>Messages:</strong> what you send through the contact form or by email, including any order number.</li>
-          <li><strong>Saved items and reviews:</strong> products you save to your account and reviews you choose to post.</li>
+          <li><strong>Messages:</strong> what you send through the contact form or by email, including any order number, and for the contact form the IP address it was sent from.</li>
+          <li><strong>Saved items:</strong> products you save to your account.</li>
           <li><strong>Newsletter:</strong> your email address, if you sign up.</li>
           <li><strong>Technical data:</strong> IP address, browser and device type, and the pages requested, recorded in server logs. Browser storage is described in our <Link href="/policies/cookies">Cookie policy</Link>.</li>
         </ul>
@@ -141,7 +140,6 @@ const sections: PolicySection[] = [
         <li>Your account: until you ask us to close it, or after {F.retention.inactiveAccountYears} years without a sign-in or order. Order records are then kept as above.</li>
         <li>Messages and complaints: {F.retention.supportMessagesMonths} months after the conversation ends.</li>
         <li>Newsletter: until you unsubscribe.</li>
-        <li>Reviews: while the product is listed, or until you ask us to remove the review.</li>
       </ul>
     ),
   },

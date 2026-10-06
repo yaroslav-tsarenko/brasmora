@@ -50,6 +50,7 @@ export const POLICY_FACTS = {
   deliveryUk: s.deliveryTimes.uk,
   ukImportNote: s.ukImportNote,
   deliveryDeadlineDays: STORE_POLICY.orders.deliveryDeadlineDays,
+  lateDeliveryNote: STORE_POLICY.orders.lateDeliveryNote,
   deliveryCountries: listJoin(s.countries),
   withdrawalDays: r.withdrawalDays,
   returnShipDays: r.returnShipDays,

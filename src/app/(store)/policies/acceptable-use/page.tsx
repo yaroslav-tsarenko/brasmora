@@ -4,7 +4,7 @@ import { POLICY_FACTS as F } from "@/lib/policy-facts";
 
 export const generateMetadata = policyMetadata(
   "acceptable-use",
-  `Rules for using ${F.domain}, a ${F.brand} account and product reviews, and what happens if they are broken.`,
+  `Rules for using ${F.domain} and a ${F.brand} account, and what happens if they are broken.`,
 );
 
 const sections: PolicySection[] = [
@@ -13,7 +13,7 @@ const sections: PolicySection[] = [
     title: "Who this applies to",
     body: (
       <p>
-        This policy applies to everyone who visits {F.domain}, creates an account or posts a product review. It forms part of our{" "}
+        This policy applies to everyone who visits {F.domain} or creates an account. It forms part of our{" "}
         <Link href="/policies/terms">Terms and conditions</Link>.
       </p>
     ),
@@ -48,29 +48,12 @@ const sections: PolicySection[] = [
     ),
   },
   {
-    id: "reviews",
-    title: "Product reviews",
-    body: (
-      <>
-        <p>Reviews must be about a product you bought and used, and must be your honest opinion. Do not:</p>
-        <ul>
-          <li>post reviews in exchange for payment, discounts or gifts, or review a product you supply or compete with;</li>
-          <li>include personal data, links or advertising;</li>
-          <li>post anything abusive, discriminatory, defamatory or obscene.</li>
-        </ul>
-        <p>
-          We do not remove a review because it is negative. We remove a review only if it breaks these rules.
-        </p>
-      </>
-    ),
-  },
-  {
     id: "breach",
     title: "If these rules are broken",
     body: (
       <>
         <p>
-          We may remove content, cancel an order and refund it, or suspend or close the account. Where the law requires it, for example in a
+          We may cancel an order and refund it, or suspend or close the account. Where the law requires it, for example in a
           case of card fraud, we report the matter to the relevant authority.
         </p>
         <p>If you think we have made a mistake, email {F.email} and we will review the decision.</p>

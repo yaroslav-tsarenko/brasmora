@@ -37,14 +37,14 @@ export function navCategory(slug: string): NavCategory | undefined {
   return NAV_CATEGORIES.find((c) => c.slug === slug);
 }
 
-export const HELP_LINKS = [
+export const HELP_LINKS: { href: string; label: string; signedInHref?: string }[] = [
   { href: "/policies/shipping", label: "Delivery" },
   { href: "/policies/returns", label: "Returns & refunds" },
   { href: "/policies/warranty", label: "Warranty" },
   { href: "/policies/payment", label: "Payment" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact us" },
-  { href: "/account/orders", label: "Track an order" },
+  { href: "/contact?topic=order", signedInHref: "/account/orders", label: "Track an order" },
 ];
 
 export const POLICY_LINKS = [

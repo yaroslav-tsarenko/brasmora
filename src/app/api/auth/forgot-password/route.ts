@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { createResetToken } from "@/lib/token";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { scheduleEmail } from "@/lib/email-jobs";
 import { SITE_URL } from "@/lib/brand";
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
       data: { usedAt: new Date() },
     });
 
-    const token = randomBytes(32).toString("hex");
+    const { token, tokenHash } = createResetToken();
     await prisma.passwordResetToken.create({
-      data: { token, userId: user.id, expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60 * 1000) },
+      data: { tokenHash, userId: user.id, expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60 * 1000) },
     });
 
     const resetUrl = `${SITE_URL}/auth/reset-password?token=${token}`;

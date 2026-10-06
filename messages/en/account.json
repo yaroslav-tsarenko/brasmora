@@ -92,6 +92,7 @@
     "billingTitle": "Billing address",
     "paymentMethod": "Paid by card on our payment provider's secure page.",
     "totalsTitle": "Totals",
+    "invoiceDownload": "Download invoice (PDF)",
     "helpTitle": "Need help with this order?",
     "helpBody": "Questions about delivery, returns or anything else. Your order number will be filled in for you.",
     "helpAction": "Contact us about this order",

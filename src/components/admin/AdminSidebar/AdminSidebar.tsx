@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutGrid, Package, Handbag, Users, ListTree, Upload, ChartColumn, Rss, FileText, Settings, Star, Image, LogOut, Store, House } from "lucide-react";
+import { LayoutGrid, Package, Handbag, Users, ListTree, Upload, ChartColumn, Rss, FileText, Settings, Star, Image, LogOut, Store, House, Mail } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 
 const navItems = [
@@ -17,6 +17,7 @@ const navItems = [
   { href: "/admin/customers", icon: Users, label: "Customers" },
   { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/reviews", icon: Star, label: "Reviews" },
+  { href: "/admin/messages", icon: Mail, label: "Messages" },
   { section: "Marketing" },
   { href: "/admin/analytics", icon: ChartColumn, label: "Analytics" },
   { href: "/admin/feeds", icon: Rss, label: "Feeds" },

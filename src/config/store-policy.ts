@@ -1,6 +1,7 @@
 import { COMPANY } from "@/lib/company";
 
 const DISPATCH_COUNTRY = "Spain";
+const DELIVERY_DEADLINE_DAYS = 30;
 
 export const STORE_POLICY = {
   currency: "GBP",
@@ -21,7 +22,7 @@ export const STORE_POLICY = {
       uk: "4–8 business days after dispatch",
     },
     ukImportNote:
-      "Parcels to the United Kingdom are shipped from the EU. Any import VAT or duty charged by the carrier on delivery is shown before payment where it applies, otherwise it is covered by us.",
+      "Orders to the United Kingdom are shipped from the EU. The carrier may charge import VAT, duty or a handling fee on delivery; these charges are not included in our prices and are payable by the recipient.",
     countries: ["United Kingdom", "European Union member states"],
   },
   returns: {
@@ -51,7 +52,8 @@ export const STORE_POLICY = {
   },
   orders: {
     cancelBefore: "dispatch",
-    deliveryDeadlineDays: 30,
+    deliveryDeadlineDays: DELIVERY_DEADLINE_DAYS,
+    lateDeliveryNote: `If your order is late, contact us and we trace the parcel with the carrier. If it has not been delivered within ${DELIVERY_DEADLINE_DAYS} days of the estimated delivery date, you can cancel the order for a full refund, or choose a replacement.`,
   },
   complaints: {
     acknowledgeTime: "within 1 business day",

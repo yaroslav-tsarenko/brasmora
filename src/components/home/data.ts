@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isNewArrival, newArrivalCutoff } from "@/lib/new-arrivals";
 import { FURNITURE_ZONES } from "@/config/navigation";
 import {
   ORDER_RANKING_WINDOW_DAYS,
@@ -72,7 +73,7 @@ async function unitsSoldRecently(): Promise<Map<string, number>> {
 
 export async function getHomeData(): Promise<HomeData> {
   try {
-    const [rawProducts, rawCategories, unitsSold] = await Promise.all([
+    const [rawProducts, rawCategories, unitsSold, newSince] = await Promise.all([
       prisma.product.findMany({
         where: { status: "ACTIVE" },
         select: productSelect,
@@ -90,6 +91,7 @@ export async function getHomeData(): Promise<HomeData> {
         },
       }),
       unitsSoldRecently(),
+      newArrivalCutoff(),
     ]);
 
     const counts = await Promise.all(
@@ -101,7 +103,7 @@ export async function getHomeData(): Promise<HomeData> {
     );
     const totalProducts = await prisma.product.count({ where: { status: "ACTIVE" } });
 
-    const products = serialize(rawProducts) as unknown as HomepageProduct[];
+    const products = (serialize(rawProducts) as unknown as HomepageProduct[]).map((p) => ({ ...p, isNew: isNewArrival(p.createdAt, newSince) }));
     const categories: (HomepageCategory & { count: number })[] = rawCategories.map((c, i) => ({ ...c, count: counts[i] }));
     const bySlug = new Map(categories.map((c) => [c.slug, c]));
     const toHomeCategory = (c: HomepageCategory & { count: number }): HomeCategory => ({ name: c.name, slug: c.slug, count: c.count });
@@ -162,7 +164,7 @@ export async function getHomeData(): Promise<HomeData> {
     };
 
     const reduced = claim(getSaleProducts(unclaimed(), 4));
-    const newestPool = getNewProducts(unclaimed(), 8);
+    const newestPool = getNewProducts(unclaimed().filter((p) => p.isNew), 8);
     const newest = claim(newestPool.slice(0, newestPool.length >= 8 ? 8 : newestPool.length >= 4 ? 4 : 0));
 
     return {

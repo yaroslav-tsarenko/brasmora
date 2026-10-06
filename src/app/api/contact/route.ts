@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { contactSchema } from "@/lib/validators/contact";
 import { sendContactFormEmail, sendContactAutoReplyEmail } from "@/lib/email";
 import { scheduleEmail } from "@/lib/email-jobs";
-import { rateLimit } from "@/lib/rate-limit";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const limited = rateLimit(request, "contact");
@@ -17,6 +18,23 @@ export async function POST(request: NextRequest) {
   }
 
   const message = parsed.data;
+  const ip = clientIp(request);
+  try {
+    await prisma.contactMessage.create({
+      data: {
+        name: message.name,
+        email: message.email.toLowerCase(),
+        subject: message.subject,
+        orderNumber: message.orderNumber || null,
+        message: message.message,
+        ip: ip === "unknown" ? null : ip,
+      },
+    });
+  } catch (error) {
+    console.error("Contact message could not be stored:", error);
+    return NextResponse.json({ code: "SERVER_ERROR" }, { status: 500 });
+  }
+
   scheduleEmail("contact form", () => sendContactFormEmail(message));
   scheduleEmail("contact auto-reply", () => sendContactAutoReplyEmail(message));
 

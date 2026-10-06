@@ -6,6 +6,7 @@ import { computeTotals, rateConverter } from "@/lib/pricing";
 import { addressLines, deliveryEstimate, displayOrderNumber, type StoredAddress } from "@/lib/orders";
 import { PAYMENT_METHOD_LABEL } from "@/lib/paybylink";
 import { PASSWORD_RESET_TTL_MINUTES } from "@/lib/validators/auth";
+import { invoiceAttachment, type InvoiceFile } from "@/lib/invoice";
 
 let transporter: Transporter | null = null;
 
@@ -64,16 +65,17 @@ interface SendArgs {
   subject: string;
   html: string;
   replyTo?: string;
+  attachments?: InvoiceFile[];
 }
 
-async function send({ to, subject, html, replyTo }: SendArgs): Promise<boolean> {
+async function send({ to, subject, html, replyTo, attachments }: SendArgs): Promise<boolean> {
   const t = getTransporter();
   if (!t) {
     console.log(`[Email] Skipped (SMTP not configured) → ${subject} to ${to}`);
     return false;
   }
   try {
-    await t.sendMail({ from: getFrom(), to, subject, html, replyTo: replyTo ?? getReplyTo() });
+    await t.sendMail({ from: getFrom(), to, subject, html, replyTo: replyTo ?? getReplyTo(), attachments });
     return true;
   } catch (err) {
     console.error(`[Email] Exception → ${subject} to ${to}:`, err);
@@ -209,6 +211,7 @@ interface OrderEmailData {
   paymentMethod?: string | null;
   trackingNumber?: string | null;
   createdAt?: Date | string;
+  paidAt?: Date | string | null;
 }
 
 function toNum(v: Num): number {
@@ -245,6 +248,15 @@ function chargeTotals(data: OrderEmailData) {
       shippingBase: toNum(data.shippingCost),
     },
   );
+}
+
+async function invoiceFiles(data: OrderEmailData): Promise<InvoiceFile[]> {
+  try {
+    return [await invoiceAttachment({ ...data, orderNumber: data.orderNumber || data.orderId })];
+  } catch (error) {
+    console.error(`[Email] Invoice PDF for order ${orderRef(data)} failed`, error);
+    return [];
+  }
 }
 
 function addressHtml(address?: StoredAddress | null): string {
@@ -356,13 +368,15 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
   const ref = orderRef(data);
   const totals = chargeTotals(data);
   const currency = currencyOf(data);
+  const attachments = await invoiceFiles(data);
   return send({
     to: data.customerEmail,
     subject: `Order ${ref} confirmed — ${BRAND.name}`,
+    attachments,
     html: emailWrapper(
       `${heading(`Thank you, ${escape(data.customerName.split(" ")[0] || data.customerName)}`)}
 <p style="margin:0 0 20px;">${plate(`Order ${ref}`)}</p>
-${paragraph(`Your payment of <strong style="color:${C.ink};">${money(totals.total, currency)}</strong> has been confirmed and your order is now with us.`)}
+${paragraph(`Your payment of <strong style="color:${C.ink};">${money(totals.total, currency)}</strong> has been confirmed and your order is now with us.${attachments.length ? " Your invoice is attached as a PDF." : ""}`)}
 ${orderFacts(data)}
 ${itemsTable(data)}
 ${addressesBlock(data)}
@@ -379,9 +393,11 @@ export async function sendOrderInvoiceEmail(data: OrderEmailData): Promise<boole
   const ref = orderRef(data);
   const totals = chargeTotals(data);
   const currency = currencyOf(data);
+  const attachments = await invoiceFiles(data);
   return send({
     to: data.customerEmail,
     subject: `Invoice for order ${ref} — ${BRAND.name}`,
+    attachments,
     html: emailWrapper(
       `${heading("Invoice")}
 <p style="margin:0 0 20px;">${plate(`Invoice ${ref}`)}</p>
@@ -394,7 +410,7 @@ export async function sendOrderInvoiceEmail(data: OrderEmailData): Promise<boole
 ${orderFacts(data)}
 ${itemsTable(data)}
 ${paragraph(`Paid in full: ${money(totals.total, currency)}. Card details are handled by our payment provider; we never receive or store your full card number.`, "font-size:13px;")}
-${paragraph(`Keep this email as your proof of purchase. Questions about this invoice: <a href="mailto:${COMPANY.email}" style="color:${C.ink};">${COMPANY.email}</a>.`, "font-size:13px;margin:0;")}`,
+${paragraph(`${attachments.length ? "The PDF invoice is attached. " : ""}Keep this email as your proof of purchase. Questions about this invoice: <a href="mailto:${COMPANY.email}" style="color:${C.ink};">${COMPANY.email}</a>.`, "font-size:13px;margin:0;")}`,
       { preheader: `Invoice for order ${ref}: ${money(totals.total, currency)}` },
     ),
   });

@@ -13,7 +13,7 @@ export interface StoredAddress {
   country?: string;
 }
 
-type Numeric = number | string | { toString(): string } | null | undefined;
+export type Numeric = number | string | { toString(): string } | null | undefined;
 
 export interface OrderAmountsSource {
   currency?: string | null;
@@ -79,6 +79,10 @@ export function customerOrderState(order: { status: string; paymentStatus: strin
   if (order.status === "SHIPPED") return "shipped";
   if (order.status === "PROCESSING") return "processing";
   return "paid";
+}
+
+export function invoiceAvailable(order: { paymentStatus: string; paidAt?: Date | string | null }): boolean {
+  return order.paymentStatus === "PAID" || (order.paymentStatus === "REFUNDED" && Boolean(order.paidAt));
 }
 
 export function plateStatusFor(state: CustomerOrderState): string {
@@ -164,6 +168,7 @@ export function orderView(order: OrderViewSource) {
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     paidAt: order.paidAt ? order.paidAt.toISOString() : null,
+    invoiceAvailable: invoiceAvailable(order),
   };
 }
 

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { hashResetToken } from "@/lib/token";
 import { resetPasswordSchema } from "@/lib/validators/auth";
 
 async function findValidToken(token: string | null | undefined) {
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
-  const record = await prisma.passwordResetToken.findUnique({ where: { token } });
+  const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash: hashResetToken(token) } });
   if (!record || record.usedAt || record.expiresAt < new Date()) return null;
   return record;
 }
@@ -29,10 +30,20 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(parsed.data.password);
-    await prisma.$transaction([
-      prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
-      prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
-    ]);
+    const now = new Date();
+    const claimed = await prisma.$transaction(async (tx) => {
+      const claim = await tx.passwordResetToken.updateMany({
+        where: { id: record.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (claim.count !== 1) return false;
+      await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+      await tx.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: now } });
+      return true;
+    });
+    if (!claimed) {
+      return NextResponse.json({ code: "INVALID_TOKEN" }, { status: 400 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

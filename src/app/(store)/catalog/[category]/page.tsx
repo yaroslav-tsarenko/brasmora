@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { pageMetadata } from "@/lib/seo/metadata";
+import { pageMetadata, pagedDescription } from "@/lib/seo/metadata";
 import { MEGA_ZONES } from "@/config/navigation";
-import { clampText } from "@/lib/utils/sanitize-html";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
 import { CatalogBrowser } from "@/components/catalog/CatalogBrowser";
 import { CategoryOpener } from "@/components/catalog/CategoryOpener";
@@ -45,7 +44,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const title = chain.length > 1 ? `${category.name} — ${chain[0].name}` : category.name;
   const pagedTitle = query.page > 1 ? t("titleWithPage", { title, page: query.page }) : title;
   const lead = category.description || t("metaCategoryFallback", { name: category.name });
-  const description = clampText(`${lead} ${t("metaCategoryCount", { count: stats.count })}`, 160);
+  const description = pagedDescription(`${lead} ${t("metaCategoryCount", { count: stats.count })}`, query.page, (text, page) => t("descriptionWithPage", { description: text, page }));
   const filtered = hasActiveFilters(query);
   return pageMetadata({
     title: pagedTitle,

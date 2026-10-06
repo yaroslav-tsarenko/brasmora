@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { cachedFetchJSON, readCached } from "@/lib/utils/reliable-fetch";
 
 export interface CategoryNode {
@@ -20,22 +20,47 @@ export function subtreeCount(cat: CategoryNode): number {
 }
 
 const CACHE_KEY = "header:categories";
+const EMPTY: CategoryNode[] = [];
+
+let snapshot: CategoryNode[] = EMPTY;
+let request: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+
+function publish(next: CategoryNode[]) {
+  snapshot = next;
+  listeners.forEach((listener) => listener());
+}
+
+function load() {
+  if (request) return;
+  const cached = readCached<CategoryNode[]>({ cacheKey: CACHE_KEY, storage: "session" });
+  if (Array.isArray(cached) && snapshot === EMPTY) publish(cached);
+  request = cachedFetchJSON<CategoryNode[]>("/api/categories", { cacheKey: CACHE_KEY, storage: "session" })
+    .then((data) => {
+      if (Array.isArray(data)) publish(data);
+    })
+    .catch(() => {
+      request = null;
+    });
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  load();
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function subscribeNone() {
+  return () => {};
+}
+
+const getSnapshot = () => snapshot;
+const getServerSnapshot = () => EMPTY;
 
 export function useCategoryTree(enabled = true): CategoryNode[] {
-  const [categories, setCategories] = useState<CategoryNode[]>([]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    const cached = readCached<CategoryNode[]>({ cacheKey: CACHE_KEY, storage: "session" });
-    if (cached) setCategories(cached);
-    cachedFetchJSON<CategoryNode[]>("/api/categories", { cacheKey: CACHE_KEY, storage: "session" })
-      .then((data) => {
-        if (Array.isArray(data)) setCategories(data);
-      })
-      .catch(() => {});
-  }, [enabled]);
-
-  return categories;
+  return useSyncExternalStore(enabled ? subscribe : subscribeNone, enabled ? getSnapshot : getServerSnapshot, getServerSnapshot);
 }
 
 export function findCategory(categories: CategoryNode[], slug: string): CategoryNode | undefined {

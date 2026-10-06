@@ -155,8 +155,10 @@ const sections: PolicySection[] = [
         </p>
         <p>
           The goods are your responsibility from the moment they are delivered to you or to a person you name. They become yours once
-          we have received payment in full. If an order has not arrived within {F.deliveryDeadlineDays} days of the order date, you can cancel it and we refund
-          the full amount paid. Full detail is in our <Link href="/policies/shipping">Delivery policy</Link>.
+          we have received payment in full.
+        </p>
+        <p>
+          {F.lateDeliveryNote} Full detail is in our <Link href="/policies/shipping">Delivery policy</Link>.
         </p>
       </>
     ),

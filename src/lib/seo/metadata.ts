@@ -42,6 +42,12 @@ export function metaDescription(text: string): string {
   return clampText(text.replace(/\s+/g, " ").trim(), META_DESCRIPTION_MAX);
 }
 
+export function pagedDescription(description: string, page: number, format: (description: string, page: number) => string): string {
+  if (page <= 1) return metaDescription(description);
+  const room = META_DESCRIPTION_MAX - format("", page).length;
+  return format(clampText(description.replace(/\s+/g, " ").trim(), room), page);
+}
+
 export function pageMetadata(seo: PageSeo): Metadata {
   const url = absoluteUrl(seo.path);
   const description = metaDescription(seo.description);

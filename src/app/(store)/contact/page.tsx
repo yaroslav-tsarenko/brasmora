@@ -21,10 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({ title: t("title"), description: t("metaDescription", VALUES), path: "/contact" });
 }
 
-export default async function ContactPage({ searchParams }: { searchParams: Promise<{ order?: string | string[] }> }) {
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ order?: string | string[]; topic?: string | string[] }> }) {
   const t = await getTranslations("contact");
-  const { order } = await searchParams;
+  const { order, topic } = await searchParams;
   const prefilledOrder = (Array.isArray(order) ? order[0] : order || "").slice(0, 40);
+  const prefilledTopic = (Array.isArray(topic) ? topic[0] : topic || "").slice(0, 20);
 
   return (
     <div className="mx-auto max-w-container px-gutter pb-24">
@@ -47,7 +48,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
         </div>
 
         <div className="lg:col-span-6 lg:col-start-7">
-          <ContactForm replyTime={F.replyTime} prefilledOrder={prefilledOrder} />
+          <ContactForm replyTime={F.replyTime} prefilledOrder={prefilledOrder} prefilledTopic={prefilledTopic} />
         </div>
       </div>
     </div>

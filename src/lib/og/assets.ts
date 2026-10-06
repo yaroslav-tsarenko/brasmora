@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join, normalize } from "node:path";
+import { join } from "node:path";
 import { SITE_URL } from "@/lib/brand";
 import { isSupplierHost } from "@/lib/utils/supplier";
 
@@ -57,7 +57,7 @@ function sniff(buf: Buffer): string | null {
   return null;
 }
 
-function localPath(url: string): string | null {
+function publicFile(url: string): string | null {
   let pathname: string;
   if (url.startsWith("/") && !url.startsWith("//")) {
     pathname = url.split(/[?#]/)[0];
@@ -70,16 +70,22 @@ function localPath(url: string): string | null {
       return null;
     }
   }
-  const publicDir = join(process.cwd(), "public");
-  const resolved = normalize(join(publicDir, decodeURIComponent(pathname)));
-  return resolved.startsWith(publicDir) ? resolved : null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  const segments = decoded.split(/[\\/]+/).filter(Boolean);
+  if (segments.length === 0 || segments.some((segment) => segment === "." || segment === ".." || segment.includes("\0"))) return null;
+  return segments.join("/");
 }
 
 async function readBytes(url: string): Promise<Buffer | null> {
-  const local = localPath(url);
+  const local = publicFile(url);
   if (local) {
     try {
-      return await readFile(local);
+      return await readFile(join(process.cwd(), "public", local));
     } catch {
       if (url.startsWith("/")) return null;
     }

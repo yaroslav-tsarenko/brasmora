@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Check } from "lucide-react";
+import { Check, FileDown } from "lucide-react";
 import { ShelfLoader } from "@/components/ui/ShelfLoader";
 import { Button } from "@/components/ui/Button";
 import { Cubby } from "@/components/product/ShelfTile/ShelfTile";
@@ -145,6 +145,19 @@ export function OrderDetail({ id }: { id: string }) {
             {t("totalsTitle")}
           </h2>
           <TotalsList totals={order.totals} currency={order.currency} showCurrencyCode totalSize="md" />
+          {order.invoiceAvailable ? (
+            <Button
+              as="a"
+              href={`/api/account/orders/${encodeURIComponent(order.id)}/invoice`}
+              download
+              variant="outline"
+              size="sm"
+              startContent={<FileDown size={16} aria-hidden="true" />}
+              className="mt-6"
+            >
+              {t("invoiceDownload")}
+            </Button>
+          ) : null}
         </section>
       </div>
 

@@ -9,6 +9,7 @@ export interface HomepageProduct {
   isFeatured?: boolean;
   shortDescription?: string | null;
   createdAt?: string | Date;
+  isNew?: boolean;
   images: { url: string; alt?: string | null }[];
   categories?: { category: { name: string; slug: string } }[];
 }

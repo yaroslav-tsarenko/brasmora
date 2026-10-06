@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { isNewArrival, newArrivalCutoff } from "@/lib/new-arrivals";
 
 export async function GET() {
   try {
@@ -20,7 +21,8 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(items);
+    const newSince = await newArrivalCutoff();
+    return NextResponse.json(items.map((item) => ({ ...item, product: { ...item.product, isNew: isNewArrival(item.product.createdAt, newSince) } })));
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     return NextResponse.json({ error: "Failed to fetch wishlist" }, { status: 500 });

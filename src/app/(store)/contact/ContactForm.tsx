@@ -13,7 +13,11 @@ import { Alert } from "@/components/ui/Alert";
 
 const SUBJECT_KEYS = ["order", "delivery", "returns", "product", "other"] as const;
 
-export function ContactForm({ replyTime, prefilledOrder }: { replyTime: string; prefilledOrder: string }) {
+function isSubjectKey(value: string): value is (typeof SUBJECT_KEYS)[number] {
+  return (SUBJECT_KEYS as readonly string[]).includes(value);
+}
+
+export function ContactForm({ replyTime, prefilledOrder, prefilledTopic = "" }: { replyTime: string; prefilledOrder: string; prefilledTopic?: string }) {
   const t = useTranslations("contact");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -30,7 +34,7 @@ export function ContactForm({ replyTime, prefilledOrder }: { replyTime: string; 
       name: "",
       email: "",
       orderNumber: prefilledOrder,
-      subject: prefilledOrder ? t("subjects.order") : "",
+      subject: prefilledOrder ? t("subjects.order") : isSubjectKey(prefilledTopic) ? t(`subjects.${prefilledTopic}`) : "",
       message: "",
     },
   });

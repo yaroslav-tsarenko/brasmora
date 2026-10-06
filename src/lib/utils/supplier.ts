@@ -54,6 +54,10 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+export function isBlockedImageHost(url: string | null | undefined, supplierHosted: boolean): boolean {
+  return !supplierHosted && isSupplierHost(url);
+}
+
 export function isSupplierHost(url: string | null | undefined): boolean {
   if (!url) return false;
   try {

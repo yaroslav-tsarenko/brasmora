@@ -82,6 +82,7 @@ export interface CatalogConfig {
     maxTopLevel: number;
   };
   images: {
+    hosting: "supplier" | "r2";
     keyPrefix: string;
     concurrency: number;
     timeoutMs: number;
@@ -707,6 +708,7 @@ export const catalogConfig: CatalogConfig = {
     maxTopLevel: 10,
   },
   images: {
+    hosting: "supplier",
     keyPrefix: "brasmora/products",
     concurrency: 6,
     timeoutMs: 30000,

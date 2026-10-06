@@ -80,5 +80,7 @@ export function resolveImageSrc(src: string, width: number): string {
 }
 
 export default function imageLoader({ src, width }: ImageLoaderProps): string {
-  return resolveImageSrc(src, width);
+  const resolved = resolveImageSrc(src, width);
+  if (resolved !== src || !/^https?:\/\//i.test(src) || src.includes("#")) return resolved;
+  return `${src}#w${width}`;
 }

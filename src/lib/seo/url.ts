@@ -1,5 +1,8 @@
 import { SITE_URL } from "@/lib/brand";
-import { isSupplierHost } from "@/lib/utils/supplier";
+import { catalogConfig } from "@/config/catalog";
+import { isBlockedImageHost } from "@/lib/utils/supplier";
+
+const SUPPLIER_HOSTED_IMAGES = catalogConfig.images.hosting === "supplier";
 
 export function absoluteUrl(url: string): string {
   if (/^https?:\/\//i.test(url)) return url;
@@ -12,7 +15,7 @@ export function publicImageUrls(urls: (string | null | undefined)[]): string[] {
   const out: string[] = [];
   for (const raw of urls) {
     const url = raw?.trim();
-    if (!url || isSupplierHost(url)) continue;
+    if (!url || isBlockedImageHost(url, SUPPLIER_HOSTED_IMAGES)) continue;
     if (!/^(https?:)?\/\//i.test(url) && !url.startsWith("/")) continue;
     const absolute = absoluteUrl(url);
     if (seen.has(absolute)) continue;

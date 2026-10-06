@@ -27,19 +27,19 @@ function parseArgs(argv: string[]): Cli {
     const eq = argv.find((a) => a.startsWith(`${flag}=`));
     return eq ? eq.slice(flag.length + 1) : null;
   };
-  const known = ["--dry-run", "--skip-images", "--skip-variants", "--refresh", "--fixtures", "--limit", "--preview", "--concurrency", "--help"];
+  const known = ["--dry-run", "--skip-images", "--self-host", "--skip-variants", "--refresh", "--fixtures", "--limit", "--preview", "--concurrency", "--help"];
   for (const a of argv) {
     if (a.startsWith("--") && !known.includes(a.split("=")[0])) throw new Error(`unknown flag ${a}`);
   }
   if (argv.includes("--help")) {
-    console.log(`usage: tsx scripts/import-bigbuy.ts [--dry-run] [--skip-images] [--skip-variants] [--refresh] [--fixtures <dir>] [--limit <n>] [--preview <file>] [--concurrency <n>]`);
+    console.log(`usage: tsx scripts/import-bigbuy.ts [--dry-run] [--skip-images] [--self-host] [--skip-variants] [--refresh] [--fixtures <dir>] [--limit <n>] [--preview <file>] [--concurrency <n>]`);
     process.exit(0);
   }
   const fixtures = value("--fixtures") || process.env.BIGBUY_FIXTURES_DIR || null;
   const limitRaw = value("--limit") || process.env.LIMIT;
   return {
     dryRun: argv.includes("--dry-run"),
-    skipImages: argv.includes("--skip-images"),
+    skipImages: argv.includes("--skip-images") || (catalogConfig.images.hosting === "supplier" && !argv.includes("--self-host")),
     skipVariants: argv.includes("--skip-variants"),
     refresh: argv.includes("--refresh"),
     fixturesDir: fixtures ? path.resolve(fixtures) : null,
@@ -260,7 +260,7 @@ async function main() {
   if (problems.length) throw new Error(`catalog config invalid:\n  - ${problems.join("\n  - ")}`);
   if (!cli.dryRun && !DIRECT_URL) throw new Error("DIRECT_URL missing in .env");
   if (!cli.dryRun && !cli.skipImages) {
-    if (!isR2Configured()) throw new Error("R2 is not configured (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME). Use --skip-images only for local testing.");
+    if (!isR2Configured()) throw new Error("R2 is not configured (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME). Set images.hosting to supplier in src/config/catalog.ts to serve images from the supplier CDN.");
     if (!hasR2PublicUrl()) throw new Error("R2_PUBLIC_URL is missing or points to the private S3 endpoint; images would not be browser-accessible.");
   }
 
@@ -297,9 +297,9 @@ async function main() {
   const imageUrls = new Map<string, string[]>();
   let imageStats: string;
   if (cli.skipImages) {
-    console.log("[4/5] Images: --skip-images → keeping remote source URLs (local testing only, never deploy this)");
+    console.log("[4/5] Images: served from the supplier CDN (no upload)");
     for (const p of products) imageUrls.set(p.sku, p.images.map((i) => i.sourceUrl));
-    imageStats = "skipped (remote URLs kept)";
+    imageStats = "supplier CDN URLs";
   } else {
     const variants = cli.skipVariants ? null : catalogConfig.images.variants;
     console.log(`[4/5] Self-hosting images on R2 (concurrency ${cli.concurrency}, ${variants ? `WebP variants ${variants.widths.join("/")} q${variants.quality}` : "variants skipped"})...`);

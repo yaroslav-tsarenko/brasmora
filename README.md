@@ -52,10 +52,11 @@ Storefront and admin for Brasmora (brasmora.com), a kitchen, cookware and tablew
 ### Installation
 
 ```bash
-git clone https://github.com/yaroslav-tsarenko/e-commerce-store.git
-cd e-commerce-store
+cd brasmora
 npm install
 ```
+
+The repository has its own history and no remote. Create a new **private** GitHub repository for it before pushing.
 
 ### Environment Variables
 

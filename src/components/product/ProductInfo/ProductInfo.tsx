@@ -1,52 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Heart, Lock, RotateCcw, ShieldCheck, Truck } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/Button";
-import { Heart, Handbag, Shield, Truck, RotateCcw, Lock } from "lucide-react";
-import { PriceDisplay } from "@/components/shared/PriceDisplay/PriceDisplay";
+import { Plate } from "@/components/ui/Plate";
+import { PriceDisplay, discountPercent } from "@/components/shared/PriceDisplay/PriceDisplay";
 import { QuantitySelector } from "@/components/shared/QuantitySelector/QuantitySelector";
+import { PaymentLogos } from "@/components/shared/PaymentLogos/PaymentLogos";
 import { useCart } from "@/providers/CartProvider";
 import { useCurrency } from "@/providers/CurrencyProvider";
+import { useWishlist } from "@/providers/WishlistProvider";
 import { formatPrice } from "@/lib/utils/format-price";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { STORE_POLICY } from "@/config/store-policy";
+import { VariantSelector, matchVariant, variantAxes, type ProductVariantOption } from "@/components/product/VariantSelector/VariantSelector";
 
-const WARRANTY_OPTIONS = [
-  { key: "none", years: 0, percent: 0, min: 0 },
-  { key: "1year", years: 1, percent: 10, min: 6.99 },
-  { key: "2year", years: 2, percent: 16, min: 9.99 },
-  { key: "3year", years: 3, percent: 22, min: 12.99 },
-];
-
-// Hide additional warranty for low-priced items where the minimum
-// charge would be disproportionate to the product price.
-const WARRANTY_MIN_PRODUCT_PRICE = 15;
-
-function calcWarrantyPrice(productPrice: number, option: typeof WARRANTY_OPTIONS[number]): number {
-  if (option.percent === 0) return 0;
-  return Math.max(productPrice * (option.percent / 100), option.min);
-}
-
-interface ProductInfoProps {
+export interface ProductInfoProps {
   id: string;
   name: string;
   slug: string;
   sku: string;
   price: number;
-  comparePrice?: number | null;
+  comparePrice: number | null;
   quantity: number;
-  shortDescription?: string | null;
-  description?: string | null;
-  brand?: string | null;
-  condition: string;
+  trackInventory: boolean;
   lowStockAlert: number;
-  imageUrl?: string | null;
-  ean?: string | null;
-  reviewCount?: number;
-  avgRating?: number;
-  categoryPath?: { name: string; slug: string }[];
+  summary: string | null;
+  categoryName: string | null;
+  imageUrl: string | null;
+  variants: ProductVariantOption[];
+  breadcrumbs?: ReactNode;
 }
+
+function InfoRow({ icon, children, aside }: { icon: ReactNode; children: ReactNode; aside?: ReactNode }) {
+  return (
+    <li className="flex min-h-12 items-start gap-3 border-b border-line py-3">
+      <span className="mt-0.5 shrink-0 text-ink" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1 text-ui-sm leading-[1.5] text-ink">{children}</div>
+      {aside ? <div className="shrink-0 self-center">{aside}</div> : null}
+    </li>
+  );
+}
+
+const linkCls = "font-semibold text-ink underline decoration-1 underline-offset-4 hover-device:hover:decoration-2";
 
 export function ProductInfo({
   id,
@@ -55,223 +55,184 @@ export function ProductInfo({
   sku,
   price,
   comparePrice,
-  quantity: stockQuantity,
-  shortDescription,
-  brand,
-  condition,
+  quantity,
+  trackInventory,
   lowStockAlert,
+  summary,
+  categoryName,
   imageUrl,
-  ean,
-  reviewCount = 0,
-  avgRating = 0,
+  variants,
+  breadcrumbs,
 }: ProductInfoProps) {
   const t = useTranslations("product");
-  const [qty, setQty] = useState(1);
-  const [selectedWarranty, setSelectedWarranty] = useState(0);
   const { addItem } = useCart();
   const { currency, convert } = useCurrency();
-  const router = useRouter();
+  const { isSaved, toggle, pending } = useWishlist();
+  const [chosen, setChosen] = useState<Record<string, string>>(() => {
+    const axes = variantAxes(variants);
+    return Object.fromEntries(axes.filter((a) => a.values.length === 1).map((a) => [a.name, a.values[0]]));
+  });
+  const [qty, setQty] = useState(1);
+  const [barVisible, setBarVisible] = useState(false);
+  const addRowRef = useRef<HTMLDivElement>(null);
 
-  const outOfStock = stockQuantity <= 0;
-  const lowStock = stockQuantity > 0 && stockQuantity <= lowStockAlert;
+  const hasVariants = variants.length > 0;
+  const variant = hasVariants ? matchVariant(variants, chosen) : null;
+  const needsChoice = hasVariants && !variant;
+  const firstMissing = hasVariants ? variantAxes(variants).find((a) => !chosen[a.name])?.name ?? null : null;
 
-  const warrantyAvailable = price >= WARRANTY_MIN_PRODUCT_PRICE;
-  const warrantyOption = warrantyAvailable ? WARRANTY_OPTIONS[selectedWarranty] : WARRANTY_OPTIONS[0];
-  const warrantyPrice = calcWarrantyPrice(price, warrantyOption);
-  const totalPrice = price + warrantyPrice;
+  const unitPrice = variant?.price ?? price;
+  const stock = variant ? variant.quantity : quantity;
+  const tracked = trackInventory || Boolean(variant);
+  const soldOut = tracked && (hasVariants ? variants.every((v) => v.quantity <= 0) || (variant !== null && variant.quantity <= 0) : stock <= 0);
+  const policyMax = STORE_POLICY.limits.maxQtyPerItem;
+  const max = tracked ? Math.max(1, Math.min(stock, policyMax)) : policyMax;
+  const stockLimited = tracked && stock < policyMax;
+  const lowStock = tracked && !soldOut && stock > 0 && stock <= lowStockAlert;
+  const pct = discountPercent(unitPrice, comparePrice);
+  const saved = isSaved(id);
 
-  const handleAddToCart = () => {
+  useEffect(() => {
+    setQty((q) => Math.min(q, max));
+  }, [max]);
+
+  useEffect(() => {
+    const node = addRowRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => setBarVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0), { threshold: 0 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const add = (source: HTMLElement | null) => {
+    if (soldOut || needsChoice) return;
     addItem({
       productId: id,
-      name: warrantyOption.years > 0
-        ? `${name} + ${warrantyOption.years}yr warranty`
-        : name,
+      name,
       slug,
-      sku,
-      price: totalPrice,
+      sku: variant?.sku ?? sku,
+      price: unitPrice,
       quantity: qty,
-      imageUrl: imageUrl || null,
-      maxQuantity: stockQuantity,
+      imageUrl,
+      variantId: variant?.id,
+      variantName: variant?.name,
+      maxQuantity: max,
     });
+    window.dispatchEvent(new CustomEvent("brasmora:bag-add", { detail: { productId: id, source: source ?? document.querySelector("[data-gallery]") } }));
   };
 
-  const handleBuyNow = () => {
-    addItem({
-      productId: id,
-      name: warrantyOption.years > 0
-        ? `${name} + ${warrantyOption.years}yr warranty`
-        : name,
-      slug,
-      sku,
-      price: totalPrice,
-      quantity: qty,
-      imageUrl: imageUrl || null,
-      maxQuantity: stockQuantity,
-    });
-    router.push("/checkout");
-  };
-
-  const handleWishlist = async () => {
-    try {
-      const res = await fetch("/api/wishlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: id }),
-      });
-      const data = await res.json();
-      if (data.action === "added") {
-        toast.success(t("addToWishlist"));
-      } else {
-        toast.success(t("removeFromWishlist"));
-      }
-    } catch {
-      toast.error("Please log in to use wishlist");
-    }
-  };
-
-  const isOnSale = comparePrice && comparePrice > price;
-  const savingsPercent = isOnSale
-    ? Math.round(((comparePrice - price) / comparePrice) * 100)
-    : 0;
+  const availability = soldOut ? t("soldOut") : !tracked ? t("available") : lowStock ? t("onlyLeft", { count: stock }) : t("inStock");
+  const addLabel = soldOut ? t("soldOut") : needsChoice ? t("chooseOption", { option: (firstMissing ?? "").toLowerCase() }) : t("addToBag");
+  const money = (n: number) => formatPrice(convert(n), currency);
+  const { shipping, returns, warranty } = STORE_POLICY;
 
   return (
-    <div className="flex flex-col gap-5 max-sm:gap-4">
-      <div>
-        <h1 className="text-[1.75rem] max-md:text-[1.375rem] max-[480px]:text-xl font-extrabold leading-[1.15] tracking-[-0.02em] break-words [overflow-wrap:anywhere]">{name}</h1>
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-xs text-ink-subtle">{t("sku")}: {sku}</span>
-          {ean && <span className="text-xs text-ink-subtle">{t("ean")}: {ean}</span>}
-          {reviewCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[0.8125rem] font-semibold text-warning">
-              {"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}
-              <span className="text-ink-subtle font-normal">({reviewCount})</span>
-            </span>
-          )}
+    <div className="flex flex-col">
+      {breadcrumbs}
+      {categoryName ? (
+        <div className="mb-4 flex">
+          <Plate>{categoryName}</Plate>
         </div>
+      ) : null}
+      <h1 className="text-step-4 leading-[1.06] text-ink [overflow-wrap:anywhere]">{name}</h1>
+
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <PriceDisplay price={unitPrice} comparePrice={comparePrice} size="lg" />
+        {pct > 0 ? <Plate>{t("reducedBy", { percent: pct })}</Plate> : null}
       </div>
 
-      {shortDescription && <p className="text-[0.9375rem] text-ink-muted leading-[1.65]">{shortDescription}</p>}
+      {summary ? <p className="measure mt-5 text-step-0 leading-[1.65] text-ink-muted">{summary}</p> : null}
 
-      <hr className="h-px bg-line border-0 m-0" />
+      {hasVariants ? (
+        <div className="mt-6">
+          <VariantSelector variants={variants} chosen={chosen} onChoose={(axis, value) => setChosen((c) => ({ ...c, [axis]: value }))} />
+        </div>
+      ) : null}
 
-      <div className="flex items-center gap-4">
-        <PriceDisplay price={price} comparePrice={comparePrice} size="lg" />
-        {isOnSale && <span className="text-xs font-bold text-on-danger bg-danger px-2.5 py-1">-{savingsPercent}%</span>}
-      </div>
-
-      <p
-        className={`text-[0.8125rem] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 ${outOfStock ? "text-danger bg-danger/10" : lowStock ? "text-warning bg-warning/10" : "text-success bg-success/10"}`}
-      >
-        {outOfStock
-          ? t("outOfStock")
-          : lowStock
-            ? t("onlyLeft", { count: stockQuantity })
-            : t("inStock")}
+      <p className={cn("mt-6 flex items-center gap-2 text-ui-sm font-medium", soldOut ? "text-ink-muted" : lowStock ? "text-warning" : "text-success")}>
+        <span aria-hidden="true" className={cn("size-2", soldOut ? "bg-ink-subtle" : lowStock ? "bg-warning" : "bg-success")} />
+        {availability}
       </p>
 
-      <hr className="h-px bg-line border-0 m-0" />
-
-      <div className="flex flex-col gap-2">
-        <span className="text-[0.8125rem] font-bold text-ink flex items-center gap-1.5">
-          <Shield size={14} /> {t("warranty")}
-        </span>
-        <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-          {t("warrantyStandard")}
-        </p>
-        {warrantyAvailable && (
-          <div className="grid grid-cols-2 gap-2">
-            {WARRANTY_OPTIONS.map((opt, idx) => (
-              <button
-                key={opt.key}
-                className={`flex flex-col items-center gap-0.5 px-2 py-2.5 border-2 bg-surface cursor-pointer transition-all text-[0.8125rem] font-semibold text-ink text-center ${idx === selectedWarranty ? "border-brand bg-brand-soft" : "border-line hover:border-brand hover:bg-brand-soft"}`}
-                onClick={() => setSelectedWarranty(idx)}
-              >
-                {idx === 0 ? t("noWarranty") : t(`warrantyOption${opt.years}year` as "warrantyOption1year" | "warrantyOption2year" | "warrantyOption3year")}
-                {opt.percent > 0 && (
-                  <span className="text-[0.6875rem] font-normal text-ink-muted">+{formatPrice(convert(calcWarrantyPrice(price, opt)), currency)}</span>
-                )}
-              </button>
-            ))}
+      <div ref={addRowRef} data-add-row="" className="mt-4">
+        {soldOut ? (
+          <div className="flex flex-col gap-2">
+            <Button size="lg" isDisabled fullWidth>
+              {t("soldOut")}
+            </Button>
+            <p className="meta text-ink-muted">{t("checkBackLater")}</p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="w-[148px] shrink-0">
+              <QuantitySelector quantity={qty} maxQuantity={max} onChange={setQty} showStockHint={stockLimited} label={t("quantity")} />
+              {!stockLimited && qty >= max ? <p className="meta mt-1.5 text-ink-muted">{t("maxPerOrder", { count: policyMax })}</p> : null}
+            </div>
+            <Button size="lg" className="min-w-[12rem] flex-1" isDisabled={needsChoice} onPress={() => add(null)}>
+              {addLabel}
+            </Button>
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => toggle(id)}
+          disabled={pending(id)}
+          aria-pressed={saved}
+          className="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 text-ui-sm font-semibold text-ink underline decoration-1 underline-offset-4 hover-device:hover:decoration-2 disabled:cursor-wait"
+        >
+          <Heart size={18} aria-hidden="true" fill={saved ? "currentColor" : "none"} />
+          {saved ? t("savedToWishlist") : t("saveToWishlist")}
+        </button>
       </div>
 
-      <div className="flex gap-3 max-[480px]:gap-2 items-center flex-wrap [&>button]:min-w-0">
-        <QuantitySelector
-          quantity={qty}
-          maxQuantity={stockQuantity}
-          onChange={setQty}
-        />
-        <Button
-          color="primary"
-          size="lg"
-          onPress={handleAddToCart}
-          isDisabled={outOfStock}
-          startContent={<Handbag size={18} />}
-          style={{ flex: 1 }}
-        >
-          {selectedWarranty > 0 ? t("addToCartWithWarranty") : t("addToCart")}
-        </Button>
-        <Button
-          color="default"
-          size="lg"
-          onPress={handleBuyNow}
-          isDisabled={outOfStock}
-          className="!bg-ink !text-surface font-bold hover:opacity-85"
-        >
-          {t("buyNow")}
-        </Button>
-        <Button
-          isIconOnly
-          variant="bordered"
-          size="lg"
-          onPress={handleWishlist}
-          aria-label={t("addToWishlist")}
-        >
-          <Heart size={18} />
-        </Button>
-      </div>
+      <ul className="m-0 mt-6 list-none border-t border-line p-0">
+        <InfoRow icon={<Truck size={18} />}>
+          <p>{t("deliveryLine", { days: shipping.processingDays })}</p>
+          <p className="text-ink-muted">{t("deliveryRegions", { uk: shipping.deliveryTimes.uk, eu: shipping.deliveryTimes.eu })}</p>
+          <p className="text-ink-muted">
+            {t("deliveryCost", { cost: money(shipping.standardCost), threshold: money(shipping.freeThreshold) })}{" "}
+            <Link href="/policies/shipping" className={linkCls}>
+              {t("deliveryLink")}
+            </Link>
+          </p>
+        </InfoRow>
+        <InfoRow icon={<RotateCcw size={18} />}>
+          <p>
+            {t("returnsLine", { days: returns.withdrawalDays })}{" "}
+            <Link href="/policies/returns" className={linkCls}>
+              {t("returnsLink")}
+            </Link>
+          </p>
+        </InfoRow>
+        <InfoRow icon={<ShieldCheck size={18} />}>
+          <p>
+            {t("warrantyLine", { months: warranty.months })}{" "}
+            <Link href="/policies/warranty" className={linkCls}>
+              {t("warrantyLink")}
+            </Link>
+          </p>
+        </InfoRow>
+        <InfoRow icon={<Lock size={18} />} aside={<PaymentLogos height={20} withPci={false} />}>
+          <p>{t("securePayment")}</p>
+        </InfoRow>
+      </ul>
 
-      <div className="border-t border-line pt-4">
-        {brand && (
-          <div className="flex justify-between py-2 text-sm border-b border-surface-2 last:border-b-0">
-            <span className="text-ink-muted">{t("brand")}</span>
-            <span className="text-ink font-semibold">{brand}</span>
-          </div>
-        )}
-        <div className="flex justify-between py-2 text-sm border-b border-surface-2 last:border-b-0">
-          <span className="text-ink-muted">{t("condition")}</span>
-          <span className="text-ink font-semibold">{condition}</span>
+      {!soldOut ? (
+        <div
+          data-sticky-add=""
+          aria-hidden={!barVisible}
+          inert={!barVisible}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-between gap-4 border-t border-line bg-raised px-gutter transition-transform duration-[260ms] ease-[var(--ease-furniture)] lg:hidden",
+            barVisible ? "translate-y-0" : "translate-y-full",
+          )}
+        >
+          <PriceDisplay price={unitPrice} comparePrice={comparePrice} size="sm" />
+          <Button size="md" onPress={() => (needsChoice ? addRowRef.current?.scrollIntoView({ block: "center" }) : add(null))}>
+            {addLabel}
+          </Button>
         </div>
-        <div className="flex justify-between py-2 text-sm border-b border-surface-2 last:border-b-0">
-          <span className="text-ink-muted">{t("sku")}</span>
-          <span className="text-ink font-semibold">{sku}</span>
-        </div>
-        {ean && (
-          <div className="flex justify-between py-2 text-sm border-b border-surface-2 last:border-b-0">
-            <span className="text-ink-muted">{t("ean")}</span>
-            <span className="text-ink font-semibold">{ean}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 max-[380px]:gap-2 pt-2">
-        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 bg-surface-1">
-          <Truck size={18} className="text-brand" />
-          <span className="text-[0.6875rem] font-bold text-ink">{t("freeShipping")}</span>
-          <span className="text-[0.625rem] text-ink-subtle">{t("freeShippingDesc")}</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 bg-surface-1">
-          <RotateCcw size={18} className="text-brand" />
-          <span className="text-[0.6875rem] font-bold text-ink">{t("easyReturns")}</span>
-          <span className="text-[0.625rem] text-ink-subtle">{t("easyReturnsDesc")}</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 text-center px-2 py-3 max-[380px]:px-1.5 max-[380px]:py-2.5 bg-surface-1">
-          <Lock size={18} className="text-brand" />
-          <span className="text-[0.6875rem] font-bold text-ink">{t("securePayment")}</span>
-          <span className="text-[0.625rem] text-ink-subtle">{t("securePaymentDesc")}</span>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

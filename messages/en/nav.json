@@ -1,13 +1,15 @@
 {
   "home": "Home",
-  "catalog": "Catalog",
-  "cart": "Cart",
+  "catalog": "Shop",
+  "cart": "Bag",
   "account": "Account",
-  "login": "Log in",
+  "login": "Sign in",
   "register": "Create account",
-  "logout": "Log out",
-  "admin": "Admin Panel",
-  "search": "Search products...",
-  "allCategories": "All Categories",
-  "contact": "Contact"
+  "logout": "Sign out",
+  "admin": "Admin",
+  "search": "Search pans, plates, glasses…",
+  "allCategories": "All categories",
+  "contact": "Contact us",
+  "faq": "Questions",
+  "policies": "Policies"
 }

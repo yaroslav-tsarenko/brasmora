@@ -18,6 +18,7 @@ import { MegaMenu } from "./MegaMenu";
 import { MobileMenu } from "./MobileMenu";
 import { SearchDialog } from "@/components/search/SearchDialog/SearchDialog";
 import { CartSheet } from "@/components/cart/CartSheet/CartSheet";
+import { CheckoutHeader } from "@/components/checkout/CheckoutFrame";
 
 type HeaderState = "top" | "compact" | "hidden";
 
@@ -29,7 +30,7 @@ const corniceLink = cn(
 
 const corniceAction = "relative inline-flex h-11 cursor-pointer items-center gap-2 whitespace-nowrap text-ui-md font-medium text-on-paint hover-device:hover:underline hover-device:hover:decoration-1 hover-device:hover:underline-offset-[6px]";
 
-export function Header() {
+function StoreHeader() {
   const pathname = usePathname();
   const { itemCount, cartBounce, openSheet, isSheetOpen } = useCart();
   const { user, role } = useAuth();
@@ -233,4 +234,10 @@ export function Header() {
       <CartSheet />
     </>
   );
+}
+
+export function Header() {
+  const pathname = usePathname();
+  if (pathname === "/checkout" || pathname.startsWith("/checkout/")) return <CheckoutHeader />;
+  return <StoreHeader />;
 }

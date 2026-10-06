@@ -6,12 +6,14 @@ import "./fonts.css";
 import "@/styles/globals.css";
 import { BRAND, SITE_URL } from "@/lib/brand";
 
+const SITE_DESCRIPTION = "Cookware, bakeware, tableware, glassware and bar tools, delivered to the UK and EU.";
+
 export const metadata: Metadata = {
   title: {
     default: `${BRAND.name} — ${BRAND.tagline}`,
     template: `%s | ${BRAND.name}`,
   },
-  description: "Cookware, bakeware, tableware, glassware and bar tools, delivered to the UK and EU.",
+  description: SITE_DESCRIPTION,
   metadataBase: new URL(SITE_URL),
   applicationName: BRAND.name,
   manifest: "/manifest.json",
@@ -29,6 +31,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: BRAND.name,
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: SITE_DESCRIPTION,
+    locale: "en_GB",
   },
 };
 

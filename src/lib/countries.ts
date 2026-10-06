@@ -1,32 +1,21 @@
-// Sanctioned / restricted destinations — we do not ship here.
-// Based on EU/UK/OFAC sanctions for electrical goods exporters.
-const SANCTIONED = new Set([
-  "RU", // Russia
-  "BY", // Belarus
-  "KP", // North Korea
-  "IR", // Iran
-  "SY", // Syria
-  "CU", // Cuba
-  "MM", // Myanmar (Burma)
-  "AF", // Afghanistan
-  "VE", // Venezuela
-  "SD", // Sudan
-  "SS", // South Sudan
-  "LY", // Libya
-  "SO", // Somalia
-  "YE", // Yemen
-  "ZW", // Zimbabwe
-  "CF", // Central African Republic
-  "CD", // DR Congo
-  "ML", // Mali
-  "NI", // Nicaragua
-  "ER", // Eritrea
-  "GW", // Guinea-Bissau
-  "LB", // Lebanon (partial — full block for simplicity)
-  "IQ", // Iraq (partial — full block for simplicity)
-]);
+import { isRestrictedCountry } from "@/config/restricted-countries";
 
-const ALL_COUNTRIES = [
+export interface Country {
+  code: string;
+  name: string;
+  phone: string;
+}
+
+const EU_MEMBER_CODES = [
+  "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE",
+  "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
+] as const;
+
+export const DELIVERY_MARKET_CODES: ReadonlySet<string> = new Set(["GB", ...EU_MEMBER_CODES]);
+
+export const DEFAULT_COUNTRY_CODE = "GB";
+
+const ALL_COUNTRIES: Country[] = [
   { code: "AD", name: "Andorra", phone: "+376" },
   { code: "AE", name: "United Arab Emirates", phone: "+971" },
   { code: "AF", name: "Afghanistan", phone: "+93" },
@@ -276,6 +265,25 @@ const ALL_COUNTRIES = [
   { code: "ZW", name: "Zimbabwe", phone: "+263" },
 ];
 
-export const COUNTRIES = ALL_COUNTRIES
-  .filter((c) => !SANCTIONED.has(c.code))
+export const COUNTRIES: Country[] = ALL_COUNTRIES
+  .filter((c) => !isRestrictedCountry(c.code))
   .sort((a, b) => a.name.localeCompare(b.name));
+
+export const DELIVERY_COUNTRIES: Country[] = COUNTRIES.filter((c) => DELIVERY_MARKET_CODES.has(c.code));
+
+export function isDeliveryCountry(code: string | null | undefined): boolean {
+  return Boolean(code) && DELIVERY_COUNTRIES.some((c) => c.code === String(code).toUpperCase());
+}
+
+export function countryName(code: string | null | undefined): string {
+  if (!code) return "";
+  return ALL_COUNTRIES.find((c) => c.code === code.toUpperCase())?.name ?? code;
+}
+
+export function dialCodeFor(code: string | null | undefined): string {
+  return ALL_COUNTRIES.find((c) => c.code === (code ?? "").toUpperCase())?.phone ?? "";
+}
+
+export function isUkCountry(code: string | null | undefined): boolean {
+  return (code ?? "").toUpperCase() === "GB";
+}

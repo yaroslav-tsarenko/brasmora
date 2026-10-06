@@ -2,32 +2,37 @@
 
 import { useTranslations } from "next-intl";
 import { Select } from "@/components/ui/Select";
+import type { SortKey } from "@/components/catalog/catalog-url";
+
+const LABEL_KEY: Record<SortKey, "sortNewest" | "sortPriceAsc" | "sortPriceDesc" | "sortPopular" | "sortName" | "sortRelevance"> = {
+  relevance: "sortRelevance",
+  newest: "sortNewest",
+  "price-asc": "sortPriceAsc",
+  "price-desc": "sortPriceDesc",
+  popular: "sortPopular",
+  "name-asc": "sortName",
+};
+
+export const CATALOG_SORTS: SortKey[] = ["newest", "price-asc", "price-desc", "popular", "name-asc"];
 
 interface ProductSortProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: SortKey) => void;
+  options?: SortKey[];
   className?: string;
 }
 
-export function ProductSort({ value, onChange, className }: ProductSortProps) {
-  const t = useTranslations("product");
-
-  const options = [
-    { value: "newest", label: t("newest") },
-    { value: "price-asc", label: t("priceLowHigh") },
-    { value: "price-desc", label: t("priceHighLow") },
-    { value: "name-asc", label: t("nameAZ") },
-  ];
-
+export function ProductSort({ value, onChange, options = CATALOG_SORTS, className }: ProductSortProps) {
+  const t = useTranslations("catalog");
   return (
     <Select
       size="sm"
-      inlineLabel="Sort"
+      inlineLabel={t("sort")}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      options={options}
+      onChange={(e) => onChange(e.target.value as SortKey)}
+      options={options.map((key) => ({ value: key, label: t(LABEL_KEY[key]) }))}
       wrapperClassName={className}
-      className="min-w-[11rem]"
+      className="min-w-[10.5rem]"
     />
   );
 }

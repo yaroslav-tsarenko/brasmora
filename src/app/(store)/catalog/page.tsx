@@ -1,238 +1,83 @@
-"use client";
-
-import { useEffect, useState, useCallback, Suspense } from "react";
-import { useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "next/navigation";
-import { SlidersHorizontal, X } from "lucide-react";
-import { ProductGrid } from "@/components/product/ProductGrid/ProductGrid";
-import { ProductFilters } from "@/components/product/ProductFilters/ProductFilters";
-import { ProductSort } from "@/components/product/ProductSort/ProductSort";
-import { ProductSkeleton } from "@/components/product/ProductSkeleton/ProductSkeleton";
-import { EmptyState } from "@/components/shared/EmptyState/EmptyState";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { BRAND } from "@/lib/brand";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs/Breadcrumbs";
-import { cachedFetchJSON, readCached } from "@/lib/utils/reliable-fetch";
-import { ShelfLoader } from "@/components/ui/ShelfLoader";
-import { Pagination } from "@/components/ui/Pagination";
+import { Plate } from "@/components/ui/Plate";
+import { CatalogBrowser } from "@/components/catalog/CatalogBrowser";
+import { CategoryChest } from "@/components/catalog/CategoryChest";
+import { categoryCounts, getCategoryTree, queryCatalog } from "@/components/catalog/catalog-query";
+import { buildCatalogHref, hasActiveFilters, parseCatalogParams, type RawSearchParams } from "@/components/catalog/catalog-url";
 
-function CatalogContent() {
-  const t = useTranslations("product");
-  const nav = useTranslations("nav");
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [products, setProducts] = useState<any[]>(() => {
-    const cached = readCached<{ data: any[] }>({ cacheKey: "catalog:last", storage: "session" });
-    return cached?.data || [];
-  });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [categories, setCategories] = useState<any[]>(() => {
-    return readCached<any[]>({ cacheKey: "catalog:categories", storage: "session" }) || [];
-  });
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [brands, setBrands] = useState<string[]>(() => {
-    return readCached<string[]>({ cacheKey: "catalog:brands", storage: "session" }) || [];
-  });
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-  const page = parseInt(searchParams.get("page") || "1");
-  const sort = searchParams.get("sort") || "newest";
-  const category = searchParams.get("category") || "";
-  const minPrice = searchParams.get("minPrice") || "";
-  const maxPrice = searchParams.get("maxPrice") || "";
-  const inStock = searchParams.get("inStock") === "true";
-  const onSale = searchParams.get("onSale") === "true";
-  const selectedBrand = searchParams.get("brand") || "";
-
-  const updateParams = useCallback(
-    (updates: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value) params.set(key, value);
-        else params.delete(key);
-      });
-      if (updates.page === undefined && !updates.page) params.set("page", "1");
-      router.push(`?${params.toString()}`);
-    },
-    [searchParams, router]
-  );
-
-  useEffect(() => {
-    cachedFetchJSON<unknown>("/api/categories", { cacheKey: "catalog:categories", storage: "session" })
-      .then((data) => setCategories(Array.isArray(data) ? data : []))
-      .catch(console.error);
-    cachedFetchJSON<unknown>("/api/products/brands", { cacheKey: "catalog:brands", storage: "session" })
-      .then((data) => setBrands(Array.isArray(data) ? data : []))
-      .catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("sort", sort);
-    if (category) params.set("category", category);
-    if (minPrice) params.set("minPrice", minPrice);
-    if (maxPrice) params.set("maxPrice", maxPrice);
-    if (inStock) params.set("inStock", "true");
-    if (onSale) params.set("onSale", "true");
-    if (selectedBrand) params.set("brand", selectedBrand);
-
-    const key = `catalog:products:${params.toString()}`;
-    const cached = readCached<{ data: unknown[]; total: number; totalPages: number }>({
-      cacheKey: key,
-      storage: "session",
-      ttlMs: 5 * 60 * 1000,
-    });
-    if (cached) {
-      setProducts(cached.data || []);
-      setTotal(cached.total || 0);
-      setTotalPages(cached.totalPages || 1);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
-    cachedFetchJSON<{ data: unknown[]; total: number; totalPages: number }>(
-      `/api/products?${params}`,
-      { cacheKey: key, storage: "session" },
-    )
-      .then((data) => {
-        setProducts(data.data || []);
-        setTotal(data.total || 0);
-        setTotalPages(data.totalPages || 1);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [page, sort, category, minPrice, maxPrice, inStock, onSale, selectedBrand]);
-
-  useEffect(() => {
-    if (mobileFiltersOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileFiltersOpen]);
-
-  const activeFilterCount = [category, minPrice, maxPrice, inStock, onSale, selectedBrand].filter(Boolean).length;
-
-  return (
-    <div className="max-w-container mx-auto px-4">
-      <Breadcrumbs
-        items={[
-          { label: nav("home"), href: "/" },
-          { label: nav("catalog") },
-        ]}
-      />
-
-      <div className="flex justify-between items-end mb-6 gap-4 flex-wrap">
-        <div>
-          <h1 className="text-[1.75rem] max-[480px]:text-[1.375rem] font-extrabold tracking-[-0.03em]">{nav("catalog")}</h1>
-          <p className="text-sm text-ink-muted mt-1">
-            {t("showing", { count: products.length, total })}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 max-[480px]:w-full max-[480px]:justify-between max-[480px]:gap-2">
-          <button
-            onClick={() => setMobileFiltersOpen(true)}
-            className="hidden max-lg:inline-flex items-center gap-1.5 px-4 py-2 border border-line bg-surface cursor-pointer text-[0.8125rem] font-semibold text-ink-muted hover:border-brand hover:text-brand"
-            type="button"
-          >
-            <SlidersHorizontal size={16} />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="bg-brand text-on-brand px-1.5 py-px text-[0.6875rem] font-bold">{activeFilterCount}</span>
-            )}
-          </button>
-          <ProductSort value={sort} onChange={(v) => updateParams({ sort: v, page: "1" })} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 lg:gap-8">
-        <aside className="hidden lg:block sticky top-[calc(var(--header-height)+var(--announcement-height)+1rem)] self-start">
-          <ProductFilters
-            categories={categories}
-            selectedCategory={category}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            inStock={inStock}
-            onSale={onSale}
-            brands={brands}
-            selectedBrand={selectedBrand}
-            onCategoryChange={(v) => updateParams({ category: v, page: "1" })}
-            onMinPriceChange={(v) => updateParams({ minPrice: v, page: "1" })}
-            onMaxPriceChange={(v) => updateParams({ maxPrice: v, page: "1" })}
-            onInStockChange={(v) => updateParams({ inStock: v ? "true" : "", page: "1" })}
-            onSaleChange={(v) => updateParams({ onSale: v ? "true" : "", page: "1" })}
-            onBrandChange={(v) => updateParams({ brand: v, page: "1" })}
-          />
-        </aside>
-
-        <div className="min-w-0">
-          {loading ? (
-            <ProductSkeleton count={12} />
-          ) : products.length === 0 ? (
-            <EmptyState
-              title={t("filterBy")}
-              subtitle={t("priceRange")}
-              actionLabel={nav("home")}
-              actionHref="/"
-            />
-          ) : (
-            <>
-              <ProductGrid products={products} />
-              <Pagination page={page} totalPages={totalPages} onPageChange={(p) => updateParams({ page: String(p) })} className="mt-14 pb-12" />
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile filters overlay */}
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-[200]">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-surface overflow-auto p-6 flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <span className="font-bold text-lg">Filters</span>
-              <button
-                onClick={() => setMobileFiltersOpen(false)}
-                className="w-8 h-8 flex items-center justify-center border-0 bg-surface-2 cursor-pointer text-ink"
-                aria-label="Close filters"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <ProductFilters
-              categories={categories}
-              selectedCategory={category}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-              inStock={inStock}
-              onSale={onSale}
-              brands={brands}
-              selectedBrand={selectedBrand}
-              onCategoryChange={(v) => { updateParams({ category: v, page: "1" }); setMobileFiltersOpen(false); }}
-              onMinPriceChange={(v) => updateParams({ minPrice: v, page: "1" })}
-              onMaxPriceChange={(v) => updateParams({ maxPrice: v, page: "1" })}
-              onInStockChange={(v) => updateParams({ inStock: v ? "true" : "", page: "1" })}
-              onSaleChange={(v) => updateParams({ onSale: v ? "true" : "", page: "1" })}
-              onBrandChange={(v) => { updateParams({ brand: v, page: "1" }); setMobileFiltersOpen(false); }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
+interface CatalogPageProps {
+  searchParams: Promise<RawSearchParams>;
 }
 
-export default function CatalogPage() {
+export async function generateMetadata({ searchParams }: CatalogPageProps): Promise<Metadata> {
+  const t = await getTranslations("catalog");
+  const params = parseCatalogParams(await searchParams);
+  const tree = await getCategoryTree();
+  const counts = await categoryCounts(tree);
+  const total = tree.roots.reduce((sum, c) => sum + (counts.get(c.id) ?? 0), 0);
+  const title = params.page > 1 ? t("titleWithPage", { title: t("allCategoriesTitle"), page: params.page }) : t("allCategoriesTitle");
+  const description = t("metaCatalogDescription", { count: total });
+  const canonical = params.page > 1 && !hasActiveFilters(params) ? `/catalog?page=${params.page}` : "/catalog";
+  const art = tree.roots.map((c) => tree.uniqueArt(c)).find(Boolean);
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    robots: hasActiveFilters(params) ? { index: false, follow: true } : undefined,
+    openGraph: { type: "website", siteName: BRAND.name, url: canonical, title, description, images: art ? [{ url: art }] : undefined },
+    twitter: { card: art ? "summary_large_image" : "summary", title, description, images: art ? [art] : undefined },
+  };
+}
+
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const raw = await searchParams;
+  const params = parseCatalogParams(raw);
+  const tree = await getCategoryTree();
+
+  if (params.category) {
+    const target = tree.bySlug.get(params.category);
+    if (target) redirect(buildCatalogHref(`/catalog/${target.slug}`, { ...params, category: null }, {}, { resetPage: false }));
+  }
+
+  const t = await getTranslations("catalog");
+  const counts = await categoryCounts(tree);
+  const result = await queryCatalog({ kind: "all" }, { ...params, category: null }, { basePath: "/catalog" });
+  const drawers = tree.roots
+    .filter((c) => (counts.get(c.id) ?? 0) > 0)
+    .map((c) => ({ slug: c.slug, name: c.name, countLabel: t("items", { count: counts.get(c.id) ?? 0 }) }));
+  const total = tree.roots.reduce((sum, c) => sum + (counts.get(c.id) ?? 0), 0);
+
   return (
-    <Suspense fallback={<ShelfLoader block />}>
-      <CatalogContent />
-    </Suspense>
+    <div className="mx-auto max-w-container px-gutter pb-24">
+      <Breadcrumbs items={[{ label: t("home"), href: "/" }, { label: t("shop") }]} />
+      <header className="pb-8 pt-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="text-step-4 leading-[1.05] text-ink">{t("allCategoriesTitle")}</h1>
+          <Plate variant="neutral" size="lg">
+            {t("items", { count: total })}
+          </Plate>
+        </div>
+        <p className="measure mt-3 text-step-1 leading-[1.5] text-ink-muted">{t("catalogLead", { categories: drawers.length })}</p>
+      </header>
+
+      <CategoryChest label={t("allCategoriesTitle")} drawers={drawers} />
+
+      <CatalogBrowser
+        basePath="/catalog"
+        params={{ ...params, category: null, page: result.page }}
+        products={result.products}
+        total={result.total}
+        page={result.page}
+        totalPages={result.totalPages}
+        facets={result.facets}
+        related={drawers.slice(0, 3).map((d) => ({ name: d.name, href: `/catalog/${d.slug}` }))}
+        headingId="catalog-results"
+        heading={t("resultsHeading")}
+      />
+    </div>
   );
 }

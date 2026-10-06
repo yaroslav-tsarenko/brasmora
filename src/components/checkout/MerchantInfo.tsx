@@ -1,38 +1,28 @@
-import { Store } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { COMPANY } from "@/lib/company";
 import { BRAND } from "@/lib/brand";
-import { PaymentLogos } from "@/components/shared/PaymentLogos/PaymentLogos";
+import { cn } from "@/lib/utils/cn";
 
-export function MerchantInfo({ title, showLogos = true }: { title: string; showLogos?: boolean }) {
-  return (
-    <div className="mt-5 border-t border-line pt-5 text-ui-xs leading-[1.7] text-ink-muted">
-      {showLogos ? <PaymentLogos height={28} className="mb-4" /> : null}
-      <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-ink">
-        <Store size={16} aria-hidden="true" />
-        {title}
-      </div>
-      <p className="m-0">
-        <strong className="font-semibold text-ink">{COMPANY.name}</strong>
-        <br />
-        {BRAND.name} is a trading name of {COMPANY.name}.
-        <br />
-        {COMPANY.addressLine}
-        <br />
-        {COMPANY.country}
-        <br />
-        Company number: {COMPANY.companyNumber}
-        <br />
-        {COMPANY.phone ? (
-          <>
-            <a href={`tel:${COMPANY.phone.replace(/\s/g, "")}`} className="underline-offset-4 hover:text-ink hover:underline">
-              {COMPANY.phone}
-            </a>
-            {" · "}
-          </>
-        ) : null}
-        <a href={`mailto:${COMPANY.email}`} className="underline-offset-4 hover:text-ink hover:underline">
+export function MerchantInfo({ variant = "full", className }: { variant?: "full" | "line"; className?: string }) {
+  const t = useTranslations("checkout.merchant");
+  if (variant === "line") {
+    return (
+      <p className={cn("meta m-0 text-ink-muted", className)}>
+        {t("line", { company: COMPANY.name, brand: BRAND.name })}{" "}
+        <a href={`mailto:${COMPANY.email}`} className="underline underline-offset-4 hover-device:hover:text-ink">
           {COMPANY.email}
         </a>
+      </p>
+    );
+  }
+  return (
+    <div className={cn("text-ui-sm leading-[1.6] text-ink", className)}>
+      <p className="m-0">
+        {t("soldBy", { company: COMPANY.name, address: `${COMPANY.registeredOffice}, ${COMPANY.country}` })}
+      </p>
+      <p className="m-0">{t("merchantOfRecord", { company: COMPANY.name })}</p>
+      <p className="meta m-0 mt-1 text-ink-muted">
+        {t("tradingName", { brand: BRAND.name, company: COMPANY.name, number: COMPANY.companyNumber })}
       </p>
     </div>
   );

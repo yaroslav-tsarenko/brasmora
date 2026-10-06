@@ -97,7 +97,7 @@ export function DrawerStepper({
                   tabIndex={open ? -1 : undefined}
                   id={`${baseId}-${step.id}-title`}
                   className={cn(
-                    "m-0 min-w-0 flex-1 font-sans text-step-1 font-semibold tracking-normal focus-visible:outline-offset-4",
+                    "m-0 min-w-0 flex-1 font-sans text-step-1 font-semibold tracking-normal focus-visible:outline-offset-4 max-sm:min-w-[55%]",
                     state === "upcoming" ? "text-ink-subtle" : "text-ink",
                   )}
                 >

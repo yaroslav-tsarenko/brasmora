@@ -1,5 +1,5 @@
 {
-  "loading": "Loading...",
+  "loading": "Loading…",
   "error": "Something went wrong",
   "retry": "Try again",
   "save": "Save",
@@ -8,11 +8,11 @@
   "confirm": "Confirm",
   "edit": "Edit",
   "search": "Search",
-  "noResults": "No results found",
+  "noResults": "Nothing matches your search",
   "viewAll": "View all",
   "backTo": "Back to {page}",
-  "addedToCart": "Added to cart!",
-  "removedFromCart": "Removed from cart",
-  "savedChanges": "Changes saved successfully",
-  "copiedToClipboard": "Copied to clipboard"
+  "addedToCart": "Added to bag",
+  "removedFromCart": "Removed from bag",
+  "savedChanges": "Changes saved",
+  "copiedToClipboard": "Copied"
 }

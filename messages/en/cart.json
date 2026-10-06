@@ -1,14 +1,31 @@
 {
-  "title": "Shopping Cart",
-  "empty": "Your cart is empty",
-  "emptySubtitle": "Looks like you haven't added anything yet",
-  "continueShopping": "Continue Shopping",
-  "subtotal": "Subtotal",
-  "shipping": "Shipping",
-  "shippingCalculated": "Calculated at checkout",
-  "tax": "Tax",
-  "total": "Total",
-  "checkout": "Proceed to Checkout",
-  "remove": "Remove",
-  "itemCount": "{count} items"
+  "meta": {
+    "title": "Your bag",
+    "description": "Check the cookware, tableware and glassware in your bag before you check out."
+  },
+  "title": "Your bag",
+  "itemCount": "{count, plural, one {# item} other {# items}}",
+  "itemsLabel": "Items in your bag",
+  "summary": "Order summary",
+  "checkout": "Checkout",
+  "checkoutWithTotal": "Checkout · {total}",
+  "continueShopping": "Continue shopping",
+  "saveForLater": "Save for later",
+  "removed": "Removed from your bag",
+  "limitPerItem": "You can add up to {max} of each item to one order.",
+  "limitPerOrder": "One order can hold up to {max} items.",
+  "limits": "Up to {perItem} of each item and {perOrder} items per order.",
+  "freeDeliveryRemaining": "Spend {amount} more for free delivery (orders over {threshold}).",
+  "freeDeliveryReached": "Your order qualifies for free delivery.",
+  "discountNote": "Discount codes can be added at checkout.",
+  "empty": {
+    "title": "Your bag is empty",
+    "subtitle": "Pans, plates and glasses you add will wait here until you check out.",
+    "action": "Browse the shop",
+    "links": {
+      "cookware": "Cookware",
+      "tableware": "Tableware",
+      "glassware": "Glassware & drinkware"
+    }
+  }
 }

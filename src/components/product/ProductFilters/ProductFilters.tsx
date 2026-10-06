@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useId, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useCurrency } from "@/providers/CurrencyProvider";
@@ -10,38 +12,14 @@ import { Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Dialog";
 import { FilterChip, FilterChipRow } from "@/components/ui/Chip";
-import { SkeletonBar } from "@/components/ui/ShelfLoader";
+import type { CatalogFacets } from "@/components/catalog/catalog-url";
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  _count?: { products: number };
-  children?: Category[];
-}
-
-interface ProductFiltersProps {
-  categories: Category[];
-  selectedCategory: string;
-  minPrice: string;
-  maxPrice: string;
+export interface FilterSelection {
+  brand: string | null;
+  minPrice: number | null;
+  maxPrice: number | null;
   inStock: boolean;
   onSale: boolean;
-  brands: string[];
-  selectedBrand: string;
-  onCategoryChange: (slug: string) => void;
-  onMinPriceChange: (value: string) => void;
-  onMaxPriceChange: (value: string) => void;
-  onInStockChange: (value: boolean) => void;
-  onSaleChange: (value: boolean) => void;
-  onBrandChange: (value: string) => void;
-  priceBounds?: { min: number; max: number } | null;
-  extraGroups?: ReactNode;
-  className?: string;
-}
-
-function subtree(cat: Category): number {
-  return (cat._count?.products || 0) + (cat.children || []).reduce((s, c) => s + subtree(c), 0);
 }
 
 export function FilterDrawer({
@@ -55,10 +33,11 @@ export function FilterDrawer({
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
+  const t = useTranslations("catalog");
   const id = useId();
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div data-drawer="" className="border-b border-line">
+    <div data-drawer="" data-open={open || undefined} className="border-b border-line">
       <h3 className="m-0 font-sans tracking-normal">
         <button
           type="button"
@@ -70,7 +49,7 @@ export function FilterDrawer({
         >
           <span className="eyebrow flex-1">{title}</span>
           {selectedCount > 0 ? (
-            <Plate size="sm" aria-label={`${selectedCount} selected`}>
+            <Plate size="sm" aria-label={t("selectedCount", { count: selectedCount })}>
               {selectedCount}
             </Plate>
           ) : null}
@@ -92,19 +71,6 @@ export function FilterDrawer({
   );
 }
 
-function CategoryOptions({ cats, depth, selected, onChange, name }: { cats: Category[]; depth: number; selected: string; onChange: (slug: string) => void; name: string }) {
-  return (
-    <>
-      {cats.map((cat) => (
-        <div key={cat.id} style={{ paddingLeft: depth * 16 }}>
-          <Radio name={name} label={cat.name} count={subtree(cat)} checked={selected === cat.slug} onChange={() => onChange(cat.slug)} wrapperClassName="py-1.5" />
-          {cat.children && cat.children.length > 0 ? <CategoryOptions cats={cat.children} depth={depth + 1} selected={selected} onChange={onChange} name={name} /> : null}
-        </div>
-      ))}
-    </>
-  );
-}
-
 export interface PriceRangeProps {
   bounds: { min: number; max: number };
   value: { min: number; max: number };
@@ -114,14 +80,15 @@ export interface PriceRangeProps {
 }
 
 export function PriceRange({ bounds, value, onCommit, format, step = 1 }: PriceRangeProps) {
+  const t = useTranslations("catalog");
   const trackRef = useRef<HTMLDivElement>(null);
-  const [local, setLocal] = useState(value);
+  const signature = `${value.min}|${value.max}`;
+  const [state, setState] = useState({ signature, min: value.min, max: value.max });
+  if (state.signature !== signature) setState({ signature, min: value.min, max: value.max });
+  const local = { min: state.min, max: state.max };
+  const setLocal = (fn: (cur: { min: number; max: number }) => { min: number; max: number }) => setState((s) => ({ ...s, ...fn({ min: s.min, max: s.max }) }));
   const dragging = useRef<"min" | "max" | null>(null);
   const span = Math.max(step, bounds.max - bounds.min);
-
-  useEffect(() => {
-    setLocal(value);
-  }, [value]);
 
   const pct = (n: number) => ((n - bounds.min) / span) * 100;
   const clampStep = (n: number) => Math.round(Math.min(bounds.max, Math.max(bounds.min, n)) / step) * step;
@@ -134,6 +101,10 @@ export function PriceRange({ bounds, value, onCommit, format, step = 1 }: PriceR
 
   const update = (thumb: "min" | "max", next: number) => {
     setLocal((cur) => (thumb === "min" ? { min: Math.min(next, cur.max), max: cur.max } : { min: cur.min, max: Math.max(next, cur.min) }));
+  };
+
+  const commit = () => {
+    if (local.min !== value.min || local.max !== value.max) onCommit(local);
   };
 
   const onKey = (thumb: "min" | "max") => (e: KeyboardEvent<HTMLSpanElement>) => {
@@ -155,14 +126,14 @@ export function PriceRange({ bounds, value, onCommit, format, step = 1 }: PriceR
     <span
       role="slider"
       tabIndex={0}
-      aria-label={which === "min" ? "Minimum price" : "Maximum price"}
+      aria-label={which === "min" ? t("minPrice") : t("maxPrice")}
       aria-valuemin={which === "min" ? bounds.min : local.min}
       aria-valuemax={which === "min" ? local.max : bounds.max}
       aria-valuenow={local[which]}
       aria-valuetext={format(local[which])}
       onKeyDown={onKey(which)}
-      onKeyUp={() => onCommit(local)}
-      onBlur={() => onCommit(local)}
+      onKeyUp={commit}
+      onBlur={commit}
       onPointerDown={(e: PointerEvent<HTMLSpanElement>) => {
         dragging.current = which;
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -172,7 +143,7 @@ export function PriceRange({ bounds, value, onCommit, format, step = 1 }: PriceR
       }}
       onPointerUp={() => {
         dragging.current = null;
-        onCommit(local);
+        commit();
       }}
       style={{ left: `${pct(local[which])}%` }}
       className="bevel-xs absolute top-1/2 z-[1] size-[18px] -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none before:bg-brand active:cursor-grabbing focus-visible:outline-offset-2"
@@ -187,114 +158,193 @@ export function PriceRange({ bounds, value, onCommit, format, step = 1 }: PriceR
         {thumb("min")}
         {thumb("max")}
       </div>
+      <div className="meta tabular mt-2 flex justify-between text-ink-muted" aria-hidden="true">
+        <span>{format(local.min)}</span>
+        <span>{format(local.max)}</span>
+      </div>
     </div>
   );
 }
 
-export function ProductFilters({
-  categories,
-  selectedCategory,
-  minPrice,
-  maxPrice,
-  inStock,
-  onSale,
-  brands,
-  selectedBrand,
-  onCategoryChange,
-  onMinPriceChange,
-  onMaxPriceChange,
-  onInStockChange,
-  onSaleChange,
-  onBrandChange,
-  priceBounds,
-  extraGroups,
-  className,
-}: ProductFiltersProps) {
-  const name = useId();
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+export function useDisplayPrice() {
   const { currency, rates } = useCurrency();
   const rate = rates[currency] || 1;
-  const toDisplay = (base: string) => (base ? String(Math.round(Number(base) * rate * 100) / 100) : "");
-  const toBase = (display: string) => (display ? String(Math.round((Number(display) / rate) * 100) / 100) : "");
-  const signature = `${minPrice}|${maxPrice}|${rate}`;
-  const [draft, setDraft] = useState({ signature, min: toDisplay(minPrice), max: toDisplay(maxPrice) });
-  if (draft.signature !== signature) setDraft({ signature, min: toDisplay(minPrice), max: toDisplay(maxPrice) });
-  const draftMin = draft.min;
-  const draftMax = draft.max;
-  const setDraftMin = (min: string) => setDraft((d) => ({ ...d, min }));
-  const setDraftMax = (max: string) => setDraft((d) => ({ ...d, max }));
-  const symbol = currency === "GBP" ? "£" : currency === "EUR" ? "€" : "$";
-  const format = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+  const symbol = new Intl.NumberFormat("en-GB", { style: "currency", currency }).formatToParts(0).find((p) => p.type === "currency")?.value ?? "";
+  const format = (n: number, digits = 0) => new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
+  return {
+    currency,
+    rate,
+    symbol,
+    format,
+    toDisplay: (base: number) => round2(base * rate),
+    toBase: (display: number) => round2(display / rate),
+  };
+}
 
-  const priceCount = (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
-  const availabilityCount = (inStock ? 1 : 0) + (onSale ? 1 : 0);
+function PriceGroup({
+  bounds,
+  minPrice,
+  maxPrice,
+  onChange,
+}: {
+  bounds: { min: number; max: number } | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  onChange: (next: { minPrice: number | null; maxPrice: number | null }) => void;
+}) {
+  const t = useTranslations("catalog");
+  const { rate, symbol, format, toDisplay, toBase } = useDisplayPrice();
+  const signature = `${minPrice}|${maxPrice}|${rate}`;
+  const fromBase = (v: number | null) => (v === null ? "" : String(toDisplay(v)));
+  const [draft, setDraft] = useState({ signature, min: fromBase(minPrice), max: fromBase(maxPrice) });
+  if (draft.signature !== signature) setDraft({ signature, min: fromBase(minPrice), max: fromBase(maxPrice) });
+
+  const parse = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : toBase(Number(s)));
+  const commit = (min: string, max: string) => {
+    const nextMin = parse(min);
+    const nextMax = parse(max);
+    if (nextMin === minPrice && nextMax === maxPrice) return;
+    onChange({ minPrice: nextMin, maxPrice: nextMax });
+  };
+
+  const lo = bounds ? Math.floor(bounds.min * rate) : 0;
+  const hi = bounds ? Math.ceil(bounds.max * rate) : 0;
+
+  return (
+    <>
+      <form
+        className="grid grid-cols-2 gap-3 pt-1"
+        onSubmit={(e) => {
+          e.preventDefault();
+          commit(draft.min, draft.max);
+        }}
+      >
+        <Input
+          label={t("min")}
+          size="sm"
+          inputMode="decimal"
+          prefix={symbol}
+          placeholder={bounds ? String(lo) : undefined}
+          value={draft.min}
+          onChange={(e) => setDraft((d) => ({ ...d, min: e.target.value.replace(/[^0-9.]/g, "") }))}
+          onBlur={() => commit(draft.min, draft.max)}
+        />
+        <Input
+          label={t("max")}
+          size="sm"
+          inputMode="decimal"
+          prefix={symbol}
+          placeholder={bounds ? String(hi) : undefined}
+          value={draft.max}
+          onChange={(e) => setDraft((d) => ({ ...d, max: e.target.value.replace(/[^0-9.]/g, "") }))}
+          onBlur={() => commit(draft.min, draft.max)}
+        />
+        <button type="submit" className="sr-only">
+          {t("applyPrice")}
+        </button>
+      </form>
+      {bounds && hi > lo ? (
+        <PriceRange
+          bounds={{ min: lo, max: hi }}
+          value={{
+            min: minPrice !== null ? Math.max(lo, Math.floor(toDisplay(minPrice))) : lo,
+            max: maxPrice !== null ? Math.min(hi, Math.ceil(toDisplay(maxPrice))) : hi,
+          }}
+          format={(n) => format(n)}
+          onCommit={(v) =>
+            onChange({
+              minPrice: v.min > lo ? toBase(v.min) : null,
+              maxPrice: v.max < hi ? toBase(v.max) : null,
+            })
+          }
+        />
+      ) : null}
+    </>
+  );
+}
+
+export interface ProductFiltersProps {
+  facets: CatalogFacets;
+  selection: FilterSelection;
+  onChange: (next: Partial<FilterSelection>) => void;
+  onNavigate?: () => void;
+  className?: string;
+}
+
+export function ProductFilters({ facets, selection, onChange, onNavigate, className }: ProductFiltersProps) {
+  const t = useTranslations("catalog");
+  const name = useId();
+  const priceCount = (selection.minPrice !== null ? 1 : 0) + (selection.maxPrice !== null ? 1 : 0);
+  const availabilityCount = (selection.inStock ? 1 : 0) + (selection.onSale ? 1 : 0);
+  const showBrands = facets.brands.length > 1 || Boolean(selection.brand);
+  const showInStock = facets.narrowingInStock || selection.inStock;
+  const showOnSale = facets.onSaleCount > 0 || selection.onSale;
+  const activeCategory = facets.categories.some((o) => o.active && o.depth === 1) || (facets.categoryTitle === "category" && facets.categories.some((o) => o.active));
 
   return (
     <div className={cn("border-t border-line", className)}>
-      <FilterDrawer title="Category" selectedCount={selectedCategory ? 1 : 0} defaultOpen>
-        {categories.length === 0 ? (
-          <div className="flex flex-col gap-3 py-2" aria-hidden="true">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <SkeletonBar key={i} className={i % 2 ? "w-3/5" : "w-4/5"} />
+      {facets.categories.length > 0 ? (
+        <FilterDrawer title={facets.categoryTitle === "subcategory" ? t("groupSubcategory") : t("groupCategory")} selectedCount={activeCategory ? 1 : 0} defaultOpen>
+          <ul className="m-0 flex max-h-[380px] list-none flex-col overflow-y-auto p-0">
+            {facets.categories.map((option) => (
+              <li key={option.key}>
+                <Link
+                  href={option.href}
+                  onClick={onNavigate}
+                  aria-current={option.active ? "page" : undefined}
+                  className={cn(
+                    "group/opt flex min-h-11 items-center justify-between gap-3 text-ui-sm",
+                    option.depth === 1 && "pl-4",
+                    option.active ? "font-semibold text-ink" : "text-ink-muted hover-device:hover:text-ink",
+                  )}
+                >
+                  <span className="relative py-1">
+                    {option.name}
+                    {option.active ? <span aria-hidden="true" className="shelf-rule-solid absolute inset-x-0 -bottom-0.5" /> : null}
+                  </span>
+                  <span className="tabular meta text-ink-subtle">{option.count}</span>
+                </Link>
+              </li>
             ))}
-          </div>
-        ) : (
-          <div role="radiogroup" aria-label="Category" className="max-h-[360px] overflow-y-auto">
-            <Radio name={`${name}-cat`} label="All categories" checked={!selectedCategory} onChange={() => onCategoryChange("")} wrapperClassName="py-1.5" />
-            <CategoryOptions cats={categories} depth={0} selected={selectedCategory} onChange={onCategoryChange} name={`${name}-cat`} />
-          </div>
-        )}
-      </FilterDrawer>
+          </ul>
+        </FilterDrawer>
+      ) : null}
 
-      <FilterDrawer title="Price" selectedCount={priceCount} defaultOpen={priceCount > 0}>
-        <form
-          className="grid grid-cols-2 gap-3 pt-1"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onMinPriceChange(toBase(draftMin));
-            onMaxPriceChange(toBase(draftMax));
-          }}
-        >
-          <Input label="Min" size="sm" inputMode="decimal" prefix={symbol} value={draftMin} onChange={(e) => setDraftMin(e.target.value.replace(/[^0-9.]/g, ""))} onBlur={() => onMinPriceChange(toBase(draftMin))} />
-          <Input label="Max" size="sm" inputMode="decimal" prefix={symbol} value={draftMax} onChange={(e) => setDraftMax(e.target.value.replace(/[^0-9.]/g, ""))} onBlur={() => onMaxPriceChange(toBase(draftMax))} />
-          <button type="submit" className="sr-only">
-            Apply price
-          </button>
-        </form>
-        {priceBounds && priceBounds.max > priceBounds.min ? (
-          <PriceRange
-            bounds={{ min: Math.floor(priceBounds.min * rate), max: Math.ceil(priceBounds.max * rate) }}
-            value={{
-              min: draftMin ? Number(draftMin) : Math.floor(priceBounds.min * rate),
-              max: draftMax ? Number(draftMax) : Math.ceil(priceBounds.max * rate),
-            }}
-            format={format}
-            onCommit={(v) => {
-              const lo = Math.floor(priceBounds.min * rate);
-              const hi = Math.ceil(priceBounds.max * rate);
-              onMinPriceChange(v.min > lo ? toBase(String(v.min)) : "");
-              onMaxPriceChange(v.max < hi ? toBase(String(v.max)) : "");
-            }}
-          />
-        ) : null}
-      </FilterDrawer>
+      {facets.price ? (
+        <FilterDrawer title={t("groupPrice")} selectedCount={priceCount} defaultOpen>
+          <PriceGroup bounds={facets.price} minPrice={selection.minPrice} maxPrice={selection.maxPrice} onChange={onChange} />
+        </FilterDrawer>
+      ) : null}
 
-      {brands.length > 0 ? (
-        <FilterDrawer title="Brand" selectedCount={selectedBrand ? 1 : 0} defaultOpen={Boolean(selectedBrand)}>
-          <div role="radiogroup" aria-label="Brand" className="max-h-[300px] overflow-y-auto">
-            <Radio name={`${name}-brand`} label="All brands" checked={!selectedBrand} onChange={() => onBrandChange("")} wrapperClassName="py-1.5" />
-            {brands.map((brand) => (
-              <Radio key={brand} name={`${name}-brand`} label={brand} checked={selectedBrand === brand} onChange={() => onBrandChange(brand)} wrapperClassName="py-1.5" />
+      {showBrands ? (
+        <FilterDrawer title={t("groupBrand")} selectedCount={selection.brand ? 1 : 0} defaultOpen={Boolean(selection.brand)}>
+          <div role="radiogroup" aria-label={t("groupBrand")} className="max-h-[300px] overflow-y-auto">
+            <Radio name={`${name}-brand`} label={t("allBrands")} checked={!selection.brand} onChange={() => onChange({ brand: null })} wrapperClassName="py-1.5" />
+            {facets.brands.map((brand) => (
+              <Radio
+                key={brand.name}
+                name={`${name}-brand`}
+                label={brand.name}
+                count={brand.count}
+                checked={selection.brand === brand.name}
+                onChange={() => onChange({ brand: brand.name })}
+                wrapperClassName="py-1.5"
+              />
             ))}
           </div>
         </FilterDrawer>
       ) : null}
 
-      {extraGroups}
-
-      <FilterDrawer title="Availability" selectedCount={availabilityCount} defaultOpen={availabilityCount > 0}>
-        <Checkbox dense label="In stock only" checked={inStock} onChange={(e) => onInStockChange(e.target.checked)} />
-        <Checkbox dense label="Reduced" checked={onSale} onChange={(e) => onSaleChange(e.target.checked)} />
-      </FilterDrawer>
+      {showInStock || showOnSale ? (
+        <FilterDrawer title={t("groupAvailability")} selectedCount={availabilityCount} defaultOpen={availabilityCount > 0}>
+          {showInStock ? <Checkbox dense label={t("inStockOnly")} count={facets.inStockCount} checked={selection.inStock} onChange={(e) => onChange({ inStock: e.target.checked })} /> : null}
+          {showOnSale ? <Checkbox dense label={t("reduced")} count={facets.onSaleCount} checked={selection.onSale} onChange={(e) => onChange({ onSale: e.target.checked })} /> : null}
+        </FilterDrawer>
+      ) : null}
     </div>
   );
 }
@@ -312,10 +362,11 @@ export function FilterSummary({
   onClearAll?: () => void;
   className?: string;
 }) {
+  const t = useTranslations("catalog");
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("flex min-w-0 flex-col gap-3", className)}>
       <p className="tabular text-ui-sm text-ink" aria-live="polite">
-        {[`${total} ${total === 1 ? "product" : "products"}`, ...parts].join(" · ")}
+        {[t("products", { count: total }), ...parts].join(" · ")}
       </p>
       {chips.length > 0 ? (
         <FilterChipRow onClearAll={onClearAll}>
@@ -341,25 +392,26 @@ export function ProductFiltersDrawer({
   onClearAll: () => void;
   children: ReactNode;
 }) {
+  const t = useTranslations("catalog");
   const titleId = useId();
   return (
     <Sheet open={open} onClose={onClose} side="left" labelledBy={titleId} motion="drawer-left">
       <div className="flex h-full flex-col">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-line pl-4 pr-2">
           <h2 id={titleId} className="text-step-2 leading-none">
-            Filter
+            {t("filtersTitle")}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Close filters" className="flex size-11 cursor-pointer items-center justify-center text-ink">
+          <button type="button" onClick={onClose} aria-label={t("closeFilters")} className="flex size-11 cursor-pointer items-center justify-center text-ink">
             <X size={20} aria-hidden="true" />
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4">{children}</div>
         <div className="flex shrink-0 items-center justify-between gap-4 border-t border-line bg-raised px-4 py-3">
           <Button variant="ghost" onPress={onClearAll}>
-            Clear all
+            {t("clearAll")}
           </Button>
           <Button onPress={onClose} className="flex-1">
-            Show {total} {total === 1 ? "product" : "products"}
+            {t("showProducts", { count: total })}
           </Button>
         </div>
       </div>

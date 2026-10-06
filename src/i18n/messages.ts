@@ -12,6 +12,11 @@ export const MESSAGE_NAMESPACES = [
   "contact",
   "errors",
   "notifications",
+  "policies",
+  "faq",
+  "catalog",
+  "forms",
+  "about",
 ] as const;
 
 export async function loadMessages(locale: string) {

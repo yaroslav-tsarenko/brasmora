@@ -1,201 +1,37 @@
-import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/shared/SEO/JsonLd";
-import { MarketplaceHome } from "@/components/home/MarketplaceHome/MarketplaceHome";
-import {
-  getFeaturedProducts,
-  getSaleProducts,
-  getNewProducts,
-  getPopularProducts,
-  getHomepageCategorySections,
-  getBrandSections,
-  pickForShelf,
-  TOP_BRANDS,
-} from "@/lib/homepage-products";
+import { getHomeData } from "@/components/home/data";
+import { DresserHero } from "@/components/home/DresserHero";
+import { DrawerChest } from "@/components/home/DrawerChest";
+import { TopShelf } from "@/components/home/TopShelf";
+import { PlateRack } from "@/components/home/PlateRack";
+import { HooksRow } from "@/components/home/HooksRow";
+import { ReducedBand } from "@/components/home/ReducedBand";
+import { NewOnShelf } from "@/components/home/NewOnShelf";
+import { CareCupboard } from "@/components/home/CareCupboard";
+import { NewsletterPlaque } from "@/components/home/NewsletterPlaque";
 import { BRAND, SITE_URL } from "@/lib/brand";
+import { COMPANY } from "@/lib/company";
+import { POLICY_FACTS } from "@/lib/policy-facts";
 
 export const dynamic = "force-dynamic";
 
-function serialize<T>(data: T): T {
-  return JSON.parse(JSON.stringify(data));
-}
-
-async function getHomeData() {
-  try {
-    const productInclude = {
-      images: { orderBy: { sortOrder: "asc" as const }, take: 1 },
-      categories: {
-        include: { category: { select: { name: true, slug: true } } },
-      },
-    };
-
-    const [
-      heroSlides,
-      dealCards,
-      promoSmall,
-      promoWide,
-      brands,
-      sections,
-      tabs,
-      utilityLinks,
-      promoStripItems,
-      allActiveProducts,
-      categoriesWithChildren,
-    ] = await Promise.all([
-      prisma.banner.findMany({ where: { isActive: true, type: "HERO" }, orderBy: { sortOrder: "asc" } }),
-      prisma.banner.findMany({ where: { isActive: true, type: "DEAL_CARD" }, orderBy: { sortOrder: "asc" } }),
-      prisma.banner.findMany({ where: { isActive: true, type: "PROMO_SMALL" }, orderBy: { sortOrder: "asc" } }),
-      prisma.banner.findMany({ where: { isActive: true, type: "PROMO_WIDE" }, orderBy: { sortOrder: "asc" } }),
-      prisma.brand.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-      prisma.homepageSection.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-      prisma.homepageTab.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-      prisma.utilityLink.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-      prisma.promoStripItem.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-      prisma.product.findMany({
-        where: { status: "ACTIVE" },
-        omit: { metadata: true, costPrice: true },
-        include: productInclude,
-        orderBy: { createdAt: "desc" },
-        take: 500,
-      }),
-      prisma.category.findMany({
-        where: { isActive: true, parentId: null },
-        orderBy: { sortOrder: "asc" },
-        include: {
-          children: {
-            where: { isActive: true },
-            orderBy: { sortOrder: "asc" },
-            select: { id: true, name: true, slug: true },
-          },
-          _count: { select: { products: true } },
-        },
-      }),
-    ]);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const products = allActiveProducts as any[];
-
-    // Acquirer compliance: every homepage section must show its own distinct
-    // assortment — no product may appear in two sections. Sections claim their
-    // picks in the order they render on the page; later sections draw only
-    // from what is left.
-    const claimed = new Set<string>();
-    const unclaimed = () => products.filter((p) => !claimed.has(p.id));
-    const claim = <T extends { id: string }>(picked: T[]): T[] => {
-      picked.forEach((p) => claimed.add(p.id));
-      return picked;
-    };
-
-    const popularProducts = claim(getPopularProducts(unclaimed(), 10));
-    const saleProducts = claim(getSaleProducts(unclaimed(), 15));
-
-    const categorySections = getHomepageCategorySections(
-      unclaimed(),
-      categoriesWithChildren.map((c) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        children: c.children,
-        _count: c._count,
-      })),
-      10,
-      6,
-    );
-    categorySections.forEach((cs) => claim(cs.products));
-
-    const sectionProducts: Record<string, typeof allActiveProducts> = {};
-    for (const section of sections) {
-      let pool = unclaimed();
-      switch (section.filterType) {
-        case "featured":
-          pool = pool.filter((p) => p.isFeatured);
-          break;
-        case "newest":
-          pool = [...pool].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          break;
-        case "onSale":
-          pool = pool.filter((p) => p.comparePrice !== null);
-          break;
-        case "category":
-          if (section.categorySlug) {
-            pool = pool.filter((p) =>
-              p.categories.some((c: { category: { slug: string } }) => c.category.slug === section.categorySlug)
-            );
-          }
-          break;
-        case "popular":
-          pool = [...pool].sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          break;
-        case "all":
-        default:
-          break;
-      }
-      // Same shelf picker the helper sections use, so an admin-defined section
-      // is drawn from this store's slice of the shared catalogue too.
-      sectionProducts[section.slug] = claim(pickForShelf(
-        pool,
-        section.maxProducts,
-        `section:${section.slug}`,
-      ));
-    }
-
-    const newProducts = claim(getNewProducts(unclaimed(), 10));
-    const featuredProducts = getFeaturedProducts(unclaimed(), 10);
-    const brandSections = getBrandSections(unclaimed(), TOP_BRANDS, 8);
-
-    const categoryShowcase = categoriesWithChildren.map((c) => {
-      const directCount = c._count.products;
-      const childSlugs = c.children.map((ch) => ch.slug);
-      const childProductCount = childSlugs.length > 0
-        ? products.filter((p: { categories?: { category: { slug: string } }[] }) =>
-            p.categories?.some((pc) => childSlugs.includes(pc.category.slug))
-          ).length
-        : 0;
-      return {
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        imageUrl: null as string | null,
-        productCount: directCount + childProductCount,
-      };
-    }).filter((c) => c.productCount > 0)
-      .sort((a, b) => b.productCount - a.productCount)
-      .slice(0, 8);
-
-    return serialize({
-      heroSlides,
-      dealCards,
-      promoSmall,
-      promoWide,
-      brands,
-      sections,
-      tabs,
-      utilityLinks,
-      promoStripItems,
-      sectionProducts,
-      categories: categoriesWithChildren,
-      featuredProducts,
-      saleProducts,
-      newProducts,
-      popularProducts,
-      categorySections,
-      brandSections,
-      categoryShowcase,
-    });
-  } catch (e) {
-    console.error("Homepage data fetch error:", e);
-    return {
-      heroSlides: [], dealCards: [], promoSmall: [], promoWide: [],
-      brands: [], sections: [], tabs: [], utilityLinks: [],
-      promoStripItems: [], sectionProducts: {}, categories: [],
-      featuredProducts: [], saleProducts: [], newProducts: [],
-      popularProducts: [], categorySections: [], brandSections: [],
-      categoryShowcase: [],
-    };
-  }
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("home");
+  const title = t("metaTitle", { brand: BRAND.name });
+  const description = t("metaDescription", {
+    brand: BRAND.name,
+    dispatchFrom: POLICY_FACTS.dispatchFrom,
+    withdrawalDays: POLICY_FACTS.withdrawalDays,
+    warrantyMonths: POLICY_FACTS.warrantyMonths,
+  });
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: "/" },
+    openGraph: { title, description, url: "/", type: "website", siteName: BRAND.name },
+  };
 }
 
 export default async function HomePage() {
@@ -207,13 +43,39 @@ export default async function HomePage() {
         data={{
           "@context": "https://schema.org",
           "@type": "Organization",
+          "@id": `${SITE_URL}/#organization`,
           name: BRAND.name,
+          legalName: COMPANY.name,
           url: SITE_URL,
-          description: "Your trusted source for electrical materials, wiring, and installation supplies.",
+          logo: `${SITE_URL}/logo.svg`,
+          email: COMPANY.email,
+          ...(COMPANY.phone ? { telephone: COMPANY.phone } : {}),
         }}
       />
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <MarketplaceHome data={data as any} />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "@id": `${SITE_URL}/#website`,
+          name: BRAND.name,
+          url: SITE_URL,
+          publisher: { "@id": `${SITE_URL}/#organization` },
+          potentialAction: {
+            "@type": "SearchAction",
+            target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
+      <DresserHero hero={data.hero} />
+      <DrawerChest drawers={data.drawers} totalProducts={data.totalProducts} />
+      <TopShelf ranked={data.topShelf.ranked} products={data.topShelf.products} />
+      <PlateRack category={data.rack.category} products={data.rack.products} />
+      <HooksRow categories={data.hooks.categories} products={data.hooks.products} />
+      <ReducedBand products={data.reduced} />
+      <NewOnShelf products={data.newest} />
+      <CareCupboard />
+      <NewsletterPlaque />
     </>
   );
 }

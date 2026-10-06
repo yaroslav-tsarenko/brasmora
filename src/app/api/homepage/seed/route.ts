@@ -1,334 +1,142 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { POLICY_FACTS } from "@/lib/policy-facts";
+
+const PAINT = "#3B2620";
+const RETIRED_SECTION_SLUGS = ["best-deals", "popular", "new-arrivals", "electronics", "recommended", "home-essentials", "all-products"];
+const CHALK = "#F1F3F2";
+
+async function removeStale<T extends { id: string }>(rows: T[], keep: Set<string>, remove: (ids: string[]) => Promise<unknown>) {
+  const stale = rows.filter((r) => r.id.startsWith("seed-") && !keep.has(r.id)).map((r) => r.id);
+  if (stale.length > 0) await remove(stale);
+}
 
 export async function POST() {
   try {
-    // ── Utility Links ──────────────────────────────────
-    const utilityLinks = [
-      { label: "About Us", linkUrl: "/about", icon: "Info", position: "left", sortOrder: 0 },
-      { label: "Payment & Delivery", linkUrl: "/payment-delivery", icon: "Truck", position: "left", sortOrder: 1 },
-      { label: "Returns & Warranty", linkUrl: "/returns", icon: "RotateCcw", position: "left", sortOrder: 2 },
-      { label: "FAQ", linkUrl: "/faq", icon: "HelpCircle", position: "left", sortOrder: 3 },
-      { label: "Order Info", linkUrl: "/order-info", icon: "Package", position: "left", sortOrder: 4 },
-      { label: "Contacts", linkUrl: "/contacts", icon: "Phone", position: "right", sortOrder: 5 },
-    ];
-
-    for (const link of utilityLinks) {
-      await prisma.utilityLink.upsert({
-        where: { id: `seed-utility-${link.sortOrder}` },
-        update: link,
-        create: { id: `seed-utility-${link.sortOrder}`, ...link },
-      });
-    }
-
-    // ── Promo Strip Items ──────────────────────────────
-    const promoStripItems = [
-      { icon: "Truck", title: "Free Delivery", subtitle: "On orders over £100", sortOrder: 0 },
-      { icon: "RotateCcw", title: "Easy Returns", subtitle: "30-day return policy", sortOrder: 1 },
-      { icon: "Shield", title: "2-Year Warranty", subtitle: "Official guarantee", sortOrder: 2 },
-      { icon: "Gift", title: "Gift Cards", subtitle: "Perfect for any occasion", sortOrder: 3 },
-      { icon: "Award", title: "Premium Quality", subtitle: "Certified products", sortOrder: 4 },
-      { icon: "Headphones", title: "24/7 Support", subtitle: "Always here to help", sortOrder: 5 },
-    ];
-
-    for (const item of promoStripItems) {
-      await prisma.promoStripItem.upsert({
-        where: { id: `seed-promo-${item.sortOrder}` },
-        update: item,
-        create: { id: `seed-promo-${item.sortOrder}`, ...item },
-      });
-    }
-
-    // ── Homepage Tabs ──────────────────────────────────
-    const tabs = [
-      { label: "Offers", icon: "Flame", linkUrl: "/offers", color: "#2E5E4E", sortOrder: 0 },
-      { label: "Apple Store", icon: "Apple", linkUrl: "/brands/apple", color: "#1E2420", sortOrder: 1 },
-      { label: "Dyson Store", icon: "Wind", linkUrl: "/brands/dyson", color: "#4A6B7C", sortOrder: 2 },
-      { label: "Get Bonus", icon: "Star", linkUrl: "/bonus", color: "#9A6B15", sortOrder: 3 },
-      { label: "Mobile App", icon: "Smartphone", linkUrl: "/app", color: "#3F7A54", sortOrder: 4 },
-      { label: "Gaming World", icon: "Gamepad2", linkUrl: "/gaming", color: "#A8402F", sortOrder: 5 },
-      { label: "Tips", icon: "Lightbulb", linkUrl: "/tips", color: "#234A3D", sortOrder: 6 },
-      { label: "New Arrivals", icon: "Sparkles", linkUrl: "/new-arrivals", color: "#8FB3A3", sortOrder: 7 },
-      { label: "Outlet", icon: "Tag", linkUrl: "/outlet", color: "#A5561F", sortOrder: 8 },
-    ];
-
-    for (const tab of tabs) {
-      await prisma.homepageTab.upsert({
-        where: { id: `seed-tab-${tab.sortOrder}` },
-        update: tab,
-        create: { id: `seed-tab-${tab.sortOrder}`, ...tab },
-      });
-    }
-
-    // ── Hero Slides (Banners type HERO) ────────────────
-    const heroSlides = [
-      {
-        type: "HERO" as const,
-        title: "Summer Electronics Sale",
-        subtitle: "Up to 40% off on top brands",
-        description: "Discover amazing deals on smartphones, laptops, and accessories. Limited time offer!",
-        linkUrl: "/offers/summer-sale",
-        ctaLabel: "Shop Now",
-        bgColor: "#1E2420",
-        textColor: "#F4F2ED",
-        badgeText: "HOT DEAL",
-        sortOrder: 0,
-      },
-      {
-        type: "HERO" as const,
-        title: "Smart Home Collection",
-        subtitle: "Transform your living space",
-        description: "Explore our curated selection of smart home devices from leading brands.",
-        linkUrl: "/categories/smart-home",
-        ctaLabel: "Explore",
-        bgColor: "#2E5E4E",
-        textColor: "#F4F2ED",
-        badgeText: "NEW",
-        sortOrder: 1,
-      },
-      {
-        type: "HERO" as const,
-        title: "Gaming Gear Festival",
-        subtitle: "Level up your setup",
-        description: "Premium gaming laptops, peripherals, and accessories at unbeatable prices.",
-        linkUrl: "/gaming",
-        ctaLabel: "Game On",
-        bgColor: "#234A3D",
-        textColor: "#F4F2ED",
-        badgeText: "GAMING",
-        sortOrder: 2,
-      },
-    ];
-
-    for (let i = 0; i < heroSlides.length; i++) {
-      await prisma.banner.upsert({
-        where: { id: `seed-hero-${i}` },
-        update: heroSlides[i],
-        create: { id: `seed-hero-${i}`, ...heroSlides[i] },
-      });
-    }
-
-    // ── Deal Cards (Banners type DEAL_CARD) ────────────
-    const dealCards = [
-      {
-        type: "DEAL_CARD" as const,
-        title: "Wireless Earbuds Pro",
-        subtitle: "Noise Cancelling",
-        description: "Premium sound quality with active noise cancellation and 30-hour battery life.",
-        linkUrl: "/products/wireless-earbuds-pro",
-        ctaLabel: "Buy Now",
-        bgColor: "#F4F2ED",
-        textColor: "#1E2420",
-        oldPrice: "$149.99",
-        newPrice: "$89.99",
-        discountText: "-40%",
-        sortOrder: 0,
-      },
-      {
-        type: "DEAL_CARD" as const,
-        title: "4K Action Camera",
-        subtitle: "Waterproof",
-        description: "Capture every adventure in stunning 4K resolution. Waterproof up to 30m.",
-        linkUrl: "/products/4k-action-camera",
-        ctaLabel: "Buy Now",
-        bgColor: "#F4F2ED",
-        textColor: "#1E2420",
-        oldPrice: "$299.99",
-        newPrice: "$199.99",
-        discountText: "-33%",
-        sortOrder: 1,
-      },
-    ];
-
-    for (let i = 0; i < dealCards.length; i++) {
-      await prisma.banner.upsert({
-        where: { id: `seed-deal-${i}` },
-        update: dealCards[i],
-        create: { id: `seed-deal-${i}`, ...dealCards[i] },
-      });
-    }
-
-    // ── Small Promo Banners ────────────────────────────
-    const smallPromos = [
-      {
-        type: "PROMO_SMALL" as const,
-        title: "Smartphones",
-        subtitle: "From $299",
-        linkUrl: "/categories/smartphones",
-        ctaLabel: "View All",
-        bgColor: "#E4EEE9",
-        textColor: "#234A3D",
-        sortOrder: 0,
-      },
-      {
-        type: "PROMO_SMALL" as const,
-        title: "Laptops",
-        subtitle: "From $499",
-        linkUrl: "/categories/laptops",
-        ctaLabel: "View All",
-        bgColor: "#F6EADF",
-        textColor: "#52290E",
-        sortOrder: 1,
-      },
-      {
-        type: "PROMO_SMALL" as const,
-        title: "Accessories",
-        subtitle: "From $9.99",
-        linkUrl: "/categories/accessories",
-        ctaLabel: "View All",
-        bgColor: "#ECE8DF",
-        textColor: "#1E2420",
-        sortOrder: 2,
-      },
-    ];
-
-    for (let i = 0; i < smallPromos.length; i++) {
-      await prisma.banner.upsert({
-        where: { id: `seed-promo-small-${i}` },
-        update: smallPromos[i],
-        create: { id: `seed-promo-small-${i}`, ...smallPromos[i] },
-      });
-    }
-
-    // ── Wide Promo Banner ──────────────────────────────
-    const widePromo = {
-      type: "PROMO_WIDE" as const,
-      title: "Free Shipping Weekend",
-      subtitle: "No minimum order required",
-      description: "This weekend only — enjoy free shipping on all orders. No promo code needed!",
-      linkUrl: "/offers/free-shipping",
-      ctaLabel: "Shop Now",
-      bgColor: "#E4EEE9",
-      textColor: "#234A3D",
-      badgeText: "LIMITED TIME",
-      sortOrder: 0,
-    };
-
-    await prisma.banner.upsert({
-      where: { id: "seed-promo-wide-0" },
-      update: widePromo,
-      create: { id: "seed-promo-wide-0", ...widePromo },
+    const categories = await prisma.category.findMany({
+      where: { isActive: true, parentId: null },
+      orderBy: { sortOrder: "asc" },
+      select: { name: true, slug: true, description: true, _count: { select: { products: true } } },
     });
+    const stocked = categories.filter((c) => c._count.products > 0);
 
-    // ── Brands ─────────────────────────────────────────
-    const brands = [
-      "Apple", "Samsung", "Sony", "LG", "Xiaomi",
-      "Lenovo", "ASUS", "Dyson", "Bosch", "Philips",
-      "JBL", "LEGO", "Nike", "Electrolux", "Canon",
+    const utilityLinks = [
+      { label: "Delivery", linkUrl: "/policies/shipping", icon: "Truck", position: "left" },
+      { label: "Returns & refunds", linkUrl: "/policies/returns", icon: "RotateCcw", position: "left" },
+      { label: "Warranty", linkUrl: "/policies/warranty", icon: "ShieldCheck", position: "left" },
+      { label: "FAQ", linkUrl: "/faq", icon: "CircleHelp", position: "left" },
+      { label: "About", linkUrl: "/about", icon: "Info", position: "right" },
+      { label: "Contact us", linkUrl: "/contact", icon: "Mail", position: "right" },
+    ].map((link, sortOrder) => ({ id: `seed-utility-${sortOrder}`, ...link, sortOrder }));
+
+    const promoStripItems = [
+      { icon: "Truck", title: "Delivery to the UK and EU", subtitle: `Free on orders of ${POLICY_FACTS.freeThreshold} or more`, linkUrl: "/policies/shipping" },
+      { icon: "RotateCcw", title: `${POLICY_FACTS.withdrawalDays}-day cancellation`, subtitle: "From the day you receive your order", linkUrl: "/policies/returns" },
+      { icon: "ShieldCheck", title: `${POLICY_FACTS.warrantyMonths}-month warranty`, subtitle: "Covers faults under our Warranty Policy", linkUrl: "/policies/warranty" },
+      { icon: "CreditCard", title: "Card payments", subtitle: POLICY_FACTS.cardMethods, linkUrl: "/policies/payment" },
+    ].map((item, sortOrder) => ({ id: `seed-promo-${sortOrder}`, ...item, sortOrder }));
+
+    const tabs = stocked.map((c, sortOrder) => ({
+      id: `seed-tab-${sortOrder}`,
+      label: c.name,
+      icon: null,
+      linkUrl: `/catalog/${c.slug}`,
+      color: PAINT,
+      sortOrder,
+    }));
+
+    const banners = [
+      ...stocked.slice(0, 3).map((c, sortOrder) => ({
+        id: `seed-hero-${sortOrder}`,
+        type: "HERO" as const,
+        title: c.name,
+        subtitle: null,
+        description: c.description,
+        linkUrl: `/catalog/${c.slug}`,
+        ctaLabel: `Shop ${c.name.toLowerCase()}`,
+        bgColor: PAINT,
+        textColor: CHALK,
+        badgeText: null,
+        oldPrice: null,
+        newPrice: null,
+        discountText: null,
+        sortOrder,
+      })),
+      ...stocked.slice(3, 6).map((c, sortOrder) => ({
+        id: `seed-promo-small-${sortOrder}`,
+        type: "PROMO_SMALL" as const,
+        title: c.name,
+        subtitle: null,
+        description: null,
+        linkUrl: `/catalog/${c.slug}`,
+        ctaLabel: "View all",
+        bgColor: CHALK,
+        textColor: PAINT,
+        badgeText: null,
+        oldPrice: null,
+        newPrice: null,
+        discountText: null,
+        sortOrder,
+      })),
     ];
 
-    for (let i = 0; i < brands.length; i++) {
-      const slug = brands[i].toLowerCase().replace(/\s+/g, "-");
-      await prisma.brand.upsert({
-        where: { id: `seed-brand-${i}` },
-        update: { name: brands[i], logoUrl: `/brands/${slug}.svg`, linkUrl: `/brands/${slug}`, sortOrder: i },
-        create: {
-          id: `seed-brand-${i}`,
-          name: brands[i],
-          logoUrl: `/brands/${slug}.svg`,
-          linkUrl: `/brands/${slug}`,
-          sortOrder: i,
-        },
-      });
-    }
+    const productBrands = await prisma.product.groupBy({
+      by: ["brand"],
+      where: { status: "ACTIVE", brand: { not: null } },
+      _count: { brand: true },
+      orderBy: { _count: { brand: "desc" } },
+    });
+    const brands = productBrands
+      .filter((b): b is typeof b & { brand: string } => Boolean(b.brand))
+      .map((b, sortOrder) => ({
+        id: `seed-brand-${sortOrder}`,
+        name: b.brand,
+        logoUrl: null,
+        linkUrl: `/search?q=${encodeURIComponent(b.brand)}`,
+        sortOrder,
+      }));
 
-    // ── Homepage Sections ──────────────────────────────
     const sections = [
-      {
-        title: "Best Deals",
-        subtitle: "Save big on top products",
-        slug: "best-deals",
-        filterType: "onSale",
-        maxProducts: 5,
-        viewAllUrl: "/offers",
-        viewAllLabel: "View all deals",
-        bgStyle: "white",
-        columns: 5,
-        sortOrder: 0,
-      },
-      {
-        title: "Popular Products",
-        subtitle: "Most loved by our customers",
-        slug: "popular",
-        filterType: "featured",
-        maxProducts: 5,
-        viewAllUrl: "/popular",
-        viewAllLabel: "View all",
-        bgStyle: "white",
-        columns: 5,
-        sortOrder: 1,
-      },
-      {
-        title: "New Arrivals",
-        subtitle: "Just landed in store",
-        slug: "new-arrivals",
-        filterType: "newest",
-        maxProducts: 5,
-        viewAllUrl: "/new-arrivals",
-        viewAllLabel: "View all new",
-        bgStyle: "gray",
-        columns: 5,
-        sortOrder: 2,
-      },
-      {
-        title: "Electronics",
-        subtitle: "Top electronics picks",
-        slug: "electronics",
+      { title: "New on the shelf", subtitle: null, slug: "new-on-the-shelf", filterType: "newest", categorySlug: null, viewAllUrl: "/catalog?sort=newest", viewAllLabel: "Newest first" },
+      { title: "Reduced", subtitle: "Lowered prices, with the previous price shown beside each", slug: "reduced", filterType: "onSale", categorySlug: null, viewAllUrl: "/catalog?onSale=true", viewAllLabel: "See everything reduced" },
+      ...stocked.slice(0, 4).map((c) => ({
+        title: c.name,
+        subtitle: c.description,
+        slug: `category-${c.slug}`,
         filterType: "category",
-        categorySlug: "electronics",
-        maxProducts: 5,
-        viewAllUrl: "/categories/electronics",
-        viewAllLabel: "View all",
-        bgStyle: "white",
-        columns: 5,
-        sortOrder: 3,
-      },
-      {
-        title: "Recommended for You",
-        subtitle: "Based on trending items",
-        slug: "recommended",
-        filterType: "popular",
-        maxProducts: 5,
-        viewAllUrl: "/recommended",
-        viewAllLabel: "View all",
-        bgStyle: "white",
-        columns: 5,
-        sortOrder: 4,
-      },
-      {
-        title: "Home Essentials",
-        subtitle: "Everything for your home",
-        slug: "home-essentials",
-        filterType: "category",
-        categorySlug: "home-garden",
-        maxProducts: 5,
-        viewAllUrl: "/categories/home-garden",
-        viewAllLabel: "View all",
-        bgStyle: "gray",
-        columns: 5,
-        sortOrder: 5,
-      },
-      {
-        title: "All Products",
-        subtitle: "Browse our full catalog",
-        slug: "all-products",
-        filterType: "all",
-        maxProducts: 10,
-        viewAllUrl: "/products",
-        viewAllLabel: "View all products",
-        bgStyle: "white",
-        columns: 5,
-        sortOrder: 6,
-      },
-    ];
+        categorySlug: c.slug,
+        viewAllUrl: `/catalog/${c.slug}`,
+        viewAllLabel: `All ${c.name.toLowerCase()}`,
+      })),
+    ].map((section, sortOrder) => ({ ...section, maxProducts: 8, bgStyle: "white", columns: 4, sortOrder }));
 
-    for (const section of sections) {
-      await prisma.homepageSection.upsert({
-        where: { slug: section.slug },
-        update: section,
-        create: section,
-      });
-    }
+    await prisma.$transaction(async (tx) => {
+      for (const { id, ...data } of utilityLinks) {
+        await tx.utilityLink.upsert({ where: { id }, update: data, create: { id, ...data } });
+      }
+      for (const { id, ...data } of promoStripItems) {
+        await tx.promoStripItem.upsert({ where: { id }, update: data, create: { id, ...data } });
+      }
+      for (const { id, ...data } of tabs) {
+        await tx.homepageTab.upsert({ where: { id }, update: data, create: { id, ...data } });
+      }
+      for (const { id, ...data } of banners) {
+        await tx.banner.upsert({ where: { id }, update: data, create: { id, ...data } });
+      }
+      for (const { id, ...data } of brands) {
+        await tx.brand.upsert({ where: { id }, update: data, create: { id, ...data } });
+      }
+      for (const section of sections) {
+        await tx.homepageSection.upsert({ where: { slug: section.slug }, update: section, create: section });
+      }
+
+      await tx.homepageSection.deleteMany({ where: { slug: { in: RETIRED_SECTION_SLUGS } } });
+      await removeStale(await tx.utilityLink.findMany({ select: { id: true } }), new Set(utilityLinks.map((r) => r.id)), (ids) => tx.utilityLink.deleteMany({ where: { id: { in: ids } } }));
+      await removeStale(await tx.promoStripItem.findMany({ select: { id: true } }), new Set(promoStripItems.map((r) => r.id)), (ids) => tx.promoStripItem.deleteMany({ where: { id: { in: ids } } }));
+      await removeStale(await tx.homepageTab.findMany({ select: { id: true } }), new Set(tabs.map((r) => r.id)), (ids) => tx.homepageTab.deleteMany({ where: { id: { in: ids } } }));
+      await removeStale(await tx.banner.findMany({ select: { id: true } }), new Set(banners.map((r) => r.id)), (ids) => tx.banner.deleteMany({ where: { id: { in: ids } } }));
+      await removeStale(await tx.brand.findMany({ select: { id: true } }), new Set(brands.map((r) => r.id)), (ids) => tx.brand.deleteMany({ where: { id: { in: ids } } }));
+    });
 
     return NextResponse.json({
       success: true,
@@ -336,10 +144,7 @@ export async function POST() {
         utilityLinks: utilityLinks.length,
         promoStripItems: promoStripItems.length,
         tabs: tabs.length,
-        heroSlides: heroSlides.length,
-        dealCards: dealCards.length,
-        smallPromos: smallPromos.length,
-        widePromos: 1,
+        banners: banners.length,
         brands: brands.length,
         sections: sections.length,
       },

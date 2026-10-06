@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { QuantitySelector } from "@/components/shared/QuantitySelector/QuantitySelector";
-import { PriceDisplay } from "@/components/shared/PriceDisplay/PriceDisplay";
 import { Cubby } from "@/components/product/ShelfTile/ShelfTile";
-import { useCart } from "@/providers/CartProvider";
+import { cartItemCap, useCart } from "@/providers/CartProvider";
+import { useCurrency } from "@/providers/CurrencyProvider";
+import { formatPrice } from "@/lib/utils/format-price";
+import { roundMoney } from "@/lib/pricing";
 import { cn } from "@/lib/utils/cn";
 import type { CartItem as CartItemType } from "@/types/cart";
 
@@ -14,10 +16,13 @@ interface CartItemProps {
   item: CartItemType;
   size?: "compact" | "full";
   onNavigate?: () => void;
+  actions?: ReactNode;
 }
 
-export function CartItem({ item, size = "compact", onNavigate }: CartItemProps) {
-  const { updateQuantity, removeItem } = useCart();
+export function CartItem({ item, size = "compact", onNavigate, actions }: CartItemProps) {
+  const { updateQuantity, removeItem, itemCount } = useCart();
+  const { convert, currency } = useCurrency();
+  const lineTotal = roundMoney(convert(item.price) * item.quantity);
   const [removing, setRemoving] = useState(false);
   const full = size === "full";
 
@@ -43,17 +48,25 @@ export function CartItem({ item, size = "compact", onNavigate }: CartItemProps) 
               <Link href={`/product/${item.slug}`} onClick={onNavigate} className="line-clamp-2 text-ui-sm font-medium leading-[1.4] text-ink hover-device:hover:underline">
                 {item.name}
               </Link>
-              <PriceDisplay price={item.price * item.quantity} size="sm" className="shrink-0" />
+              <span className="tabular shrink-0 font-display text-step-1 leading-[1.1] text-ink">{formatPrice(lineTotal, currency)}</span>
             </div>
             {item.variantName ? <p className="meta text-ink-muted">{item.variantName}</p> : null}
+            {full && item.quantity > 1 ? (
+              <p className="meta tabular text-ink-muted">
+                {item.quantity} × {formatPrice(convert(item.price), currency)}
+              </p>
+            ) : null}
             <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
               <QuantitySelector
                 quantity={item.quantity}
-                maxQuantity={item.maxQuantity}
+                maxQuantity={cartItemCap(item, itemCount)}
+                showStockHint={cartItemCap(item, itemCount) >= item.maxQuantity}
                 size={full ? "md" : "compact"}
                 label={`Quantity of ${item.name}`}
                 onChange={(qty) => updateQuantity(item.productId, qty, item.variantId)}
               />
+              <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
+              {actions}
               <button
                 type="button"
                 onClick={remove}
@@ -63,6 +76,7 @@ export function CartItem({ item, size = "compact", onNavigate }: CartItemProps) 
                 <Trash2 size={16} aria-hidden="true" />
                 Remove<span className="sr-only"> {item.name}</span>
               </button>
+              </span>
             </div>
           </div>
         </div>

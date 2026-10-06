@@ -1,10 +1,19 @@
 {
-  "about": "About Us",
-  "contact": "Contact",
-  "shipping": "Shipping & Delivery",
-  "returns": "Returns & Refunds",
-  "privacy": "Privacy Policy",
-  "terms": "Terms of Service",
+  "about": "About",
+  "contact": "Contact us",
+  "shipping": "Delivery",
+  "returns": "Returns and refunds",
+  "warranty": "Warranty",
+  "payment": "Payment",
+  "faq": "Questions",
+  "privacy": "Privacy policy",
+  "terms": "Terms and conditions",
+  "cookies": "Cookie policy",
+  "complaints": "Complaints",
+  "acceptableUse": "Acceptable use",
+  "allPolicies": "All policies",
+  "cookieSettings": "Cookie settings",
+  "tradingName": "{brand} is a trading name of {company}.",
   "copyright": "© {year} {storeName}. All rights reserved.",
-  "followUs": "Follow Us"
+  "followUs": "Follow us"
 }

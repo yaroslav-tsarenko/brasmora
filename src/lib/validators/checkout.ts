@@ -1,43 +1,77 @@
 import { z } from "zod";
+import { STORE_POLICY } from "@/config/store-policy";
+import { addressFields, dialCountryField, emailField, nameField, phoneNumberField } from "./fields";
 
-export const checkoutContactSchema = z.object({
-  email: z.string().email("Valid email is required"),
-  phone: z.string().optional(),
+export const checkoutAddressSchema = z.object({
+  firstName: nameField("firstNameRequired"),
+  lastName: nameField("lastNameRequired"),
+  ...addressFields,
 });
 
-export const checkoutShippingSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  address1: z.string().min(1, "Address is required"),
-  address2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
-  province: z.string().optional(),
-  postalCode: z.string().min(1, "Postal code is required"),
-  country: z.string().min(1, "Country is required"),
+export type CheckoutAddress = z.infer<typeof checkoutAddressSchema>;
+
+export const checkoutFormSchema = z
+  .object({
+    contact: z.object({
+      email: emailField,
+      firstName: nameField("firstNameRequired"),
+      lastName: nameField("lastNameRequired"),
+      phoneCountry: dialCountryField,
+      phone: phoneNumberField,
+    }),
+    delivery: z.object({
+      street: addressFields.street,
+      address2: addressFields.address2,
+      city: addressFields.city,
+      country: addressFields.country,
+      postcode: addressFields.postcode,
+    }),
+    shippingMethod: z.literal("standard"),
+    billingSameAsDelivery: z.boolean(),
+    billing: z
+      .object({
+        firstName: z.string().trim().optional(),
+        lastName: z.string().trim().optional(),
+        street: z.string().trim().optional(),
+        address2: z.string().trim().optional(),
+        city: z.string().trim().optional(),
+        country: z.string().trim().optional(),
+        postcode: z.string().trim().optional(),
+      })
+      .optional(),
+    acceptedPolicies: z.boolean().refine((v) => v === true, "policiesRequired"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.billingSameAsDelivery) return;
+    const result = checkoutAddressSchema.safeParse(data.billing ?? {});
+    if (result.success) return;
+    for (const issue of result.error.issues) {
+      ctx.addIssue({ code: "custom", message: issue.message, path: ["billing", ...issue.path] });
+    }
+  });
+
+export type CheckoutFormData = z.infer<typeof checkoutFormSchema>;
+
+export const checkoutItemsSchema = z
+  .array(
+    z.object({
+      productId: z.string().min(1),
+      quantity: z.number().int().min(1).max(STORE_POLICY.limits.maxQtyPerItem),
+      variantName: z.string().max(200).optional().nullable(),
+    }),
+  )
+  .min(1, "cartEmpty")
+  .max(STORE_POLICY.limits.maxItemsPerOrder);
+
+export const checkoutQuoteSchema = z.object({
+  items: checkoutItemsSchema,
+  currency: z.string().optional(),
+  discountCode: z.string().trim().max(40).optional().nullable(),
 });
 
-export const cardSchema = z.object({
-  number: z.string().min(13, "Card number is too short").max(19, "Card number is too long").refine((val) => {
-    const clean = val.replace(/\s+/g, "");
-    const isVisa = /^4/.test(clean);
-    const isMaster = /^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[0-1]|2720)/.test(clean);
-    return isVisa || isMaster;
-  }, "Only VISA or Mastercard cards are accepted"),
-  holder: z.string().min(1, "Card holder name is required"),
-  expiryMonth: z.string().length(2, "Must be 2 digits (e.g. 05)"),
-  expiryYear: z.string().length(4, "Must be 4 digits (e.g. 2034)"),
-  cvv: z.string().min(3, "CVV is too short").max(4, "CVV is too long"),
+export const checkoutRequestSchema = checkoutQuoteSchema.extend({
+  form: checkoutFormSchema,
+  expectedTotal: z.number().nonnegative(),
 });
 
-export const checkoutSchema = z.object({
-  contact: checkoutContactSchema,
-  shipping: checkoutShippingSchema,
-  shippingMethod: z.string().min(1, "Shipping method is required"),
-  notes: z.string().optional(),
-  discountCode: z.string().optional(),
-  acceptedPolicies: z
-    .boolean()
-    .refine((v) => v === true, "You must accept the Terms and Conditions and the Privacy Policy"),
-});
-
-export type CheckoutFormData = z.infer<typeof checkoutSchema>;
+export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;

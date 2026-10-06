@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { CheckoutFooter } from "@/components/checkout/CheckoutFrame";
 import { BRAND } from "@/lib/brand";
 import { COMPANY } from "@/lib/company";
 import { HELP_LINKS, NAV_CATEGORIES, POLICY_LINKS } from "@/config/navigation";
@@ -65,7 +67,7 @@ function SmallPrintLinks() {
   );
 }
 
-function CredentialPlaque() {
+export function CredentialPlaque({ stacked = false }: { stacked?: boolean } = {}) {
   const rows: { label: string; value: React.ReactNode }[] = [
     { label: "Company number", value: COMPANY.companyNumber },
     ...(COMPANY.vatRegistered ? [{ label: "VAT number", value: COMPANY.vatNumber }] : []),
@@ -99,7 +101,7 @@ function CredentialPlaque() {
       <p className="mt-1 text-ui-sm">
         {BRAND.name} is a trading name of {COMPANY.name}.
       </p>
-      <dl className="m-0 mt-5 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className={cn("m-0 mt-5 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2", !stacked && "lg:grid-cols-4")}>
         {rows.map((row) => (
           <div key={row.label} className="min-w-0">
             <dt className="eyebrow text-[0.75rem] opacity-80">{row.label}</dt>
@@ -111,7 +113,7 @@ function CredentialPlaque() {
   );
 }
 
-export function Footer() {
+function StoreFooter() {
   const year = new Date().getFullYear();
 
   return (
@@ -174,4 +176,10 @@ export function Footer() {
       </div>
     </footer>
   );
+}
+
+export function Footer() {
+  const pathname = usePathname();
+  if (pathname === "/checkout" || pathname.startsWith("/checkout/")) return <CheckoutFooter />;
+  return <StoreFooter />;
 }

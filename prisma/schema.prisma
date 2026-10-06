@@ -19,6 +19,7 @@ model User {
   avatarUrl    String?
   role         UserRole  @default(CUSTOMER)
   phone        String?
+  termsAcceptedAt DateTime?
 
   welcomeDiscountUsed    Boolean @default(false)
   newsletterDiscountUsed Boolean @default(false)
@@ -217,10 +218,16 @@ model Order {
   discountCode    String?
   discountPercent Decimal? @db.Decimal(5, 2)
   total           Decimal
+  currency        String   @default("GBP")
+  exchangeRate    Decimal  @default(1) @db.Decimal(18, 8)
+  chargeTotal     Decimal? @db.Decimal(12, 2)
+  billingAddress  Json?
+  termsAcceptedAt DateTime?
 
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod String?
   paymentId     String?
+  paidAt        DateTime?
 
   notes String?
   items OrderItem[]

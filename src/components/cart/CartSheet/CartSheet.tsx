@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { Sheet } from "@/components/ui/Dialog";
@@ -13,7 +14,6 @@ import { useCart } from "@/providers/CartProvider";
 import { useCurrency } from "@/providers/CurrencyProvider";
 import { formatPrice } from "@/lib/utils/format-price";
 import { COMPANY } from "@/lib/company";
-import { SHIPPING } from "@/config/shipping";
 
 const EMPTY_LINKS = [
   { href: "/catalog/cookware", label: "Cookware" },
@@ -22,8 +22,9 @@ const EMPTY_LINKS = [
 ];
 
 export function CartSheet() {
-  const { cart, isSheetOpen, closeSheet } = useCart();
-  const { convert, currency } = useCurrency();
+  const { cart, displayTotals, isSheetOpen, closeSheet } = useCart();
+  const tt = useTranslations("checkout.totals");
+  const { currency } = useCurrency();
   const titleId = useId();
   const count = cart.itemCount;
 
@@ -74,15 +75,15 @@ export function CartSheet() {
               <dl className="m-0 flex flex-col gap-2">
                 <div className="flex items-baseline justify-between gap-4">
                   <dt className="text-ui-sm text-ink-muted">Subtotal</dt>
-                  <dd className="tabular m-0 text-ui-sm text-ink">{formatPrice(convert(cart.subtotal), currency)}</dd>
+                  <dd className="tabular m-0 text-ui-sm text-ink">{formatPrice(displayTotals.subtotal, currency)}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-4">
                   <dt className="text-ui-sm text-ink-muted">Delivery</dt>
-                  <dd className="m-0 text-ui-sm text-ink-muted">{SHIPPING.cartNote}</dd>
+                  <dd className="tabular m-0 text-ui-sm text-ink">{displayTotals.shipping === 0 ? tt("free") : formatPrice(displayTotals.shipping, currency)}</dd>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-line pt-3">
                   <dt className="text-step-0 font-medium text-ink">{COMPANY.vatRegistered ? "Total incl. VAT" : "Total"}</dt>
-                  <dd className="tabular m-0 font-display text-step-2 leading-none text-ink">{formatPrice(convert(cart.subtotal), currency)}</dd>
+                  <dd className="tabular m-0 font-display text-step-2 leading-none text-ink">{formatPrice(displayTotals.total, currency)}</dd>
                 </div>
               </dl>
               <Button as={Link} href="/checkout" size="lg" fullWidth onClick={closeSheet} className="mt-5">

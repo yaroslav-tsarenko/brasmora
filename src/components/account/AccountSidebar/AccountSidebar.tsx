@@ -1,68 +1,101 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
-import { LayoutGrid, Package, CircleUser, MapPin, Heart, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
-const navItems = [
-  { href: "/account", icon: <LayoutGrid size={18} />, labelKey: "title" as const },
-  { href: "/account/orders", icon: <Package size={18} />, labelKey: "orders" as const },
-  { href: "/account/profile", icon: <CircleUser size={18} />, labelKey: "profile" as const },
-  { href: "/account/addresses", icon: <MapPin size={18} />, labelKey: "addresses" as const },
-  { href: "/account/wishlist", icon: <Heart size={18} />, labelKey: "wishlist" as const },
-];
+const NAV = [
+  { href: "/account", key: "overview" },
+  { href: "/account/orders", key: "orders" },
+  { href: "/account/wishlist", key: "saved" },
+  { href: "/account/addresses", key: "addresses" },
+  { href: "/account/profile", key: "profile" },
+] as const;
 
-const linkBase =
-  "flex items-center gap-3 px-3 py-2.5 text-sm transition-colors no-underline max-md:shrink-0 max-md:whitespace-nowrap max-md:px-3.5 max-md:py-2 max-md:text-[0.8125rem]";
+function isActive(pathname: string, href: string) {
+  return href === "/account" ? pathname === "/account" : pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function AccountSidebar() {
   const pathname = usePathname();
-  const t = useTranslations("account");
-  const { user, signOut } = useAuth();
+  const t = useTranslations("account.nav");
+  const { signOut } = useAuth();
 
   return (
-    <aside className="w-60 max-md:w-full bg-surface-1 border border-line py-6 max-md:py-4 flex flex-col h-fit sticky top-8 max-md:static">
-      <div className="flex items-center gap-3 px-5 max-md:px-4 pb-5 max-md:pb-3 border-b border-line mb-3 max-md:mb-2">
-        <div className="w-10 h-10 bg-brand text-on-brand flex items-center justify-center font-bold text-base shrink-0">
-          {(user?.name?.[0] || user?.email?.[0] || "U").toUpperCase()}
-        </div>
-        <div>
-          <p className="font-semibold text-sm leading-[1.2]">{user?.name || "User"}</p>
-          <p className="text-xs text-ink-subtle overflow-hidden text-ellipsis whitespace-nowrap max-w-[150px]">
-            {user?.email}
-          </p>
-        </div>
-      </div>
-      <nav className="flex flex-col gap-0.5 px-3 max-md:flex-row max-md:overflow-x-auto max-md:gap-1.5 max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
-        {navItems.map((item) => {
-          const isActive =
-            pathname.endsWith(item.href) ||
-            (item.href !== "/account" && pathname.includes(item.href));
+    <nav aria-label={t("label")} className="hidden lg:block">
+      <ul className="m-0 flex list-none flex-col border-t border-line p-0">
+        {NAV.map((item) => {
+          const active = isActive(pathname, item.href);
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`${linkBase} ${
-                isActive
-                  ? "bg-surface-2 text-ink font-semibold"
-                  : "text-ink-muted hover:bg-surface-2 hover:text-ink"
-              }`}
-            >
-              {item.icon}
-              {t(item.labelKey)}
-            </Link>
+            <li key={item.href} data-drawer="" className="border-b border-line">
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-12 items-center text-step-0 transition-[transform,color] duration-[160ms] ease-[var(--ease-furniture)]",
+                  active ? "translate-x-1.5 font-medium text-ink" : "text-ink-muted hover-device:hover:text-ink",
+                )}
+              >
+                {t(item.key)}
+              </Link>
+              {active ? <span aria-hidden="true" className="shelf-rule -mb-px" /> : null}
+            </li>
           );
         })}
-        <button
-          className={`${linkBase} text-danger bg-transparent border-0 cursor-pointer w-full text-left mt-2 max-md:mt-0 hover:bg-surface-2`}
-          onClick={signOut}
-        >
-          <LogOut size={18} />
-          {t("logout")}
-        </button>
-      </nav>
-    </aside>
+      </ul>
+      <button
+        type="button"
+        onClick={signOut}
+        className="mt-6 inline-flex min-h-11 cursor-pointer items-center gap-2 text-ui-sm text-ink-muted underline decoration-1 underline-offset-4 hover-device:hover:text-ink"
+      >
+        <LogOut size={16} aria-hidden="true" />
+        {t("signOut")}
+      </button>
+    </nav>
+  );
+}
+
+export function AccountTabs() {
+  const pathname = usePathname();
+  const t = useTranslations("account.nav");
+  const { signOut } = useAuth();
+  return (
+    <nav aria-label={t("label")} className="no-scrollbar -mx-gutter overflow-x-auto border-b border-line px-gutter lg:hidden">
+      <ul className="m-0 flex w-max list-none gap-6 p-0">
+        {NAV.map((item) => {
+          const active = isActive(pathname, item.href);
+          return (
+            <li key={item.href} className="relative">
+              <Link href={item.href} aria-current={active ? "page" : undefined} className={cn("flex min-h-12 items-center whitespace-nowrap text-ui-md", active ? "font-medium text-ink" : "text-ink-muted")}>
+                {t(item.key)}
+              </Link>
+              {active ? <span aria-hidden="true" className="shelf-rule absolute inset-x-0 bottom-0" /> : null}
+            </li>
+          );
+        })}
+        <li>
+          <button type="button" onClick={signOut} className="flex min-h-12 cursor-pointer items-center whitespace-nowrap text-ui-md text-ink-muted">
+            {t("signOut")}
+          </button>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+export function AccountPageHeader({ title, aside, children }: { title: ReactNode; aside?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="mb-8 flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h1 className="m-0 text-step-4 leading-[1.05] text-ink">{title}</h1>
+        {aside}
+      </div>
+      {children}
+      <AccountTabs />
+    </div>
   );
 }

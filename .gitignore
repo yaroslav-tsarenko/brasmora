@@ -54,3 +54,6 @@ claude-code-ecommerce-free.md
 
 /data/bigbuy-cache/
 /data/catalog-preview.json
+
+# local credentials
+/addons

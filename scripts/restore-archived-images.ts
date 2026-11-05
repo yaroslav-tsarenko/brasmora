@@ -63,6 +63,17 @@ async function download(url: string, timestamp: string): Promise<{ body: Buffer;
   return null;
 }
 
+async function withRetry<T>(fn: () => Promise<T>, attempts = 5): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= attempts) throw err;
+      await new Promise((r) => setTimeout(r, 3000 * attempt));
+    }
+  }
+}
+
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T, index: number) => Promise<void>) {
   let next = 0;
   await Promise.all(
@@ -123,7 +134,7 @@ async function main() {
     if (APPLY) {
       const now = new Date().toISOString();
       const mark = { checkedAt: now, restoredFromArchiveAt: now, supplierDelisted: true };
-      await prisma.$transaction([
+      await withRetry(() => prisma.$transaction([
         prisma.productImage.deleteMany({ where: { productId: product.id } }),
         prisma.productImage.createMany({ data: recovered.map((r, order) => ({ url: r.url, alt: r.alt, sortOrder: order, productId: product.id })) }),
         prisma.$executeRaw`
@@ -131,7 +142,7 @@ async function main() {
           SET status = 'ACTIVE', quantity = 0, "trackInventory" = true, "updatedAt" = now(),
               metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{imageHealth}', ${JSON.stringify(mark)}::jsonb)
           WHERE id = ${product.id}`,
-      ]);
+      ], { maxWait: 20_000, timeout: 60_000 }));
     }
     if ((i + 1) % 50 === 0) console.log(`  ${i + 1}/${work.length}: restored ${restored}, photos ${photos}, failed ${failed}`);
   });

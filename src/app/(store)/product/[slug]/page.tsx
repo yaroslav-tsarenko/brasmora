@@ -18,7 +18,7 @@ import { productJsonLd, validGtin13 } from "@/components/product/product-structu
 import { getCategoryTree, loadShelfProducts } from "@/components/catalog/catalog-query";
 import type { ProductVariantOption } from "@/components/product/VariantSelector/VariantSelector";
 
-export const revalidate = 60;
+export const revalidate = 86400;
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
